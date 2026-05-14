@@ -143,6 +143,13 @@ public class PostLikeService {
         return PageResponse.from(responses);
     }
 
+    /**
+     * 현재 로그인한 사용자가 특정 게시글에 좋아요했는지 확인
+     */
+    public boolean isLikedByUser(Long userId, Long postId) {
+        return postLikeRepository.existsByMember_UserIdAndPost_PostId(userId, postId);
+    }
+
     private LikedPostResponse toLikedPostResponse(
             PostLike postLike,
             Long userId

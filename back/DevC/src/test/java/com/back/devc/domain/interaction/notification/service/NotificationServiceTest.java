@@ -18,6 +18,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -71,21 +75,24 @@ class NotificationServiceTest {
         when(notification.getCreatedAt()).thenReturn(LocalDateTime.now());
 
         Member actor = mock(Member.class);
-        Post post = mock(Post.class);
         when(actor.getNickname()).thenReturn("작성자B");
 
-        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(loginUserId)).thenReturn(List.of(notification));
-        when(postRepository.findById(100L)).thenReturn(Optional.of(post));
-        when(post.isDeleted()).thenReturn(false);
+        when(notificationRepository.findAvailableByUserIdOrderByCreatedAtDesc(eq(loginUserId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(notification), PageRequest.of(0, 20), 1));
         when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
 
         // when
-        NotificationListResponse response = notificationService.getMyNotifications(loginUserId);
+        NotificationListResponse response = notificationService.getMyNotifications(loginUserId, 0, 20, "all");
 
         // then
         assertNotNull(response);
-        verify(notificationRepository).findByUserIdOrderByCreatedAtDesc(loginUserId);
-        verify(postRepository).findById(100L);
+        assertThat(response.notifications()).hasSize(1);
+        assertThat(response.page()).isEqualTo(0);
+        assertThat(response.size()).isEqualTo(20);
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.totalPages()).isEqualTo(1);
+        assertThat(response.hasNext()).isFalse();
+        verify(notificationRepository).findAvailableByUserIdOrderByCreatedAtDesc(eq(loginUserId), any(Pageable.class));
         verify(memberRepository).findById(actorUserId);
     }
 

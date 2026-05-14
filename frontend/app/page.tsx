@@ -215,6 +215,7 @@ export default function HomePage() {
       }
     } catch (err) {
       if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        setPosts([])
         setError("북마크는 로그인 후 확인할 수 있습니다.")
       } else {
         setError(
@@ -328,10 +329,12 @@ export default function HomePage() {
             <TrendingUp className="h-4 w-4" />
             인기글
           </TabsTrigger>
+
           <TabsTrigger value="latest">
             <Clock className="h-4 w-4" />
             최신글
           </TabsTrigger>
+
           <TabsTrigger value="feed">
             <Users className="h-4 w-4" />
             북마크

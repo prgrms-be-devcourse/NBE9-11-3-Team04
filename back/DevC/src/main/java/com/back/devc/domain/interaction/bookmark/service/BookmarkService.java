@@ -115,6 +115,13 @@ public class BookmarkService {
         return PageResponse.from(responses);
     }
 
+    /**
+     * 현재 로그인한 사용자가 특정 게시글을 북마크했는지 확인
+     */
+    public boolean isBookmarkedByUser(Long userId, Long postId) {
+        return bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId);
+    }
+
     private BookmarkedPostResponse toBookmarkedPostResponse(
             Bookmark bookmark,
             Long userId

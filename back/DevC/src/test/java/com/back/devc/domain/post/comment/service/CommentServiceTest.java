@@ -18,6 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -26,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +53,9 @@ class CommentServiceTest {
 
     @Mock
     private PostService postService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private CommentService commentService;
@@ -88,7 +96,7 @@ class CommentServiceTest {
         assertThat(response.content()).isEqualTo("첫 댓글입니다.");
         // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
-        verify(notificationService).createCommentNotification(postId, loginUserId, 1L);
+        verify(eventPublisher).publishEvent(any(Object.class));
     }
 
     @Test
@@ -123,7 +131,7 @@ class CommentServiceTest {
         assertThat(response.commentId()).isEqualTo(2L);
         // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
-        verify(notificationService).createCommentNotification(postId, loginUserId, 2L);
+        verify(eventPublisher).publishEvent(any(Object.class));
     }
 
     @Test
@@ -165,7 +173,7 @@ class CommentServiceTest {
         assertThat(response.content()).isEqualTo("대댓글입니다.");
         // 대댓글 작성 성공 시 부모 댓글이 속한 게시글의 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
-        verify(notificationService).createReplyNotification(parentCommentId, loginUserId, 200L);
+        verify(eventPublisher).publishEvent(any(Object.class));
     }
 
     @Test
@@ -182,7 +190,7 @@ class CommentServiceTest {
         // 현재 서비스는 삭제된 부모 댓글에 답글 작성 시 공통 예외 ApiException을 발생시킴
         assertThrows(ApiException.class,
                 () -> commentService.createReply(parentCommentId, 2L, new CommentCreateRequest("대댓글")));
-        verify(notificationService, never()).createReplyNotification(any(), any(), any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test
@@ -251,28 +259,26 @@ class CommentServiceTest {
         Comment parent = new Comment(postId, 1L, null, "부모 댓글");
         ReflectionTestUtils.setField(parent, "id", 1L);
 
-        Comment reply = new Comment(postId, 2L, 1L, "대댓글");
-        ReflectionTestUtils.setField(reply, "id", 2L);
-
         Member parentWriter = mock(Member.class);
-        Member replyWriter = mock(Member.class);
         when(memberRepository.findById(1L)).thenReturn(Optional.of(parentWriter));
-        when(memberRepository.findById(2L)).thenReturn(Optional.of(replyWriter));
         when(parentWriter.getNickname()).thenReturn("작성자A");
-        when(replyWriter.getNickname()).thenReturn("작성자B");
 
-        when(commentRepository.findByPostIdOrderByCreatedAtAsc(postId)).thenReturn(List.of(parent, reply));
+        when(commentRepository.findByPostIdAndParentCommentIdIsNullAndIsDeletedFalseOrderByCreatedAtAsc(eq(postId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(parent), PageRequest.of(0, 20), 1));
         when(commentAttachmentService.getAttachments(1L)).thenReturn(new CommentAttachmentListResponse(List.of()));
-        when(commentAttachmentService.getAttachments(2L)).thenReturn(new CommentAttachmentListResponse(List.of()));
 
         // when
-        CommentListResponse response = commentService.getComments(postId);
+        CommentListResponse response = commentService.getComments(postId, 0, 20);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.comments()).hasSize(1);
+        assertThat(response.page()).isEqualTo(0);
+        assertThat(response.size()).isEqualTo(20);
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.totalPages()).isEqualTo(1);
+        assertThat(response.hasNext()).isFalse();
         assertThat(response.comments().get(0).commentId()).isEqualTo(1L);
-        assertThat(response.comments().get(0).replies()).hasSize(1);
-        assertThat(response.comments().get(0).replies().get(0).commentId()).isEqualTo(2L);
+        assertThat(response.comments().get(0).replies()).isEmpty();
     }
 }

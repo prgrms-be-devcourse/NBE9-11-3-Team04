@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState, useCallback } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type React from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -9,15 +9,15 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Settings,
-  FileText,
   Bookmark,
-  Heart,
-  MessageCircle,
   Calendar,
-  MapPin,
-  Link as LinkIcon,
+  FileText,
   Github,
+  Heart,
+  Link as LinkIcon,
+  MapPin,
+  MessageCircle,
+  Settings,
   Twitter,
 } from "lucide-react"
 import {
@@ -136,30 +136,12 @@ const normalizePage = <T,>(
   const safeContent = Array.isArray(page.content) ? page.content : []
 
   const totalElements =
-    page.totalElements && page.totalElements > 0
+    typeof page.totalElements === "number" && page.totalElements >= 0
       ? page.totalElements
       : safeContent.length
 
-  if (safeContent.length > PAGE_SIZE) {
-    const start = requestedPage * PAGE_SIZE
-    const end = start + PAGE_SIZE
-    const slicedContent = safeContent.slice(start, end)
-    const totalPages = Math.max(1, Math.ceil(safeContent.length / PAGE_SIZE))
-
-    return {
-      content: slicedContent,
-      page: requestedPage,
-      size: PAGE_SIZE,
-      totalElements: safeContent.length,
-      totalPages,
-      first: requestedPage === 0,
-      last: requestedPage >= totalPages - 1,
-      hasNext: requestedPage < totalPages - 1,
-    }
-  }
-
   const totalPages =
-    page.totalPages && page.totalPages > 0
+    typeof page.totalPages === "number" && page.totalPages > 0
       ? page.totalPages
       : Math.max(1, Math.ceil(totalElements / PAGE_SIZE))
 
@@ -296,9 +278,7 @@ function mapBookmarkedPostsToPostCard(
   }))
 }
 
-function mapLikedPostsToPostCard(
-  posts: LikedPostResponse[]
-): Post[] {
+function mapLikedPostsToPostCard(posts: LikedPostResponse[]): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
     title: post.title,
@@ -573,7 +553,7 @@ export default function MyPage() {
       }
     }
 
-    fetchInitialData()
+    void fetchInitialData()
   }, [router])
 
   useEffect(() => {
@@ -587,7 +567,7 @@ export default function MyPage() {
       }
     }
 
-    fetchCounts()
+    void fetchCounts()
   }, [isAuthReady, refreshInteractionData])
 
   useEffect(() => {
@@ -615,6 +595,7 @@ export default function MyPage() {
       setDisplayName(nickname)
       setDisplayEmail(email)
       setDisplayUsername(username)
+
       setProfileData({
         bio: profile?.bio?.trim() ?? "",
         location: profile?.location?.trim() ?? "",
@@ -625,6 +606,7 @@ export default function MyPage() {
     }
 
     syncProfile()
+
     window.addEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
     window.addEventListener("storage", syncProfile)
 
@@ -654,8 +636,8 @@ export default function MyPage() {
       }
     }
 
-    fetchBookmarks()
-  }, [activeTab, isAuthReady, fetchBookmarkedPostsPage])
+    void fetchBookmarks()
+  }, [activeTab, isAuthReady, fetchBookmarkedPostsPage, bookmarkedPosts.page])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -674,8 +656,8 @@ export default function MyPage() {
       }
     }
 
-    fetchLikes()
-  }, [activeTab, isAuthReady, fetchLikedPostsPage])
+    void fetchLikes()
+  }, [activeTab, isAuthReady, fetchLikedPostsPage, likedPosts.page])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -694,8 +676,8 @@ export default function MyPage() {
       }
     }
 
-    fetchComments()
-  }, [activeTab, isAuthReady, fetchMyCommentsPage])
+    void fetchComments()
+  }, [activeTab, isAuthReady, fetchMyCommentsPage, myComments.page])
 
   useEffect(() => {
     const handleNotificationsUpdated = async () => {
@@ -730,6 +712,15 @@ export default function MyPage() {
     )
 
     setMyPosts((prev) => ({
+      ...prev,
+      content: prev.content.map((post) =>
+        post.postId === postId
+          ? { ...post, bookmarked: nextBookmarked }
+          : post
+      ),
+    }))
+
+    setBookmarkedPosts((prev) => ({
       ...prev,
       content: prev.content.map((post) =>
         post.postId === postId
@@ -803,6 +794,19 @@ export default function MyPage() {
     }))
 
     setBookmarkedPosts((prev) => ({
+      ...prev,
+      content: prev.content.map((post) =>
+        post.postId === postId
+          ? {
+              ...post,
+              liked: nextLiked,
+              likeCount: nextLikeCount,
+            }
+          : post
+      ),
+    }))
+
+    setLikedPosts((prev) => ({
       ...prev,
       content: prev.content.map((post) =>
         post.postId === postId
@@ -1051,7 +1055,11 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="bookmarks">
-          {tabLoading ? null : bookmarkedPostCards.length > 0 ? (
+          {tabLoading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              로딩 중...
+            </div>
+          ) : bookmarkedPostCards.length > 0 ? (
             <>
               <div className="grid gap-6">
                 {bookmarkedPostCards.map((post) => (
@@ -1084,7 +1092,11 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="likes">
-          {tabLoading ? null : likedPostCards.length > 0 ? (
+          {tabLoading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              로딩 중...
+            </div>
+          ) : likedPostCards.length > 0 ? (
             <>
               <div className="grid gap-6">
                 {likedPostCards.map((post) => (
@@ -1113,7 +1125,11 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          {tabLoading ? null : myComments.content.length > 0 ? (
+          {tabLoading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              로딩 중...
+            </div>
+          ) : myComments.content.length > 0 ? (
             <>
               <div className="grid gap-4">
                 {myComments.content.map((comment) => (

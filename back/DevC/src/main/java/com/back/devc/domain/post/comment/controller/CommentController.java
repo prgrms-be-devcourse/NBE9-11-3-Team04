@@ -119,8 +119,12 @@ public class CommentController {
     }
 
     @GetMapping("/posts/{postId}/comments")
-    public ResponseEntity<SuccessResponse<CommentListResponse>> getComments(@PathVariable Long postId) {
-        CommentListResponse response = commentService.getComments(postId);
+    public ResponseEntity<SuccessResponse<CommentListResponse>> getComments(
+            @PathVariable Long postId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        CommentListResponse response = commentService.getComments(postId, page, size);
         CommentSuccessCode successCode = CommentSuccessCode.COMMENT_200_LIST;
 
         return ResponseEntity
