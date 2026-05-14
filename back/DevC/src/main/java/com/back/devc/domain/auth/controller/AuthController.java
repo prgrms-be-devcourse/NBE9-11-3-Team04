@@ -24,14 +24,11 @@ public class AuthController {
     private final AuthService authService;
     private final AuthCookieService authCookieService;
 
-    @Value("${custom.jwt.access-token-expiration-seconds:3600}")
-    private long accessTokenExpirationSeconds;
-
     // 로그아웃 처리 후 액세스 토큰 쿠키를 만료시키고 성공 응답을 반환한다.
     @PostMapping("/logout")
     public ResponseEntity<SuccessResponse<LogoutResponse>> logout(HttpServletResponse response) {
         LogoutResponse body = authService.logout();
-        authCookieService.setAccessTokenCookie(response, "", 0);
+        authCookieService.expireAccessTokenCookie(response);
 
         AuthSuccessCode successCode = AuthSuccessCode.AUTH_200_LOGOUT_SUCCESS;
         return ResponseEntity
@@ -39,14 +36,14 @@ public class AuthController {
                 .body(SuccessResponse.of(successCode, body));
     }
 
-    // 이메일/비밀번호 로그인 후 토큰 쿠키를 설정하고 로그인 정보를 반환한다.
+    // 이메일/비밀번호 로그인 후 액세스 토큰 쿠키를 설정하고 로그인 정보를 반환한다.
     @PostMapping("/login")
     public ResponseEntity<SuccessResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response
     ) {
         LoginResponse body = authService.login(request);
-        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
+        authCookieService.addAccessTokenCookie(response, body.accessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.AUTH_200_LOGIN_SUCCESS;
         return ResponseEntity
