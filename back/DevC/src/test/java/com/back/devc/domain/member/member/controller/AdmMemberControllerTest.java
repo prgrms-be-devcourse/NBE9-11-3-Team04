@@ -119,7 +119,8 @@ class AdmMemberControllerTest {
     void updateMemberStatus_success() throws Exception {
 
         AdmMemberStatusUpdateRequest request =
-                new AdmMemberStatusUpdateRequest(MemberStatus.ACTIVE);
+                // ACTIVE 상태 변경 시 제한 기간 값은 필요하지 않으므로 null 전달
+                new AdmMemberStatusUpdateRequest(MemberStatus.ACTIVE, null);
 
         AdmMemberDetailResponse response =
                 new AdmMemberDetailResponse(

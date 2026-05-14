@@ -5,7 +5,7 @@ import com.back.devc.domain.post.comment.attachment.entity.CommentAttachment;
 import com.back.devc.domain.post.comment.attachment.repository.CommentAttachmentRepository;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.back.devc.global.exception.ApiException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,7 +82,8 @@ class CommentAttachmentServiceTest {
         given(commentRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> commentAttachmentService.getAttachments(999L))
-                .isInstanceOf(EntityNotFoundException.class)
+                // 현재 서비스는 존재하지 않는 댓글 조회 시 공통 예외 ApiException을 발생시킴
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("댓글을 찾을 수 없습니다.");
     }
 

@@ -10,7 +10,7 @@ import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.back.devc.global.exception.ApiException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,9 +71,12 @@ class NotificationServiceTest {
         when(notification.getCreatedAt()).thenReturn(LocalDateTime.now());
 
         Member actor = mock(Member.class);
+        Post post = mock(Post.class);
         when(actor.getNickname()).thenReturn("작성자B");
 
         when(notificationRepository.findByUserIdOrderByCreatedAtDesc(loginUserId)).thenReturn(List.of(notification));
+        when(postRepository.findById(100L)).thenReturn(Optional.of(post));
+        when(post.isDeleted()).thenReturn(false);
         when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
 
         // when
@@ -82,6 +85,7 @@ class NotificationServiceTest {
         // then
         assertNotNull(response);
         verify(notificationRepository).findByUserIdOrderByCreatedAtDesc(loginUserId);
+        verify(postRepository).findById(100L);
         verify(memberRepository).findById(actorUserId);
     }
 
@@ -110,9 +114,12 @@ class NotificationServiceTest {
         }).when(notification).markAsRead();
 
         Member actor = mock(Member.class);
+        Post post = mock(Post.class);
         when(actor.getNickname()).thenReturn("작성자B");
 
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+        when(postRepository.findById(100L)).thenReturn(Optional.of(post));
+        when(post.isDeleted()).thenReturn(false);
         when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
 
         // when
@@ -136,7 +143,7 @@ class NotificationServiceTest {
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
 
         // when & then
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ApiException.class,
                 () -> notificationService.readNotification(notificationId, loginUserId));
     }
 
@@ -343,7 +350,6 @@ class NotificationServiceTest {
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
         when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(postOwnerId);
-        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(postOwnerId)).thenReturn(List.of());
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
 
@@ -370,7 +376,6 @@ class NotificationServiceTest {
         Comment comment = mock(Comment.class);
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
         when(comment.getUserId()).thenReturn(commentOwnerId);
-        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(commentOwnerId)).thenReturn(List.of());
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
 
