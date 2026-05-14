@@ -4,6 +4,9 @@ import com.back.devc.domain.interaction.bookmark.entity.Bookmark;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,4 +37,41 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
      * 상세조회 응답에 bookmarkCount 를 포함할 때 사용
      */
     long countByPost_PostId(Long postId);
+
+    /**
+     * 북마크 생성
+     *
+     * MySQL / MariaDB 기준:
+     * - 처음 북마크면 1 반환
+     * - 이미 북마크가 있으면 0 반환
+     */
+    @Modifying
+    @Query(
+            value = """
+                    insert ignore into bookmarks (user_id, post_id, created_at)
+                    values (:userId, :postId, now())
+                    """,
+            nativeQuery = true
+    )
+    int insertIgnore(
+            @Param("userId") Long userId,
+            @Param("postId") Long postId
+    );
+
+    /**
+     * 북마크 취소
+     *
+     * - 실제 삭제되면 1 반환
+     * - 이미 취소된 상태면 0 반환
+     */
+    @Modifying
+    @Query("""
+            delete from Bookmark b
+            where b.member.userId = :userId
+            and b.post.postId = :postId
+            """)
+    int deleteByUserIdAndPostId(
+            @Param("userId") Long userId,
+            @Param("postId") Long postId
+    );
 }
