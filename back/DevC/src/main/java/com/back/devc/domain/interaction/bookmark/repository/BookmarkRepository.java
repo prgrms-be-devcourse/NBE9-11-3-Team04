@@ -3,6 +3,8 @@ package com.back.devc.domain.interaction.bookmark.repository;
 import com.back.devc.domain.interaction.bookmark.entity.Bookmark;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +22,8 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     List<Bookmark> findAllByMember(Member member);
 
     List<Bookmark> findAllByMemberAndPost_IsDeletedFalse(Member member);
+
+    Page<Bookmark> findAllByMemberAndPost_IsDeletedFalse(Member member, Pageable pageable);
 
     void deleteByPost_PostId(Long postId);
 

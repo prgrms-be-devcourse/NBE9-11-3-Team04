@@ -6,14 +6,18 @@ import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.entity.Bookmark;
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
+import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.errorcode.BookmarkErrorCode;
+import com.back.devc.global.response.PageResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +29,7 @@ import java.util.List;
 public class BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
+    private final PostLikeRepository postLikeRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
 
@@ -76,27 +81,38 @@ public class BookmarkService {
         );
     }
 
+    /**
+     * 북마크 목록 조회 - 기존 List 방식
+     */
     public List<BookmarkedPostResponse> getBookmarkedPosts(Long userId) {
         Member member = findMemberById(userId);
 
         List<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return bookmarks.stream()
-                .map(bookmark -> {
-                    Post post = bookmark.getPost();
-
-                    return new BookmarkedPostResponse(
-                            post.getPostId(),
-                            post.getTitle(),
-                            MemberDisplayUtil.getDisplayName(post.getMember()),
-                            post.getCategory().getCategoryId(),
-                            post.getLikeCount(),
-                            post.getCommentCount(),
-                            post.getViewCount(),
-                            post.getCreatedAt()
-                    );
-                })
+                .map(bookmark -> toBookmarkedPostResponse(bookmark, userId))
                 .toList();
+    }
+
+    /**
+     * 북마크 목록 조회 - 페이징 방식
+     */
+    public PageResponse<BookmarkedPostResponse> getBookmarkedPosts(
+            Long userId,
+            Pageable pageable
+    ) {
+        Member member = findMemberById(userId);
+
+        Page<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(
+                member,
+                pageable
+        );
+
+        Page<BookmarkedPostResponse> responses = bookmarks.map(
+                bookmark -> toBookmarkedPostResponse(bookmark, userId)
+        );
+
+        return PageResponse.from(responses);
     }
 
     /**
@@ -104,6 +120,34 @@ public class BookmarkService {
      */
     public boolean isBookmarkedByUser(Long userId, Long postId) {
         return bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId);
+    }
+
+    private BookmarkedPostResponse toBookmarkedPostResponse(
+            Bookmark bookmark,
+            Long userId
+    ) {
+        Post post = bookmark.getPost();
+        Long postId = post.getPostId();
+
+        boolean liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
+                userId,
+                postId
+        );
+
+        boolean bookmarked = true;
+
+        return new BookmarkedPostResponse(
+                postId,
+                post.getTitle(),
+                MemberDisplayUtil.getDisplayName(post.getMember()),
+                post.getCategory().getCategoryId(),
+                post.getLikeCount(),
+                post.getCommentCount(),
+                post.getViewCount(),
+                post.getCreatedAt(),
+                liked,
+                bookmarked
+        );
     }
 
     /**
