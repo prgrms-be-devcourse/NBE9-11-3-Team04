@@ -49,6 +49,12 @@ public class CommentService {
                     return new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
                 });
 
+        // 삭제된 게시글에는 댓글을 작성할 수 없도록 차단
+        if (post.isDeleted()) {
+            log.warn("댓글 작성 실패 - 삭제된 게시글, postId={}", postId);
+            throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
+        }
+
         Member member = memberRepository.findById(loginUserId)
                 .orElseThrow(() -> {
                     log.warn("댓글 작성 실패 - 회원 없음, loginUserId={}", loginUserId);
@@ -89,6 +95,12 @@ public class CommentService {
                     log.warn("대댓글 작성 실패 - 게시글 없음, postId={}", parentComment.getPostId());
                     return new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
                 });
+
+        // 삭제된 게시글에는 대댓글을 작성할 수 없도록 차단
+        if (post.isDeleted()) {
+            log.warn("대댓글 작성 실패 - 삭제된 게시글, postId={}", parentComment.getPostId());
+            throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
+        }
 
         Member member = memberRepository.findById(loginUserId)
                 .orElseThrow(() -> {
@@ -147,6 +159,12 @@ public class CommentService {
                     log.warn("댓글 목록 조회 실패 - 게시글 없음, postId={}", postId);
                     return new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
                 });
+
+        // 삭제된 게시글의 댓글 목록은 조회되지 않도록 차단
+        if (post.isDeleted()) {
+            log.warn("댓글 목록 조회 실패 - 삭제된 게시글, postId={}", postId);
+            throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
+        }
 
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
         log.info("댓글 목록 조회 완료 - postId={}, count={}", postId, comments.size());

@@ -8,6 +8,7 @@ import com.back.devc.domain.member.searchLog.dto.CreateSearchLogRequest;
 import com.back.devc.domain.member.searchLog.service.SearchLogService;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
+import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.dto.*;
 import com.back.devc.domain.post.post.entity.Post;
@@ -18,9 +19,11 @@ import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.CategoryErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.exception.errorCode.PostErrorCode;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -229,6 +232,12 @@ public class PostService {
         bookmarkRepository.deleteByPost_PostId(postId);
         postLikeRepository.deleteByPost_PostId(postId);
 
+        // 게시글이 소프트 삭제되면 해당 게시글의 댓글/대댓글도 함께 소프트 삭제 처리
+        // 실제 DB 삭제가 아니라 isDeleted, deletedAt, content 값을 변경해 조회 대상에서 제외
+        commentRepository.findByPostIdAndIsDeletedFalse(postId)
+                .forEach(Comment::softDelete);
+
+        // 게시글 소프트 삭제 처리
         post.delete();
 
         return PostDeleteResponse.of(postId);

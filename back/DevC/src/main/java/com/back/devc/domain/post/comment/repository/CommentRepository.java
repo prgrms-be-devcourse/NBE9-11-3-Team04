@@ -14,6 +14,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 게시글 기준 댓글 조회
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
+    // 게시글 삭제 시 해당 게시글의 삭제되지 않은 댓글/대댓글 조회
+    List<Comment> findByPostIdAndIsDeletedFalse(Long postId);
+
     // 내가 쓴 댓글 조회
     List<Comment> findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
 

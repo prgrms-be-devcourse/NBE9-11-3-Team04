@@ -469,7 +469,10 @@ export default function PostDetailPage() {
         )}
       </section>
 
-      <CommentSection postId={postId} onCommentsChanged={loadPost} />
+      {/* 게시글을 정상적으로 불러온 경우에만 댓글 작성창과 댓글 목록 노출 */}
+      {!loading && !error && post && (
+          <CommentSection postId={postId} onCommentsChanged={loadPost} />
+      )}
     </main>
   )
 }
