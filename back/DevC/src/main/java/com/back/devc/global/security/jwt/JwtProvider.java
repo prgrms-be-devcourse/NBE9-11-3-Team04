@@ -20,6 +20,8 @@ import java.util.Date;
 @Component
 public class JwtProvider {
 
+    private static final String ACCESS_TOKEN_TYPE = "ACCESS";
+
     private final SecretKey secretKey;
     private final long accessTokenExpirationSeconds;
 
@@ -31,13 +33,15 @@ public class JwtProvider {
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
     }
 
+    // 로그인 성공 시 회원 정보를 기반으로 Access Token을 생성
+    // 토큰에는 사용자 식별값, 이메일, 권한, 토큰 타입, 만료 시간이 포함
     public String createAccessToken(Member member) {
         Instant now = Instant.now();
         Instant expiry = now.plusSeconds(accessTokenExpirationSeconds);
 
         return Jwts.builder()
                 .subject(String.valueOf(member.getUserId()))
-                .claim("tokenType", "ACCESS")
+                .claim("tokenType", ACCESS_TOKEN_TYPE)
                 .claim("email", member.getEmail())
                 .claim("role", member.getRole().name())
                 .issuedAt(Date.from(now))
@@ -51,6 +55,8 @@ public class JwtProvider {
         return validateTokenStatus(token).isValid();
     }
 
+    // Access Token으로 사용할 수 있는 토큰인지 검증
+    // 서명/만료/형식 검증을 먼저 수행하고, 이후 tokenType이 ACCESS인지 확인
     public TokenValidationStatus validateAccessTokenStatus(String token) {
         TokenValidationStatus tokenStatus = validateTokenStatus(token);
         if (!tokenStatus.isValid()) {
@@ -58,13 +64,15 @@ public class JwtProvider {
         }
 
         String tokenType = parseClaims(token).get("tokenType", String.class);
-        if (!"ACCESS".equals(tokenType)) {
+        if (!ACCESS_TOKEN_TYPE.equals(tokenType)) {
             return TokenValidationStatus.INVALID_TOKEN_TYPE;
         }
 
         return TokenValidationStatus.VALID;
     }
 
+    // JWT 검증 결과를 TokenValidationStatus로 세분화해 반환
+    // 인증 필터와 EntryPoint가 이 상태값을 기준으로 응답 코드를 결정
     public TokenValidationStatus validateTokenStatus(String token) {
         if (token == null || token.isBlank()) {
             return TokenValidationStatus.MISSING;
