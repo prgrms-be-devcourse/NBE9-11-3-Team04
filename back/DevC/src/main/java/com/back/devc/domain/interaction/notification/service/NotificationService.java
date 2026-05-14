@@ -265,6 +265,8 @@ public class NotificationService {
     public NotificationListResponse getMyNotifications(Long loginUserId) {
         List<NotificationResponse> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(loginUserId)
                 .stream()
+                // 삭제된 게시글과 연결된 알림은 목록에서 제외해 클릭 이동 오류를 방지
+                .filter(this::isNotificationTargetAvailable)
                 .map(this::toResponse)
                 .toList();
 
@@ -284,6 +286,11 @@ public class NotificationService {
 
         if (!notification.getUserId().equals(loginUserId)) {
             throw new ApiException(NotificationErrorCode.NOTIFICATION_403_FORBIDDEN);
+        }
+
+        // 삭제된 게시글과 연결된 알림은 읽음/클릭 처리되지 않도록 차단
+        if (!isNotificationTargetAvailable(notification)) {
+            throw new ApiException(NotificationErrorCode.NOTIFICATION_404_POST_NOT_FOUND);
         }
 
         notification.markAsRead();
@@ -342,6 +349,20 @@ public class NotificationService {
         return memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_MEMBER_NOT_FOUND))
                 .getNickname();
+    }
+
+    // 삭제된 게시글과 연결된 알림인지 확인하는 공통 메서드
+    private boolean isNotificationTargetAvailable(Notification notification) {
+        Long postId = notification.getPostId();
+
+        // 게시글과 직접 연결되지 않은 알림은 기존처럼 노출
+        if (postId == null) {
+            return true;
+        }
+
+        return postRepository.findById(postId)
+                .map(post -> !post.isDeleted())
+                .orElse(false);
     }
 
     // Entity -> Response DTO 변환 메서드
