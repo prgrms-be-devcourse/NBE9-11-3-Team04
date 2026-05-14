@@ -58,7 +58,8 @@ class MemberPublicProfileControllerTest {
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("getPublicProfile"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("USER_200_PUBLIC_PROFILE_SUCCESS"))
+                // 실제 공개 프로필 조회 성공 코드가 MEMBER_200_PUBLIC_PROFILE_GET_SUCCESS로 변경되어 기대값을 현재 응답 코드에 맞춤
+                .andExpect(jsonPath("$.code").value("MEMBER_200_PUBLIC_PROFILE_GET_SUCCESS"))
                 .andExpect(jsonPath("$.data.userId").value(member.getUserId()))
                 .andExpect(jsonPath("$.data.nickname").value("publicUser"))
                 .andExpect(jsonPath("$.data.posts.length()").value(2))
@@ -88,7 +89,8 @@ class MemberPublicProfileControllerTest {
         mvc.perform(get("/api/users/{userId}/profile", member.getUserId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("USER_200_PUBLIC_PROFILE_SUCCESS"))
+                // 실제 공개 프로필 조회 성공 코드가 MEMBER_200_PUBLIC_PROFILE_GET_SUCCESS로 변경되어 기대값을 현재 응답 코드에 맞춤
+                .andExpect(jsonPath("$.code").value("MEMBER_200_PUBLIC_PROFILE_GET_SUCCESS"))
                 .andExpect(jsonPath("$.data.userId").value(member.getUserId()))
                 .andExpect(jsonPath("$.data.nickname").value("noPostsUser"))
                 .andExpect(jsonPath("$.data.posts.length()").value(0));
