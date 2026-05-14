@@ -7,19 +7,21 @@ import com.back.devc.domain.interaction.notification.repository.NotificationRepo
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.comment.service.CommentService.CommentCreatedEvent;
+import com.back.devc.domain.post.comment.service.CommentService.ReplyCreatedEvent;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.NotificationErrorCode;
-import com.back.devc.domain.post.comment.service.CommentService.CommentCreatedEvent;
-import com.back.devc.domain.post.comment.service.CommentService.ReplyCreatedEvent;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
 
@@ -49,10 +51,13 @@ public class NotificationService {
 
     // 알림 저장/조회에 사용하는 JPA Repository.
     private final NotificationRepository notificationRepository;
+
     // 답글 알림 생성 시 부모 댓글 상태(존재 여부, 삭제 여부, 작성자)를 확인할 때 사용
     private final CommentRepository commentRepository;
+
     // actorUserId로 회원 닉네임을 조회해 알림 메시지/응답에 사용
     private final MemberRepository memberRepository;
+
     // 게시글 작성자(userId)를 찾아 "알림 수신자"를 결정할 때 사용
     private final PostRepository postRepository;
 
@@ -126,7 +131,7 @@ public class NotificationService {
      */
     @Transactional
     public void createReplyNotification(Long parentCommentId, Long actorUserId, Long replyCommentId) {
-        Comment parentComment = findCommentOrThrow(parentCommentId, "부모 댓글을 찾을 수 없습니다. id=" + parentCommentId);
+        Comment parentComment = findCommentOrThrow(parentCommentId);
 
         if (parentComment.isDeleted()) {
             return;
@@ -295,20 +300,41 @@ public class NotificationService {
     }
 
     /**
-     * 현재 로그인한 사용자의 알림 목록 조회
+     * 현재 로그인한 사용자의 알림 목록 조회 (탭별 페이징 지원)
      *
-     * 최신 알림이 위로 오도록 createdAt 내림차순으로 조회한 뒤,
-     * 프론트 응답용 NotificationResponse로 변환해서 반환
+     * tab 값
+     * - all      : 전체 알림
+     * - comments : 댓글/대댓글 알림
+     * - likes    : 좋아요 알림
      */
-    public NotificationListResponse getMyNotifications(Long loginUserId) {
-        List<NotificationResponse> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(loginUserId)
+    public NotificationListResponse getMyNotifications(Long loginUserId, int page, int size, String tab) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+
+        List<String> types = resolveNotificationTypes(tab);
+
+        Page<Notification> notificationPage = types.isEmpty()
+                ? notificationRepository.findAvailableByUserIdOrderByCreatedAtDesc(loginUserId, pageable)
+                : notificationRepository.findAvailableByUserIdAndTypeInOrderByCreatedAtDesc(
+                loginUserId,
+                types,
+                pageable
+        );
+
+        List<NotificationResponse> notifications = notificationPage.getContent()
                 .stream()
-                // 삭제된 게시글과 연결된 알림은 목록에서 제외해 클릭 이동 오류를 방지
-                .filter(this::isNotificationTargetAvailable)
                 .map(this::toResponse)
                 .toList();
 
-        return new NotificationListResponse(notifications);
+        return new NotificationListResponse(
+                notifications,
+                notificationPage.getNumber(),
+                notificationPage.getSize(),
+                notificationPage.getTotalElements(),
+                notificationPage.getTotalPages(),
+                notificationPage.hasNext()
+        );
     }
 
     /**
@@ -351,7 +377,7 @@ public class NotificationService {
     }
 
     // 댓글 조회 공통 메서드. 답글 알림 생성 시 부모 댓글 검증에 사용
-    private Comment findCommentOrThrow(Long commentId, String message) {
+    private Comment findCommentOrThrow(Long commentId) {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_PARENT_COMMENT_NOT_FOUND));
     }
@@ -387,6 +413,23 @@ public class NotificationService {
         return memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_MEMBER_NOT_FOUND))
                 .getNickname();
+    }
+
+    // 탭 값에 따라 조회할 알림 타입을 결정
+    private List<String> resolveNotificationTypes(String tab) {
+        if (tab == null || tab.isBlank() || tab.equalsIgnoreCase("all")) {
+            return List.of();
+        }
+
+        if (tab.equalsIgnoreCase("comments")) {
+            return List.of("COMMENT", "REPLY");
+        }
+
+        if (tab.equalsIgnoreCase("likes")) {
+            return List.of("LIKE");
+        }
+
+        return List.of();
     }
 
     // 삭제된 게시글과 연결된 알림인지 확인하는 공통 메서드

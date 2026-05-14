@@ -50,8 +50,18 @@ public class NotificationController {
      * - OAuth 로그인 사용자는 OAuth2User에서 email을 꺼낸 뒤 Member를 조회해서 userId를 얻음
      */
     @GetMapping
-    public ResponseEntity<SuccessResponse<NotificationListResponse>> getMyNotifications(Authentication authentication) {
-        NotificationListResponse response = notificationService.getMyNotifications(getAuthenticatedUserId(authentication));
+    public ResponseEntity<SuccessResponse<NotificationListResponse>> getMyNotifications(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String tab
+    ) {
+        NotificationListResponse response = notificationService.getMyNotifications(
+                getAuthenticatedUserId(authentication),
+                page,
+                size,
+                tab
+        );
         NotificationSuccessCode successCode = NotificationSuccessCode.NOTIFICATION_200_LIST;
 
         return ResponseEntity
