@@ -7,25 +7,30 @@ import { getAccessToken } from "@/lib/auth-storage"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
-  data:{
-  content: {
-    postId: number
-    userId?: number
-    title: string
-    content: string
-    nickName: string
-    categoryId: number
-    viewCount: number
-    likeCount: number
-    commentCount: number
-    liked: boolean
-    bookmarked: boolean
-    createdAt: string
-  }[]
+  data: {
+    content: {
+      postId: number
+      userId?: number
+      title: string
+      content: string
+      nickName: string
+      categoryId: number
+      viewCount: number
+      likeCount: number
+      commentCount: number
+      liked: boolean
+      bookmarked: boolean
+      createdAt: string
+    }[]
+    totalPages: number
+    number: number
+  }
 }
-}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
+const PAGE_SIZE = 10
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -58,52 +63,61 @@ function getAuthHeaders(): HeadersInit {
 export default function LatestPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LATEST`, {
+  const fetchPosts = async (page = 0) => {
+    try {
+      setLoading(true)
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/posts?sort=LATEST&page=${page}&size=${PAGE_SIZE}`,
+        {
           headers: getAuthHeaders(),
           credentials: "include",
           cache: "no-store",
-        })
-
-        if (!response.ok) {
-          throw new Error("최신글을 불러오지 못했습니다.")
         }
+      )
 
-        const res = await response.json()
-        const data: PostPageResponse["data"] = res.data
-
-        const mapped: Post[] = data.content.map((post) => ({
-          id: String(post.postId),
-          title: post.title,
-          excerpt: post.content,
-          author: {
-            name: post.nickName,
-            userId: post.userId,
-          },
-          category: categoryLabelMap[post.categoryId],
-          categorySlug: categorySlugMap[post.categoryId],
-          categoryId: post.categoryId,
-          createdAt: formatTimeAgo(post.createdAt),
-          likes: post.likeCount,
-          comments: post.commentCount,
-          views: post.viewCount,
-          tags: [],
-          liked: post.liked,
-          bookmarked: post.bookmarked,
-        }))
-
-        setPosts(mapped)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error("최신글을 불러오지 못했습니다.")
       }
-    }
 
-    fetchPosts()
+      const res: PostPageResponse = await response.json()
+      const data = res.data
+
+      const mapped: Post[] = data.content.map((post) => ({
+        id: String(post.postId),
+        title: post.title,
+        excerpt: post.content,
+        author: {
+          name: post.nickName,
+          userId: post.userId,
+        },
+        category: categoryLabelMap[post.categoryId],
+        categorySlug: categorySlugMap[post.categoryId],
+        categoryId: post.categoryId,
+        createdAt: formatTimeAgo(post.createdAt),
+        likes: post.likeCount,
+        comments: post.commentCount,
+        views: post.viewCount,
+        tags: [],
+        liked: post.liked,
+        bookmarked: post.bookmarked,
+      }))
+
+      setPosts(mapped)
+      setCurrentPage(data.number)
+      setTotalPages(data.totalPages)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPosts(0)
   }, [])
 
   return (
@@ -114,30 +128,52 @@ export default function LatestPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">최신글</h1>
-          <p className="text-muted-foreground">방금 올라온 따끈따끈한 글들입니다</p>
+          <p className="text-muted-foreground">
+            방금 올라온 따끈따끈한 글들입니다
+          </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground">Loading...</div>
-      ) : (
-        <div className="grid gap-6">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onBookmarkToggle={(postId, nextBookmarked) => {
-                setPosts(prev =>
-                  prev.map(p =>
-                    Number(p.id) === postId
-                      ? { ...p, bookmarked: nextBookmarked }
-                      : p
-                  )
-                )
-              }}
-            />
-          ))}
+        <div className="py-10 text-center text-muted-foreground">
+          로딩중...
         </div>
+      ) : (
+        <>
+          <div className="grid gap-6">
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onBookmarkToggle={(postId, nextBookmarked) => {
+                  setPosts((prev) =>
+                    prev.map((p) =>
+                      Number(p.id) === postId
+                        ? { ...p, bookmarked: nextBookmarked }
+                        : p
+                    )
+                  )
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center gap-2">
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index}
+                onClick={() => fetchPosts(index)}
+                className={`rounded border px-4 py-2 ${
+                  currentPage === index
+                    ? "bg-[#38B8A0] text-black font-bold"
+                    : "bg-black text-white"
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

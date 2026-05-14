@@ -7,22 +7,27 @@ import { useParams } from "next/navigation"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
-  data:{
-  content: {
-    postId: number
-    title: string
-    content: string
-    nickName: string
-    categoryId: number
-    viewCount: number
-    likeCount: number
-    commentCount: number
-    createdAt: string
-  }[]
-}}
+  data: {
+    content: {
+      postId: number
+      title: string
+      content: string
+      nickName: string
+      categoryId: number
+      viewCount: number
+      likeCount: number
+      commentCount: number
+      createdAt: string
+    }[]
+    number: number
+    totalPages: number
+  }
+}
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
+
+const PAGE_SIZE = 10
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -45,65 +50,68 @@ export default function CategoryPage() {
 
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
-  // slug → categoryId 자동 변환
   const categoryMap: Record<string, number> = Object.fromEntries(
     Object.entries(categorySlugMap).map(([id, slug]) => [slug, Number(id)])
   )
 
   const categoryId = categoryMap[slug]
-
-  //category 이름도 constants 기반
   const categoryName = categoryLabelMap[categoryId] ?? slug
 
-  //navigation도 자동 생성
-  const allCategories = Object.entries(categorySlugMap).map(
-    ([id, slug]) => ({
-      slug,
-      name: categoryLabelMap[Number(id)],
-    })
-  )
+  const allCategories = Object.entries(categorySlugMap).map(([id, slug]) => ({
+    slug,
+    name: categoryLabelMap[Number(id)],
+  }))
+
+  const fetchPosts = async (page = 0) => {
+    try {
+      setLoading(true)
+
+      if (!categoryId) return
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/posts?categoryId=${categoryId}&page=${page}&size=${PAGE_SIZE}`,
+        {
+          cache: "no-store",
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("데이터 못불러옴")
+      }
+
+      const res = await response.json()
+      const data: PostPageResponse["data"] = res.data
+
+      const mapped: Post[] = data.content.map((post) => ({
+        id: String(post.postId),
+        title: post.title,
+        excerpt: post.content,
+        author: { name: post.nickName },
+        category: categoryLabelMap[post.categoryId],
+        categorySlug: categorySlugMap[post.categoryId],
+        categoryId: post.categoryId,
+        createdAt: formatTimeAgo(post.createdAt),
+        likes: post.likeCount,
+        comments: post.commentCount,
+        views: post.viewCount,
+        tags: [],
+      }))
+
+      setPosts(mapped)
+      setCurrentPage(data.number)
+      setTotalPages(data.totalPages)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        if (!categoryId) return
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/posts?categoryId=${categoryId}`
-        )
-
-        if (!response.ok) {
-          throw new Error("데이터 못불러옴")
-        }
-
-        const res = await response.json()
-        const data: PostPageResponse["data"] = res.data
-
-        const mapped: Post[] = data.content.map((post) => ({
-          id: String(post.postId),
-          title: post.title,
-          excerpt: post.content,
-          author: { name: post.nickName },
-          category: categoryLabelMap[post.categoryId],
-          categorySlug: categorySlugMap[post.categoryId], 
-          categoryId : post.categoryId,
-          createdAt: formatTimeAgo(post.createdAt),
-          likes: post.likeCount,
-          comments: post.commentCount,
-          views: post.viewCount,
-          tags: [],
-        }))
-
-        setPosts(mapped)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPosts()
+    fetchPosts(0)
   }, [slug, categoryId])
 
   return (
@@ -121,8 +129,8 @@ export default function CategoryPage() {
             href={`/category/${cat.slug}`}
             className={`rounded-full px-4 py-2 text-sm ${
               cat.slug === slug
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                ? "bg-[#38B8A0] text-black font-bold"
+                : "bg-black text-white"
             }`}
           >
             {cat.name}
@@ -132,22 +140,41 @@ export default function CategoryPage() {
 
       {/* Posts */}
       {loading ? (
-        <div className="text-center py-10 text-muted-foreground">
+        <div className="py-10 text-center text-muted-foreground">
           로딩중...
         </div>
       ) : posts.length > 0 ? (
-        <div className="grid gap-6">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-6">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+
+          {/* 페이지네이션 */}
+          <div className="mt-8 flex justify-center gap-2">
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index}
+                onClick={() => fetchPosts(index)}
+                className={`rounded border px-4 py-2 ${
+                  currentPage === index
+                    ? "bg-[#38B8A0] text-black font-bold"
+                    : "bg-black text-white"
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="rounded-lg border p-12 text-center">
           <p className="text-lg font-semibold">
             아직 작성된 글이 없습니다
           </p>
           <Link href={`/write?category=${slug}`}>
-            <button className="mt-4 px-4 py-2 bg-primary text-white rounded">
+            <button className="mt-4 rounded bg-[#38B8A0] px-4 py-2 font-bold text-black">
               글 쓰기
             </button>
           </Link>
