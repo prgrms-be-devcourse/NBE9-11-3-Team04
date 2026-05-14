@@ -13,15 +13,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -174,4 +178,67 @@ public class ApiAuthControllerTest {
                 .andExpect(jsonPath("$.data.role").value("USER"))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
     }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void 동시에_같은_이메일과_닉네임으로_회원가입하면_하나만_성공한다() {
+        String email = "concurrent-signup@test.com";
+        String password = "password123!";
+        String nickname = "concurrentUser";
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        try {
+            CompletableFuture<Integer> firstRequest = CompletableFuture.supplyAsync(
+                    () -> performSignUp(email, password, nickname),
+                    executorService
+            );
+
+            CompletableFuture<Integer> secondRequest = CompletableFuture.supplyAsync(
+                    () -> performSignUp(email, password, nickname),
+                    executorService
+            );
+
+            List<Integer> statuses = List.of(firstRequest.join(), secondRequest.join());
+
+            assertThat(statuses).contains(201);
+            assertThat(statuses).contains(409);
+
+            long savedMemberCount = memberRepository.findAll()
+                    .stream()
+                    .filter(member -> email.equals(member.getEmail()))
+                    .count();
+
+            assertThat(savedMemberCount).isEqualTo(1);
+        } finally {
+            memberRepository.findAll()
+                    .stream()
+                    .filter(member -> email.equals(member.getEmail()) || nickname.equals(member.getNickname()))
+                    .forEach(memberRepository::delete);
+
+            executorService.shutdown();
+        }
+    }
+
+    private int performSignUp(String email, String password, String nickname) {
+        try {
+            return mvc.perform(
+                            post("/api/auth/signup")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("""
+                                        {
+                                          "email": "%s",
+                                          "password": "%s",
+                                          "nickname": "%s"
+                                        }
+                                        """.formatted(email, password, nickname))
+                    )
+                    .andReturn()
+                    .getResponse()
+                    .getStatus();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
