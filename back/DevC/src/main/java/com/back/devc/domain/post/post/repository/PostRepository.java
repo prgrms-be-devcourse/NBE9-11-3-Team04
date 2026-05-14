@@ -6,6 +6,7 @@ import com.back.devc.domain.post.post.entity.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -94,4 +95,31 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         GROUP BY p.member.userId
     """)
     List<CountResultDto> countPostsByUserIds(@Param("userIds") List<Long> userIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Post p
+        set p.likeCount = p.likeCount + 1
+        where p.postId = :postId
+        and p.isDeleted = false
+    """)
+    int increaseLikeCount(@Param("postId") Long postId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Post p
+        set p.likeCount = p.likeCount - 1
+        where p.postId = :postId
+        and p.isDeleted = false
+        and p.likeCount > 0
+    """)
+    int decreaseLikeCount(@Param("postId") Long postId);
+
+    @Query("""
+        select p.likeCount
+        from Post p
+        where p.postId = :postId
+        and p.isDeleted = false
+    """)
+    int findLikeCountByPostId(@Param("postId") Long postId);
 }
