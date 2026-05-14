@@ -6,26 +6,28 @@ import { TrendingUp } from "lucide-react"
 import { categoryLabelMap, categorySlugMap } from "@/constants/category"
 
 type PostPageResponse = {
-  data : {
-  content: {
-    postId: number
-    userId?: number
-    title: string
-    content: string
-    nickName: string
-    categoryId: number
-    viewCount: number
-    likeCount: number
-    commentCount: number
-    createdAt: string
-    liked?: boolean
-    bookmarked?: boolean
-  }[]
-}}
+  data: {
+    content: {
+      postId: number
+      userId?: number
+      title: string
+      content: string
+      nickName: string
+      categoryId: number
+      viewCount: number
+      likeCount: number
+      commentCount: number
+      createdAt: string
+      liked?: boolean
+      bookmarked?: boolean
+    }[]
+    number: number
+    totalPages: number
+  }
+}
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
-
 
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString)
@@ -45,50 +47,59 @@ const formatTimeAgo = (dateString: string) => {
 export default function PopularPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+
+  const fetchPosts = async (page = 0) => {
+    try {
+      setLoading(true)
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/posts?sort=LIKES&page=${page}&size=10`,
+        {
+          credentials: "include",
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("게시글을 불러오지 못했습니다.")
+      }
+
+      const res = await response.json()
+      const data: PostPageResponse["data"] = res.data
+
+      const mapped: Post[] = data.content.map((post) => ({
+        id: String(post.postId),
+        title: post.title,
+        excerpt: post.content,
+        author: {
+          name: post.nickName,
+          userId: post.userId,
+        },
+        category: categoryLabelMap[post.categoryId],
+        categorySlug: categorySlugMap[post.categoryId],
+        categoryId: post.categoryId,
+        createdAt: formatTimeAgo(post.createdAt),
+        likes: post.likeCount,
+        comments: post.commentCount,
+        views: post.viewCount,
+        tags: [],
+        liked: post.liked ?? false,
+        bookmarked: post.bookmarked ?? false,
+      }))
+
+      setPosts(mapped)
+      setCurrentPage(data.number)
+      setTotalPages(data.totalPages)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/posts?sort=LIKES`, {
-          credentials: "include",
-        })
-
-        if (!response.ok) {
-          throw new Error("게시글을 불러오지 못했습니다.")
-        }
-
-        const res = await response.json()
-        const data: PostPageResponse["data"] = res.data
-
-        const mapped: Post[] = data.content.map((post) => ({
-          id: String(post.postId),
-          title: post.title,
-          excerpt: post.content,
-          author: {
-            name: post.nickName,
-            userId: post.userId,
-          },
-          category: categoryLabelMap[post.categoryId],
-          categorySlug: categorySlugMap[post.categoryId],
-          categoryId: post.categoryId,
-          createdAt: formatTimeAgo(post.createdAt),
-          likes: post.likeCount,
-          comments: post.commentCount,
-          views: post.viewCount,
-          tags: [],
-          liked: post.liked ?? false,
-          bookmarked: post.bookmarked ?? false,
-        }))
-
-        setPosts(mapped)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPosts()
+    fetchPosts(0)
   }, [])
 
   return (
@@ -106,18 +117,38 @@ export default function PopularPage() {
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground">로딩중...</div>
-      ) : (
-        <div className="grid gap-6">
-          {posts.map((post, index) => (
-            <div key={post.id} className="relative">
-              <div className="absolute -left-2 -top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                {index + 1}
-              </div>
-              <PostCard post={post} />
-            </div>
-          ))}
+        <div className="py-10 text-center text-muted-foreground">
+          로딩중...
         </div>
+      ) : (
+        <>
+          <div className="grid gap-6">
+            {posts.map((post, index) => (
+              <div key={post.id} className="relative">
+                <div className="absolute -left-2 -top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                  {currentPage * 10 + index + 1}
+                </div>
+                <PostCard post={post} />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center gap-2">
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index}
+                onClick={() => fetchPosts(index)}
+                className={`rounded border px-4 py-2 ${
+                  currentPage === index
+                    ? "bg-[#38B8A0] text-black font-bold"
+                    : "bg-black text-white"
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
