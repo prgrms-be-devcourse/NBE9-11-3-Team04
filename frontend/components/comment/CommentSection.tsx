@@ -14,102 +14,113 @@ type LoginRequiredPopupState = {
 }
 
 type SuccessResponse<T> = {
-    code: string
-    message: string
-    data: T
+  code: string
+  message: string
+  data: T
 }
 
 type CommentAttachmentItem = {
-    attachmentId?: number
-    id?: number
-    fileName: string
-    fileUrl: string
-    fileType?: string | null
-    mimeType?: string | null
+  attachmentId?: number
+  id?: number
+  fileName: string
+  fileUrl: string
+  fileType?: string | null
+  mimeType?: string | null
 }
 
 type CommentItem = {
-    commentId: number
-    postId: number
-    postTitle?: string
-    userId: number
-    nickname: string | null
-    parentCommentId: number | null
-    content: string
-    createdAt: string
-    updatedAt: string
-    deleted?: boolean
-    isDeleted?: boolean
-    attachments?: CommentAttachmentItem[]
-    replies: CommentItem[]
+  commentId: number
+  postId: number
+  postTitle?: string
+  userId: number
+  nickname: string | null
+  parentCommentId: number | null
+  content: string
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+  isDeleted?: boolean
+  attachments?: CommentAttachmentItem[]
+  replies: CommentItem[]
 }
 
 type CommentListResponse = {
   comments: CommentItem[]
+  page?: number
+  size?: number
+  totalElements?: number
+  totalPages?: number
+  hasNext?: boolean
 }
 
 const COMMENT_LIST_CACHE_TTL_MS = 1000
 
-const recentCommentListCache = new Map<number, {
+const recentCommentListCache = new Map<string, {
   timestamp: number
-  comments: CommentItem[]
+  response: CommentListResponse
 }>()
-const pendingCommentListRequests = new Map<number, Promise<CommentItem[]>>()
+const pendingCommentListRequests = new Map<string, Promise<CommentListResponse>>()
 
 function normalizeAttachment(attachment: CommentAttachmentItem): CommentAttachmentItem {
-    return {
-        ...attachment,
-        attachmentId: attachment.attachmentId ?? attachment.id,
-    }
+  return {
+    ...attachment,
+    attachmentId: attachment.attachmentId ?? attachment.id,
+  }
 }
 
 function normalizeComment(comment: CommentItem): CommentItem {
-    return {
-        ...comment,
-        deleted: comment.deleted ?? comment.isDeleted ?? false,
-        attachments: (comment.attachments ?? []).map(normalizeAttachment),
-        replies: (comment.replies ?? []).map(normalizeComment),
-    }
+  return {
+    ...comment,
+    deleted: comment.deleted ?? comment.isDeleted ?? false,
+    attachments: (comment.attachments ?? []).map(normalizeAttachment),
+    replies: (comment.replies ?? []).map(normalizeComment),
+  }
 }
 
 function extractCommentListResponse(responseBody: unknown): CommentListResponse {
-    if (!responseBody || typeof responseBody !== "object") {
-        return { comments: [] }
-    }
-
-    const body = responseBody as
-        | CommentListResponse
-        | SuccessResponse<CommentListResponse>
-        | { data?: CommentListResponse }
-
-    if (Array.isArray((body as CommentListResponse).comments)) {
-        return {
-            comments: ((body as CommentListResponse).comments ?? []).map(normalizeComment),
-        }
-    }
-
-    const nestedComments = (body as SuccessResponse<CommentListResponse>).data?.comments
-
-    if (Array.isArray(nestedComments)) {
-        return {
-            comments: nestedComments.map(normalizeComment),
-        }
-    }
-
+  if (!responseBody || typeof responseBody !== "object") {
     return { comments: [] }
+  }
+
+  const body = responseBody as
+      | CommentListResponse
+      | SuccessResponse<CommentListResponse>
+      | { data?: CommentListResponse }
+
+  if (Array.isArray((body as CommentListResponse).comments)) {
+    const directBody = body as CommentListResponse
+
+    return {
+      ...directBody,
+      comments: (directBody.comments ?? []).map(normalizeComment),
+    }
+  }
+
+  const nestedComments = (body as SuccessResponse<CommentListResponse>).data?.comments
+
+  if (Array.isArray(nestedComments)) {
+    const nestedBody = (body as SuccessResponse<CommentListResponse>).data
+
+    return {
+      ...nestedBody,
+      comments: nestedComments.map(normalizeComment),
+    }
+  }
+
+  return { comments: [] }
 }
 
 type CreatedCommentApiResponse = {
+  id?: number
+  commentId?: number
+  data?: {
     id?: number
     commentId?: number
-    data?: {
-        id?: number
-        commentId?: number
-        comment?: {
-            id?: number
-            commentId?: number
-        }
+    comment?: {
+      id?: number
+      commentId?: number
     }
+  }
 }
 
 /**
@@ -118,20 +129,20 @@ type CreatedCommentApiResponse = {
  * 다양한 백엔드 응답 형식에 대응한다.
  */
 function extractCreatedCommentId(responseBody: unknown): number | null {
-    if (!responseBody || typeof responseBody !== "object") {
-        return null
-    }
+  if (!responseBody || typeof responseBody !== "object") {
+    return null
+  }
 
   const candidate = responseBody as CreatedCommentApiResponse
 
-    const possibleIds = [
-        candidate.commentId,
-        candidate.id,
-        candidate.data?.commentId,
-        candidate.data?.id,
-        candidate.data?.comment?.commentId,
-        candidate.data?.comment?.id,
-    ]
+  const possibleIds = [
+    candidate.commentId,
+    candidate.id,
+    candidate.data?.commentId,
+    candidate.data?.id,
+    candidate.data?.comment?.commentId,
+    candidate.data?.comment?.id,
+  ]
 
   const validId = possibleIds.find((value) => typeof value === "number")
 
@@ -196,10 +207,10 @@ function getAuthFetchOptions(): Pick<RequestInit, "credentials" | "headers"> {
   return {
     credentials: "include",
     headers: hasLocalJwtToken(token)
-      ? {
+        ? {
           Authorization: `Bearer ${token}`,
         }
-      : undefined,
+        : undefined,
   }
 }
 
@@ -303,78 +314,90 @@ function isImageAttachment(attachment: CommentAttachmentItem): boolean {
 }
 
 function renderAttachments(
-  attachments: CommentAttachmentItem[] | undefined,
-  options?: {
-    canDelete?: boolean
-    deletingAttachmentId?: number | null
-    onDeleteAttachment?: (attachmentId: number) => void
-  },
+    attachments: CommentAttachmentItem[] | undefined,
+    options?: {
+      canDelete?: boolean
+      deletingAttachmentId?: number | null
+      onDeleteAttachment?: (attachmentId: number) => void
+    },
 ) {
   if (!attachments || attachments.length === 0) {
     return null
   }
 
   return (
-    <div className="mt-3 space-y-3">
-      <p className="text-xs font-medium text-muted-foreground">첨부파일</p>
-      <div className="flex flex-col gap-3">
-        {attachments.map((attachment) => {
-          const resolvedAttachmentId = attachment.attachmentId ?? attachment.id
-          const fileUrl = `http://localhost:8080${attachment.fileUrl}`
-          const isImage = isImageAttachment(attachment)
-          const isDeleting = resolvedAttachmentId !== undefined && options?.deletingAttachmentId === resolvedAttachmentId
+      <div className="mt-3 space-y-3">
+        <p className="text-xs font-medium text-muted-foreground">첨부파일</p>
+        <div className="flex flex-col gap-3">
+          {attachments.map((attachment) => {
+            const resolvedAttachmentId = attachment.attachmentId ?? attachment.id
+            const fileUrl = `http://localhost:8080${attachment.fileUrl}`
+            const isImage = isImageAttachment(attachment)
+            const isDeleting = resolvedAttachmentId !== undefined && options?.deletingAttachmentId === resolvedAttachmentId
 
-          return (
-            <div
-              key={resolvedAttachmentId ?? attachment.fileName}
-              className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
-            >
-              {isImage && (
-                <img
-                  src={fileUrl}
-                  alt={attachment.fileName}
-                  className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
-                />
-              )}
-              <div className="flex items-center justify-between gap-3">
-                <a
-                  href={fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-fit text-sm text-primary underline-offset-2 hover:underline"
+            return (
+                <div
+                    key={resolvedAttachmentId ?? attachment.fileName}
+                    className="flex flex-col gap-2 rounded-md border border-border/70 p-3"
                 >
-                  {attachment.fileName}
-                </a>
-                {options?.canDelete && resolvedAttachmentId !== undefined && options.onDeleteAttachment && (
-                  <button
-                    type="button"
-                    onClick={() => options.onDeleteAttachment?.(resolvedAttachmentId)}
-                    disabled={isDeleting}
-                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isDeleting ? "삭제 중..." : "첨부 삭제"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )
-        })}
+                  {isImage && (
+                      <img
+                          src={fileUrl}
+                          alt={attachment.fileName}
+                          className="max-h-80 w-fit max-w-full rounded-md border border-border object-contain"
+                      />
+                  )}
+                  <div className="flex items-center justify-between gap-3">
+                    <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-fit text-sm text-primary underline-offset-2 hover:underline"
+                    >
+                      {attachment.fileName}
+                    </a>
+                    {options?.canDelete && resolvedAttachmentId !== undefined && options.onDeleteAttachment && (
+                        <button
+                            type="button"
+                            onClick={() => options.onDeleteAttachment?.(resolvedAttachmentId)}
+                            disabled={isDeleting}
+                            className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isDeleting ? "삭제 중..." : "첨부 삭제"}
+                        </button>
+                    )}
+                  </div>
+                </div>
+            )
+          })}
+        </div>
       </div>
-    </div>
   )
 }
 
 function sortCommentsByNewest(comments: CommentItem[]): CommentItem[] {
   return [...comments]
-    .map((comment) => ({
-      ...comment,
-      replies: sortCommentsByNewest(comment.replies ?? []),
-    }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((comment) => ({
+        ...comment,
+        replies: sortCommentsByNewest(comment.replies ?? []),
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+function resolveCommentTotalPages(response: CommentListResponse, currentPage: number): number {
+  const serverTotalPages = response.totalPages ?? 0
+  const size = response.size && response.size > 0 ? response.size : 20
+  const totalElementsPages =
+      response.totalElements !== undefined ? Math.ceil(response.totalElements / size) : 0
+  const hasNextPages = response.hasNext ? currentPage + 2 : currentPage + 1
+
+  return Math.max(serverTotalPages, totalElementsPages, hasNextPages)
 }
 
 export default function CommentSection({ postId, onCommentsChanged }: CommentSectionProps) {
   const [comments, setComments] = useState<CommentItem[]>([])
+  const [commentPage, setCommentPage] = useState(0)
+  const [commentTotalPages, setCommentTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [newComment, setNewComment] = useState("")
@@ -423,7 +446,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
         throw new Error(message)
       }
 
-      await loadComments({ force: true })
+      await loadComments({ force: true, page: commentPage })
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
@@ -458,30 +481,40 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
     }
   }, [loginPath])
 
-  const loadComments = useCallback(async (options?: { force?: boolean }) => {
+  const loadComments = useCallback(async (options?: { force?: boolean; page?: number }) => {
+    const page = options?.page ?? 0
+    const cacheKey = `${postId}:${page}`
+
     try {
       setLoading(true)
       setError(null)
 
       if (!options?.force) {
-        const cached = recentCommentListCache.get(postId)
+        const cached = recentCommentListCache.get(cacheKey)
         const now = Date.now()
 
         if (cached && now - cached.timestamp < COMMENT_LIST_CACHE_TTL_MS) {
-          setComments(sortCommentsByNewest(cached.comments))
+          setComments(sortCommentsByNewest(cached.response.comments ?? []))
+          setCommentPage(cached.response.page ?? page)
+          setCommentTotalPages(resolveCommentTotalPages(cached.response, cached.response.page ?? page))
           return
         }
 
-        const pendingRequest = pendingCommentListRequests.get(postId)
+        const pendingRequest = pendingCommentListRequests.get(cacheKey)
+
         if (pendingRequest) {
-          const pendingComments = await pendingRequest
-          setComments(sortCommentsByNewest(pendingComments))
+          const pendingResponse = await pendingRequest
+          setComments(sortCommentsByNewest(pendingResponse.comments ?? []))
+          setCommentPage(pendingResponse.page ?? page)
+          setCommentTotalPages(resolveCommentTotalPages(pendingResponse, pendingResponse.page ?? page))
           return
         }
       }
 
       const requestPromise = (async () => {
-        const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`)
+        const response = await fetch(
+            `http://localhost:8080/api/posts/${postId}/comments?page=${page}&size=20`
+        )
 
         if (!response.ok) {
           throw new Error("댓글을 불러오지 못했습니다.")
@@ -489,32 +522,48 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
 
         const responseBody = await response.json()
         const data = extractCommentListResponse(responseBody)
-        const normalizedComments = data.comments ?? []
 
-        recentCommentListCache.set(postId, {
+        const normalizedResponse: CommentListResponse = {
+          ...data,
+          comments: data.comments ?? [],
+        }
+
+        recentCommentListCache.set(cacheKey, {
           timestamp: Date.now(),
-          comments: normalizedComments,
+          response: normalizedResponse,
         })
 
-        return normalizedComments
+        return normalizedResponse
       })()
 
       if (!options?.force) {
-        pendingCommentListRequests.set(postId, requestPromise)
+        pendingCommentListRequests.set(cacheKey, requestPromise)
       }
 
-      const loadedComments = await requestPromise
-      setComments(sortCommentsByNewest(loadedComments))
+      const loadedResponse = await requestPromise
+
+      setComments(sortCommentsByNewest(loadedResponse.comments ?? []))
+      setCommentPage(loadedResponse.page ?? page)
+      setCommentTotalPages(resolveCommentTotalPages(loadedResponse, loadedResponse.page ?? page))
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
-      pendingCommentListRequests.delete(postId)
+      pendingCommentListRequests.delete(cacheKey)
       setLoading(false)
     }
   }, [postId])
+  const commentPageNumbers = Array.from({ length: commentTotalPages }, (_, index) => index)
+
+  const changeCommentPage = (page: number) => {
+    if (page === commentPage) {
+      return
+    }
+
+    void loadComments({ force: true, page })
+  }
 
   useEffect(() => {
-    void loadComments()
+    void loadComments({ page: 0 })
   }, [loadComments])
 
   useEffect(() => {
@@ -636,7 +685,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
 
       setNewComment("")
       setNewCommentFiles([])
-      await loadComments({ force: true })
+      await loadComments({ force: true, page: 0 })
       await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -695,7 +744,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
         [commentId]: [],
       }))
       setOpenedReplyId(null)
-      await loadComments({ force: true })
+      await loadComments({ force: true, page: commentPage })
       await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -793,7 +842,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
         setEditingCommentId(null)
       }
 
-      await loadComments({ force: true })
+      await loadComments({ force: true, page: commentPage })
       await onCommentsChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
@@ -841,7 +890,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       }
 
       setEditingCommentId(null)
-      await loadComments({ force: true })
+      await loadComments({ force: true, page: commentPage })
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
     } finally {
@@ -850,370 +899,389 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-foreground">댓글</h2>
+      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground">댓글</h2>
 
-      <div className="mt-4 space-y-3 rounded-lg border border-border p-4">
+        <div className="mt-4 space-y-3 rounded-lg border border-border p-4">
         <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="댓글을 입력하세요."
-          className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="댓글을 입력하세요."
+            className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
         />
 
-                <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
-                    파일 첨부
-                    <input
-                        type="file"
-                        multiple
-                        onChange={(event) => {
-                            const selectedFiles = Array.from(event.target.files ?? [])
-                            setNewCommentFiles(selectedFiles)
-                            event.target.value = ""
-                        }}
-                        className="hidden"
-                    />
-                </label>
+          <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+            파일 첨부
+            <input
+                type="file"
+                multiple
+                onChange={(event) => {
+                  const selectedFiles = Array.from(event.target.files ?? [])
+                  setNewCommentFiles(selectedFiles)
+                  event.target.value = ""
+                }}
+                className="hidden"
+            />
+          </label>
 
-        <div className="flex items-center justify-between gap-3">
-          {newCommentFiles.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                첨부파일 {newCommentFiles.length}개 선택됨
-              </p>
-              <div className="space-y-2">
-                {newCommentFiles.map((file, index) => (
-                  <div
-                    key={`${file.name}-${file.size}-${index}`}
-                    className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2"
-                  >
-                    <p className="truncate text-xs text-foreground">{file.name}</p>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveNewCommentFile(index)}
-                      className="shrink-0 text-xs font-medium text-destructive hover:underline"
-                    >
-                      삭제
-                    </button>
+          <div className="flex items-center justify-between gap-3">
+            {newCommentFiles.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    첨부파일 {newCommentFiles.length}개 선택됨
+                  </p>
+                  <div className="space-y-2">
+                    {newCommentFiles.map((file, index) => (
+                        <div
+                            key={`${file.name}-${file.size}-${index}`}
+                            className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2"
+                        >
+                          <p className="truncate text-xs text-foreground">{file.name}</p>
+                          <button
+                              type="button"
+                              onClick={() => handleRemoveNewCommentFile(index)}
+                              className="shrink-0 text-xs font-medium text-destructive hover:underline"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">선택된 첨부파일 없음</p>
-          )}
-          <button
-            type="button"
-            onClick={handleCreateComment}
-            disabled={submitting || !newComment.trim()}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {submitting ? "작성 중..." : "댓글 작성"}
-          </button>
-        </div>
-      </div>
-
-      {loading && (
-        <p className="mt-4 text-sm text-muted-foreground">댓글을 불러오는 중입니다...</p>
-      )}
-
-      {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-
-      {loginRequiredPopup.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-foreground">안내</h3>
-            <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
-            <div className="mt-6 flex justify-end gap-2">
-              {!isSelfReportPopupMessage(loginRequiredPopup.message) && (
-                <button
-                  type="button"
-                  onClick={closeLoginRequiredPopup}
-                  className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
-                >
-                  취소
-                </button>
-              )}
-              <button
+                </div>
+            ) : (
+                <p className="text-xs text-muted-foreground">선택된 첨부파일 없음</p>
+            )}
+            <button
                 type="button"
-                onClick={loginRequiredPopup.message.includes("로그인") ? moveToLoginPage : closeLoginRequiredPopup}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                {loginRequiredPopup.message.includes("로그인") ? "로그인 하러가기" : "확인"}
-              </button>
-            </div>
+                onClick={handleCreateComment}
+                disabled={submitting || !newComment.trim()}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting ? "작성 중..." : "댓글 작성"}
+            </button>
           </div>
         </div>
-      )}
 
-      {!loading && !error && comments.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
-      )}
+        {loading && (
+            <p className="mt-4 text-sm text-muted-foreground">댓글을 불러오는 중입니다...</p>
+        )}
 
-            <div className="mt-4 space-y-4">
-                {comments.map((comment) => (
-                    <div key={comment.commentId} className="rounded-lg border border-border p-4">
-                        {editingCommentId === comment.commentId ? (
-                            <div className="space-y-2">
+        {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+
+        {loginRequiredPopup.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+              <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-foreground">안내</h3>
+                <p className="mt-3 text-sm text-muted-foreground">{loginRequiredPopup.message}</p>
+                <div className="mt-6 flex justify-end gap-2">
+                  {!isSelfReportPopupMessage(loginRequiredPopup.message) && (
+                      <button
+                          type="button"
+                          onClick={closeLoginRequiredPopup}
+                          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+                      >
+                        취소
+                      </button>
+                  )}
+                  <button
+                      type="button"
+                      onClick={loginRequiredPopup.message.includes("로그인") ? moveToLoginPage : closeLoginRequiredPopup}
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                  >
+                    {loginRequiredPopup.message.includes("로그인") ? "로그인 하러가기" : "확인"}
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {!loading && !error && comments.length === 0 && (
+            <p className="mt-4 text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
+        )}
+
+        <div className="mt-4 space-y-4">
+          {comments.map((comment) => (
+              <div key={comment.commentId} className="rounded-lg border border-border p-4">
+                {editingCommentId === comment.commentId ? (
+                    <div className="space-y-2">
                                 <textarea
                                     value={editInputs[comment.commentId] ?? ""}
                                     onChange={(e) =>
                                         setEditInputs((prev) => ({
-                                            ...prev,
-                                            [comment.commentId]: e.target.value,
+                                          ...prev,
+                                          [comment.commentId]: e.target.value,
                                         }))
                                     }
                                     className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                                 />
-                                <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setEditingCommentId(null)}
+                            className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
+                        >
+                          취소
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleUpdateComment(comment.commentId)}
+                            disabled={
+                                editingSubmittingId === comment.commentId ||
+                                !(editInputs[comment.commentId] ?? "").trim()
+                            }
+                            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {editingSubmittingId === comment.commentId ? "수정 중..." : "수정 완료"}
+                        </button>
+                      </div>
+                    </div>
+                ) : (
+                    <>
+                      <p className="text-sm text-foreground">
+                        {comment.deleted ? "삭제된 댓글입니다." : comment.content}
+                      </p>
+                      {renderAttachments(comment.attachments, {
+                        canDelete: comment.userId === currentUserId,
+                        deletingAttachmentId,
+                        onDeleteAttachment: (attachmentId) => handleDeleteAttachment(comment.commentId, attachmentId),
+                      })}
+                    </>
+                )}
+
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    작성자: {comment.nickname ?? `user-${comment.userId}`}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    {comment.userId === currentUserId && (
+                        <>
+                          <button
+                              type="button"
+                              onClick={() => handleStartEdit(comment.commentId, comment.content)}
+                              className="text-xs font-medium text-primary hover:underline"
+                          >
+                            수정
+                          </button>
+                          <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment.commentId)}
+                              disabled={deletingCommentId === comment.commentId}
+                              className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
+                          </button>
+                        </>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => handleReportComment(comment.commentId)}
+                        disabled={reportSubmittingId === comment.commentId}
+                        className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {reportSubmittingId === comment.commentId ? "신고 중..." : "신고"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex justify-end">
+                  <button
+                      type="button"
+                      onClick={() =>
+                          setOpenedReplyId((prev) => (prev === comment.commentId ? null : comment.commentId))
+                      }
+                      className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {openedReplyId === comment.commentId ? "답글 입력 닫기" : "답글 달기"}
+                  </button>
+                </div>
+
+                {openedReplyId === comment.commentId && (
+                    <div className="mt-4 ml-4 border-l-2 border-border/70 pl-4">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">이 댓글에 답글 달기</p>
+                      <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                  <textarea
+                      value={replyInputs[comment.commentId] ?? ""}
+                      onChange={(e) =>
+                          setReplyInputs((prev) => ({
+                            ...prev,
+                            [comment.commentId]: e.target.value,
+                          }))
+                      }
+                      placeholder="답글을 입력하세요."
+                      className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+
+                        <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+                          파일 첨부
+                          <input
+                              type="file"
+                              multiple
+                              onChange={(event) => {
+                                const selectedFiles = Array.from(event.target.files ?? [])
+                                setReplyFiles((prev) => ({
+                                  ...prev,
+                                  [comment.commentId]: selectedFiles,
+                                }))
+                                event.target.value = ""
+                              }}
+                              className="hidden"
+                          />
+                        </label>
+
+                        {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
+                            <div className="mt-2 space-y-2">
+                              <p className="text-xs text-muted-foreground">
+                                첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
+                              </p>
+                              <div className="space-y-2">
+                                {(replyFiles[comment.commentId] ?? []).map((file, index) => (
+                                    <div
+                                        key={`${file.name}-${file.size}-${index}`}
+                                        className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2"
+                                    >
+                                      <p className="truncate text-xs text-foreground">{file.name}</p>
+                                      <button
+                                          type="button"
+                                          onClick={() => handleRemoveReplyFile(comment.commentId, index)}
+                                          className="shrink-0 text-xs font-medium text-destructive hover:underline"
+                                      >
+                                        삭제
+                                      </button>
+                                    </div>
+                                ))}
+                              </div>
+                            </div>
+                        ) : (
+                            <p className="mt-2 text-xs text-muted-foreground">선택된 첨부파일 없음</p>
+                        )}
+
+                        <div className="flex justify-end">
+                          <button
+                              type="button"
+                              onClick={() => handleCreateReply(comment.commentId)}
+                              disabled={
+                                  replySubmittingId === comment.commentId ||
+                                  !(replyInputs[comment.commentId] ?? "").trim()
+                              }
+                              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {replySubmittingId === comment.commentId ? "답글 작성 중..." : "답글 작성"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                )}
+
+                {comment.replies?.length > 0 && (
+                    <div className="mt-4 ml-4 space-y-2 border-l-2 border-border/70 pl-4">
+                      {comment.replies.map((reply) => (
+                          <div key={reply.commentId} className="rounded-md bg-muted/50 p-3 shadow-sm">
+                            {editingCommentId === reply.commentId ? (
+                                <div className="space-y-2">
+                                                <textarea
+                                                    value={editInputs[reply.commentId] ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditInputs((prev) => ({
+                                                          ...prev,
+                                                          [reply.commentId]: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                                />
+                                  <div className="flex justify-end gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setEditingCommentId(null)}
                                         className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
                                     >
-                                        취소
+                                      취소
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => handleUpdateComment(comment.commentId)}
+                                        onClick={() => handleUpdateComment(reply.commentId)}
                                         disabled={
-                                            editingSubmittingId === comment.commentId ||
-                                            !(editInputs[comment.commentId] ?? "").trim()
+                                            editingSubmittingId === reply.commentId ||
+                                            !(editInputs[reply.commentId] ?? "").trim()
                                         }
                                         className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                        {editingSubmittingId === comment.commentId ? "수정 중..." : "수정 완료"}
+                                      {editingSubmittingId === reply.commentId ? "수정 중..." : "수정 완료"}
                                     </button>
+                                  </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <>
-                                <p className="text-sm text-foreground">
-                                    {comment.deleted ? "삭제된 댓글입니다." : comment.content}
-                                </p>
-                                {renderAttachments(comment.attachments, {
-                                    canDelete: comment.userId === currentUserId,
+                            ) : (
+                                <>
+                                  <p className="text-sm text-foreground">
+                                    {reply.deleted ? "삭제된 댓글입니다." : reply.content}
+                                  </p>
+                                  {renderAttachments(reply.attachments, {
+                                    canDelete: reply.userId === currentUserId,
                                     deletingAttachmentId,
-                                    onDeleteAttachment: (attachmentId) => handleDeleteAttachment(comment.commentId, attachmentId),
-                                })}
-                            </>
-                        )}
+                                    onDeleteAttachment: (attachmentId) => handleDeleteAttachment(reply.commentId, attachmentId),
+                                  })}
+                                </>
+                            )}
 
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                작성자: {comment.nickname ?? `user-${comment.userId}`}
-              </p>
-              <div className="flex items-center gap-3">
-                {comment.userId === currentUserId && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleStartEdit(comment.commentId, comment.content)}
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteComment(comment.commentId)}
-                      disabled={deletingCommentId === comment.commentId}
-                      className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {deletingCommentId === comment.commentId ? "삭제 중..." : "삭제"}
-                    </button>
-                  </>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleReportComment(comment.commentId)}
-                  disabled={reportSubmittingId === comment.commentId}
-                  className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {reportSubmittingId === comment.commentId ? "신고 중..." : "신고"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() =>
-                  setOpenedReplyId((prev) => (prev === comment.commentId ? null : comment.commentId))
-                }
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                {openedReplyId === comment.commentId ? "답글 입력 닫기" : "답글 달기"}
-              </button>
-            </div>
-
-            {openedReplyId === comment.commentId && (
-              <div className="mt-4 ml-4 border-l-2 border-border/70 pl-4">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">이 댓글에 답글 달기</p>
-                <div className="space-y-2 rounded-md bg-muted/30 p-3">
-                  <textarea
-                    value={replyInputs[comment.commentId] ?? ""}
-                    onChange={(e) =>
-                      setReplyInputs((prev) => ({
-                        ...prev,
-                        [comment.commentId]: e.target.value,
-                      }))
-                    }
-                    placeholder="답글을 입력하세요."
-                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-
-                                    <label className="mt-3 inline-flex w-fit cursor-pointer items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
-                                        파일 첨부
-                                        <input
-                                            type="file"
-                                            multiple
-                                            onChange={(event) => {
-                                                const selectedFiles = Array.from(event.target.files ?? [])
-                                                setReplyFiles((prev) => ({
-                                                    ...prev,
-                                                    [comment.commentId]: selectedFiles,
-                                                }))
-                                                event.target.value = ""
-                                            }}
-                                            className="hidden"
-                                        />
-                                    </label>
-
-                  {(replyFiles[comment.commentId]?.length ?? 0) > 0 ? (
-                    <div className="mt-2 space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        첨부파일 {replyFiles[comment.commentId]?.length ?? 0}개 선택됨
-                      </p>
-                      <div className="space-y-2">
-                        {(replyFiles[comment.commentId] ?? []).map((file, index) => (
-                          <div
-                            key={`${file.name}-${file.size}-${index}`}
-                            className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2"
-                          >
-                            <p className="truncate text-xs text-foreground">{file.name}</p>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveReplyFile(comment.commentId, index)}
-                              className="shrink-0 text-xs font-medium text-destructive hover:underline"
-                            >
-                              삭제
-                            </button>
+                            <div className="mt-2 flex items-center justify-between gap-3">
+                              <p className="text-xs text-muted-foreground">
+                                작성자: {reply.nickname ?? `user-${reply.userId}`}
+                              </p>
+                              <div className="flex items-center gap-3">
+                                {reply.userId === currentUserId && (
+                                    <>
+                                      <button
+                                          type="button"
+                                          onClick={() => handleStartEdit(reply.commentId, reply.content)}
+                                          className="text-xs font-medium text-primary hover:underline"
+                                      >
+                                        수정
+                                      </button>
+                                      <button
+                                          type="button"
+                                          onClick={() => handleDeleteComment(reply.commentId)}
+                                          disabled={deletingCommentId === reply.commentId}
+                                          className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
+                                      </button>
+                                    </>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleReportComment(reply.commentId)}
+                                    disabled={reportSubmittingId === reply.commentId}
+                                    className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {reportSubmittingId === reply.commentId ? "신고 중..." : "신고"}
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                      ))}
                     </div>
-                  ) : (
-                    <p className="mt-2 text-xs text-muted-foreground">선택된 첨부파일 없음</p>
-                  )}
+                )}
+              </div>
+          ))}
+        </div>
 
-                  <div className="flex justify-end">
-                    <button
+        {commentTotalPages > 1 && (
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              {commentPageNumbers.map((page) => (
+                  <button
+                      key={page}
                       type="button"
-                      onClick={() => handleCreateReply(comment.commentId)}
-                      disabled={
-                        replySubmittingId === comment.commentId ||
-                        !(replyInputs[comment.commentId] ?? "").trim()
-                      }
-                      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {replySubmittingId === comment.commentId ? "답글 작성 중..." : "답글 작성"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-                        {comment.replies?.length > 0 && (
-                            <div className="mt-4 ml-4 space-y-2 border-l-2 border-border/70 pl-4">
-                                {comment.replies.map((reply) => (
-                                    <div key={reply.commentId} className="rounded-md bg-muted/50 p-3 shadow-sm">
-                                        {editingCommentId === reply.commentId ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={editInputs[reply.commentId] ?? ""}
-                                                    onChange={(e) =>
-                                                        setEditInputs((prev) => ({
-                                                            ...prev,
-                                                            [reply.commentId]: e.target.value,
-                                                        }))
-                                                    }
-                                                    className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                                                />
-                                                <div className="flex justify-end gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setEditingCommentId(null)}
-                                                        className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
-                                                    >
-                                                        취소
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleUpdateComment(reply.commentId)}
-                                                        disabled={
-                                                            editingSubmittingId === reply.commentId ||
-                                                            !(editInputs[reply.commentId] ?? "").trim()
-                                                        }
-                                                        className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        {editingSubmittingId === reply.commentId ? "수정 중..." : "수정 완료"}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm text-foreground">
-                                                    {reply.deleted ? "삭제된 댓글입니다." : reply.content}
-                                                </p>
-                                                {renderAttachments(reply.attachments, {
-                                                    canDelete: reply.userId === currentUserId,
-                                                    deletingAttachmentId,
-                                                    onDeleteAttachment: (attachmentId) => handleDeleteAttachment(reply.commentId, attachmentId),
-                                                })}
-                                            </>
-                                        )}
-
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <p className="text-xs text-muted-foreground">
-                        작성자: {reply.nickname ?? `user-${reply.userId}`}
-                      </p>
-                      <div className="flex items-center gap-3">
-                        {reply.userId === currentUserId && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleStartEdit(reply.commentId, reply.content)}
-                              className="text-xs font-medium text-primary hover:underline"
-                            >
-                              수정
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteComment(reply.commentId)}
-                              disabled={deletingCommentId === reply.commentId}
-                              className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {deletingCommentId === reply.commentId ? "삭제 중..." : "삭제"}
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleReportComment(reply.commentId)}
-                          disabled={reportSubmittingId === reply.commentId}
-                          className="text-xs font-medium text-destructive hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {reportSubmittingId === reply.commentId ? "신고 중..." : "신고"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
+                      onClick={() => changeCommentPage(page)}
+                      className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+                          page === commentPage
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border text-foreground hover:bg-muted/50"
+                      }`}
+                  >
+                    {page + 1}
+                  </button>
+              ))}
+            </div>
+        )}
+      </section>
   )
 }
