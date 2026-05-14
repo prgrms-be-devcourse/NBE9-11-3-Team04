@@ -7,13 +7,20 @@ import com.back.devc.domain.interaction.postLike.dto.LikedPostsQuery;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
-import com.back.devc.domain.member.mypage.dto.*;
+import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
+import com.back.devc.domain.member.mypage.dto.MyPostResponse;
+import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
+import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.errorcode.MypageErrorCode;
+import com.back.devc.global.response.PageResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,36 +54,54 @@ public class MypageService {
         );
     }
 
-    public List<MyPostResponse> getMyPosts(Long userId) {
+    public PageResponse<MyPostResponse> getMyPosts(Long userId, Pageable pageable) {
         Member member = getMember(userId);
 
-        List<Post> posts = postRepository.findAllByMemberAndIsDeletedFalse(member);
+        Page<Post> posts = postRepository.findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(
+                member,
+                pageable
+        );
 
-        return posts.stream()
-                .map(post -> new MyPostResponse(
-                        post.getPostId(),
-                        post.getTitle(),
-                        post.getLikeCount(),
-                        post.getCommentCount(),
-                        post.getViewCount(),
-                        post.getCreatedAt()
-                ))
-                .toList();
+        Page<MyPostResponse> response = posts.map(post -> new MyPostResponse(
+                post.getPostId(),
+                post.getTitle(),
+                post.getLikeCount(),
+                post.getCommentCount(),
+                post.getViewCount(),
+                post.getCreatedAt()
+        ));
+
+        return PageResponse.from(response);
     }
 
-    public List<MyCommentResponse> getMyComments(Long userId) {
+    public PageResponse<MyCommentResponse> getMyComments(Long userId, Pageable pageable) {
         getMember(userId);
-        return commentRepository.findMyComments(userId);
+
+        Page<MyCommentResponse> comments = commentRepository.findMyComments(userId, pageable);
+
+        return PageResponse.from(comments);
     }
 
-    public List<LikedPostResponse> getMyLikedPosts(Long userId) {
+    public PageResponse<LikedPostResponse> getMyLikedPosts(Long userId, Pageable pageable) {
         getMember(userId);
-        return postLikeService.getLikedPosts(new LikedPostsQuery(userId));
+
+        List<LikedPostResponse> likedPosts =
+                postLikeService.getLikedPosts(new LikedPostsQuery(userId));
+
+        Page<LikedPostResponse> page = toPage(likedPosts, pageable);
+
+        return PageResponse.from(page);
     }
 
-    public List<BookmarkedPostResponse> getMyBookmarkedPosts(Long userId) {
+    public PageResponse<BookmarkedPostResponse> getMyBookmarkedPosts(Long userId, Pageable pageable) {
         getMember(userId);
-        return bookmarkService.getBookmarkedPosts(userId);
+
+        List<BookmarkedPostResponse> bookmarkedPosts =
+                bookmarkService.getBookmarkedPosts(userId);
+
+        Page<BookmarkedPostResponse> page = toPage(bookmarkedPosts, pageable);
+
+        return PageResponse.from(page);
     }
 
     @Transactional
@@ -99,5 +124,18 @@ public class MypageService {
                 member.getEmail(),
                 member.getNickname()
         );
+    }
+
+    private <T> Page<T> toPage(List<T> list, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+
+        if (start >= list.size()) {
+            return new PageImpl<>(List.of(), pageable, list.size());
+        }
+
+        int end = Math.min(start + pageable.getPageSize(), list.size());
+        List<T> content = list.subList(start, end);
+
+        return new PageImpl<>(content, pageable, list.size());
     }
 }

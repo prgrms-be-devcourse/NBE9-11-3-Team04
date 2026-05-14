@@ -45,11 +45,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     );
 
     Page<Post> findByCategoryCategoryIdAndTitleContainingAndIsDeletedFalse(
-            Long categoryId, String title, Pageable pageable
+            Long categoryId,
+            String title,
+            Pageable pageable
     );
 
     Page<Post> findByCategoryCategoryIdAndContentContainingAndIsDeletedFalse(
-            Long categoryId, String content, Pageable pageable
+            Long categoryId,
+            String content,
+            Pageable pageable
     );
 
     List<Post> findAllByOrderByCreatedAtDesc();
@@ -57,6 +61,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findAllByMember(Member member);
 
     List<Post> findAllByMemberAndIsDeletedFalse(Member member);
+
+    Page<Post> findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(
+            Member member,
+            Pageable pageable
+    );
 
     List<Post> findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(Member member);
 

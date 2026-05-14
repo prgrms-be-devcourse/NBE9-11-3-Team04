@@ -28,11 +28,24 @@ import {
 } from "@/lib/auth-storage"
 import { apiFetch } from "@/lib/api"
 
+const PAGE_SIZE = 5
+
 type SuccessResponse<T> = {
   code: string
   message: string
   timestamp: string
   data: T
+}
+
+type PageResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+  hasNext: boolean
 }
 
 type MyProfileResponse = {
@@ -56,10 +69,6 @@ type MyCommentItem = {
   postTitle: string
   content: string
   createdAt: string
-}
-
-type MyCommentsResponse = {
-  comments: MyCommentItem[]
 }
 
 type LikedPostResponse = {
@@ -101,6 +110,69 @@ const emptyProfileData: LocalProfileData = {
   website: "",
   github: "",
   twitter: "",
+}
+
+const createEmptyPage = <T,>(): PageResponse<T> => ({
+  content: [],
+  page: 0,
+  size: PAGE_SIZE,
+  totalElements: 0,
+  totalPages: 0,
+  first: true,
+  last: true,
+  hasNext: false,
+})
+
+const normalizePage = <T,>(
+  page: PageResponse<T>,
+  requestedPage: number
+): PageResponse<T> => {
+  const safeContent = Array.isArray(page.content) ? page.content : []
+
+  const totalElements =
+    page.totalElements && page.totalElements > 0
+      ? page.totalElements
+      : safeContent.length
+
+  if (safeContent.length > PAGE_SIZE) {
+    const start = requestedPage * PAGE_SIZE
+    const end = start + PAGE_SIZE
+    const slicedContent = safeContent.slice(start, end)
+    const totalPages = Math.max(1, Math.ceil(safeContent.length / PAGE_SIZE))
+
+    return {
+      content: slicedContent,
+      page: requestedPage,
+      size: PAGE_SIZE,
+      totalElements: safeContent.length,
+      totalPages,
+      first: requestedPage === 0,
+      last: requestedPage >= totalPages - 1,
+      hasNext: requestedPage < totalPages - 1,
+    }
+  }
+
+  const totalPages =
+    page.totalPages && page.totalPages > 0
+      ? page.totalPages
+      : Math.max(1, Math.ceil(totalElements / PAGE_SIZE))
+
+  return {
+    content: safeContent,
+    page: typeof page.page === "number" ? page.page : requestedPage,
+    size: page.size || PAGE_SIZE,
+    totalElements,
+    totalPages,
+    first: typeof page.first === "boolean" ? page.first : requestedPage === 0,
+    last:
+      typeof page.last === "boolean"
+        ? page.last
+        : requestedPage >= totalPages - 1,
+    hasNext:
+      typeof page.hasNext === "boolean"
+        ? page.hasNext
+        : requestedPage < totalPages - 1,
+  }
 }
 
 function normalizeWebsiteUrl(value: string) {
@@ -258,18 +330,31 @@ export default function MyPage() {
   const [tabLoading, setTabLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const [profileData, setProfileData] = useState<LocalProfileData>(emptyProfileData)
-  const [myPosts, setMyPosts] = useState<MyPostResponse[]>([])
-  const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPostResponse[]>([])
-  const [likedPosts, setLikedPosts] = useState<LikedPostResponse[]>([])
-  const [myComments, setMyComments] = useState<MyCommentItem[]>([])
+  const [profileData, setProfileData] =
+    useState<LocalProfileData>(emptyProfileData)
+
+  const [myPosts, setMyPosts] = useState<PageResponse<MyPostResponse>>(
+    createEmptyPage<MyPostResponse>()
+  )
+  const [bookmarkedPosts, setBookmarkedPosts] =
+    useState<PageResponse<BookmarkedPostResponse>>(
+      createEmptyPage<BookmarkedPostResponse>()
+    )
+  const [likedPosts, setLikedPosts] = useState<PageResponse<LikedPostResponse>>(
+    createEmptyPage<LikedPostResponse>()
+  )
+  const [myComments, setMyComments] = useState<PageResponse<MyCommentItem>>(
+    createEmptyPage<MyCommentItem>()
+  )
 
   const [bookmarkCount, setBookmarkCount] = useState(0)
   const [likeCount, setLikeCount] = useState(0)
   const [commentCount, setCommentCount] = useState(0)
 
   const [myLikedPostIds, setMyLikedPostIds] = useState<Set<number>>(new Set())
-  const [myBookmarkedPostIds, setMyBookmarkedPostIds] = useState<Set<number>>(new Set())
+  const [myBookmarkedPostIds, setMyBookmarkedPostIds] = useState<Set<number>>(
+    new Set()
+  )
 
   const websiteHref = useMemo(
     () => normalizeWebsiteUrl(profileData.website),
@@ -287,68 +372,193 @@ export default function MyPage() {
   const myPostCards = useMemo(
     () =>
       mapMyPostsToPostCard(
-        myPosts,
+        myPosts.content,
         displayName,
         myLikedPostIds,
         myBookmarkedPostIds
       ),
-    [myPosts, displayName, myLikedPostIds, myBookmarkedPostIds]
+    [myPosts.content, displayName, myLikedPostIds, myBookmarkedPostIds]
   )
 
   const bookmarkedPostCards = useMemo(
     () =>
       mapBookmarkedPostsToPostCard(
-        bookmarkedPosts,
+        bookmarkedPosts.content,
         myLikedPostIds,
         myBookmarkedPostIds
       ),
-    [bookmarkedPosts, myLikedPostIds, myBookmarkedPostIds]
+    [bookmarkedPosts.content, myLikedPostIds, myBookmarkedPostIds]
   )
 
   const likedPostCards = useMemo(
     () =>
       mapLikedPostsToPostCard(
-        likedPosts,
+        likedPosts.content,
         myLikedPostIds,
         myBookmarkedPostIds
       ),
-    [likedPosts, myLikedPostIds, myBookmarkedPostIds]
+    [likedPosts.content, myLikedPostIds, myBookmarkedPostIds]
   )
+
+  const fetchMyPostsPage = useCallback(async (page: number) => {
+    const res = await apiFetch<SuccessResponse<PageResponse<MyPostResponse>>>(
+      `/api/mypage/posts?page=${page}&size=${PAGE_SIZE}`,
+      {
+        method: "GET",
+        auth: true,
+      }
+    )
+
+    const postsPage = normalizePage(
+      res?.data ?? createEmptyPage<MyPostResponse>(),
+      page
+    )
+
+    setMyPosts(postsPage)
+  }, [])
+
+  const fetchBookmarkedPostsPage = useCallback(async (page: number) => {
+    const res = await apiFetch<
+      SuccessResponse<PageResponse<BookmarkedPostResponse>>
+    >(`/api/mypage/bookmarks?page=${page}&size=${PAGE_SIZE}`, {
+      method: "GET",
+      auth: true,
+    })
+
+    const bookmarksPage = normalizePage(
+      res?.data ?? createEmptyPage<BookmarkedPostResponse>(),
+      page
+    )
+
+    setBookmarkedPosts(bookmarksPage)
+    setBookmarkCount(bookmarksPage.totalElements)
+    setMyBookmarkedPostIds((prev) => {
+      const next = new Set(prev)
+
+      bookmarksPage.content.forEach((post) => {
+        next.add(post.postId)
+      })
+
+      return next
+    })
+  }, [])
+
+  const fetchLikedPostsPage = useCallback(async (page: number) => {
+    const res = await apiFetch<SuccessResponse<PageResponse<LikedPostResponse>>>(
+      `/api/mypage/likes?page=${page}&size=${PAGE_SIZE}`,
+      {
+        method: "GET",
+        auth: true,
+      }
+    )
+
+    const likesPage = normalizePage(
+      res?.data ?? createEmptyPage<LikedPostResponse>(),
+      page
+    )
+
+    setLikedPosts(likesPage)
+    setLikeCount(likesPage.totalElements)
+    setMyLikedPostIds((prev) => {
+      const next = new Set(prev)
+
+      likesPage.content.forEach((post) => {
+        next.add(post.postId)
+      })
+
+      return next
+    })
+  }, [])
+
+  const fetchMyCommentsPage = useCallback(async (page: number) => {
+    const res = await apiFetch<SuccessResponse<PageResponse<MyCommentItem>>>(
+      `/api/mypage/comments?page=${page}&size=${PAGE_SIZE}`,
+      {
+        method: "GET",
+        auth: true,
+      }
+    )
+
+    const commentsPage = normalizePage(
+      res?.data ?? createEmptyPage<MyCommentItem>(),
+      page
+    )
+
+    setMyComments(commentsPage)
+    setCommentCount(commentsPage.totalElements)
+  }, [])
 
   const refreshInteractionData = useCallback(async () => {
     const [bookmarksRes, likesRes, commentsRes] = await Promise.allSettled([
-      apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
-        method: "GET",
-        auth: true,
-      }),
-      apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
-        method: "GET",
-        auth: true,
-      }),
-      apiFetch<SuccessResponse<MyCommentsResponse>>("/api/mypage/comments", {
-        method: "GET",
-        auth: true,
-      }),
+      apiFetch<SuccessResponse<PageResponse<BookmarkedPostResponse>>>(
+        `/api/mypage/bookmarks?page=0&size=${PAGE_SIZE}`,
+        {
+          method: "GET",
+          auth: true,
+        }
+      ),
+      apiFetch<SuccessResponse<PageResponse<LikedPostResponse>>>(
+        `/api/mypage/likes?page=0&size=${PAGE_SIZE}`,
+        {
+          method: "GET",
+          auth: true,
+        }
+      ),
+      apiFetch<SuccessResponse<PageResponse<MyCommentItem>>>(
+        `/api/mypage/comments?page=0&size=${PAGE_SIZE}`,
+        {
+          method: "GET",
+          auth: true,
+        }
+      ),
     ])
 
     if (bookmarksRes.status === "fulfilled") {
-      const bookmarks = bookmarksRes.value?.data ?? []
-      setBookmarkedPosts(bookmarks)
-      setBookmarkCount(bookmarks.length)
-      setMyBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
+      const bookmarksPage = normalizePage(
+        bookmarksRes.value?.data ?? createEmptyPage<BookmarkedPostResponse>(),
+        0
+      )
+
+      setBookmarkedPosts(bookmarksPage)
+      setBookmarkCount(bookmarksPage.totalElements)
+      setMyBookmarkedPostIds((prev) => {
+        const next = new Set(prev)
+
+        bookmarksPage.content.forEach((post) => {
+          next.add(post.postId)
+        })
+
+        return next
+      })
     }
 
     if (likesRes.status === "fulfilled") {
-      const likes = likesRes.value?.data ?? []
-      setLikedPosts(likes)
-      setLikeCount(likes.length)
-      setMyLikedPostIds(new Set(likes.map((post) => post.postId)))
+      const likesPage = normalizePage(
+        likesRes.value?.data ?? createEmptyPage<LikedPostResponse>(),
+        0
+      )
+
+      setLikedPosts(likesPage)
+      setLikeCount(likesPage.totalElements)
+      setMyLikedPostIds((prev) => {
+        const next = new Set(prev)
+
+        likesPage.content.forEach((post) => {
+          next.add(post.postId)
+        })
+
+        return next
+      })
     }
 
     if (commentsRes.status === "fulfilled") {
-      const comments = commentsRes.value?.data?.comments ?? []
-      setMyComments(comments)
-      setCommentCount(comments.length)
+      const commentsPage = normalizePage(
+        commentsRes.value?.data ?? createEmptyPage<MyCommentItem>(),
+        0
+      )
+
+      setMyComments(commentsPage)
+      setCommentCount(commentsPage.totalElements)
     }
   }, [])
 
@@ -376,14 +586,20 @@ export default function MyPage() {
             method: "GET",
             auth: true,
           }),
-          apiFetch<SuccessResponse<MyPostResponse[]>>("/api/mypage/posts", {
-            method: "GET",
-            auth: true,
-          }),
+          apiFetch<SuccessResponse<PageResponse<MyPostResponse>>>(
+            `/api/mypage/posts?page=0&size=${PAGE_SIZE}`,
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
         ])
 
         const profile = profileRes?.data
-        const posts = postsRes?.data ?? []
+        const postsPage = normalizePage(
+          postsRes?.data ?? createEmptyPage<MyPostResponse>(),
+          0
+        )
 
         const nextName = profile?.nickname?.trim() || "김개발"
         const nextEmail = profile?.email?.trim() || ""
@@ -394,7 +610,7 @@ export default function MyPage() {
         setDisplayName(nextName)
         setDisplayEmail(nextEmail)
         setDisplayUsername(nextUsername)
-        setMyPosts(posts)
+        setMyPosts(postsPage)
 
         persistLoginSession(undefined, nextName, nextEmail)
 
@@ -448,19 +664,13 @@ export default function MyPage() {
         "김개발"
 
       const email =
-        profile?.email?.trim() ||
-        auth.email?.trim() ||
-        displayEmail ||
-        ""
+        profile?.email?.trim() || auth.email?.trim() || displayEmail || ""
 
       const usernameFromProfile = profile?.username?.trim()
       const usernameFromEmail = email ? email.split("@")[0] : ""
       const usernameFromName = nickname.trim().replace(/\s+/g, "")
       const username =
-        usernameFromProfile ||
-        usernameFromEmail ||
-        usernameFromName ||
-        "kimdev"
+        usernameFromProfile || usernameFromEmail || usernameFromName || "kimdev"
 
       setDisplayName(nickname)
       setDisplayEmail(email)
@@ -479,20 +689,23 @@ export default function MyPage() {
     window.addEventListener("storage", syncProfile)
 
     return () => {
-      window.removeEventListener(AUTH_CHANGED_EVENT, syncProfile as EventListener)
+      window.removeEventListener(
+        AUTH_CHANGED_EVENT,
+        syncProfile as EventListener
+      )
       window.removeEventListener("storage", syncProfile)
     }
   }, [isAuthReady, displayName, displayEmail])
 
   useEffect(() => {
     if (!isAuthReady) return
-    if (activeTab !== "bookmarks" || bookmarkedPosts.length > 0) return
+    if (activeTab !== "bookmarks") return
 
     const fetchBookmarks = async () => {
       try {
         setTabLoading(true)
         setError("")
-        await refreshInteractionData()
+        await fetchBookmarkedPostsPage(bookmarkedPosts.page)
       } catch (err) {
         console.error(err)
         setError("북마크 목록을 불러오지 못했습니다.")
@@ -502,17 +715,17 @@ export default function MyPage() {
     }
 
     fetchBookmarks()
-  }, [activeTab, bookmarkedPosts.length, isAuthReady, refreshInteractionData])
+  }, [activeTab, isAuthReady, fetchBookmarkedPostsPage])
 
   useEffect(() => {
     if (!isAuthReady) return
-    if (activeTab !== "likes" || likedPosts.length > 0) return
+    if (activeTab !== "likes") return
 
     const fetchLikes = async () => {
       try {
         setTabLoading(true)
         setError("")
-        await refreshInteractionData()
+        await fetchLikedPostsPage(likedPosts.page)
       } catch (err) {
         console.error(err)
         setError("좋아요 목록을 불러오지 못했습니다.")
@@ -522,25 +735,17 @@ export default function MyPage() {
     }
 
     fetchLikes()
-  }, [activeTab, likedPosts.length, isAuthReady, refreshInteractionData])
+  }, [activeTab, isAuthReady, fetchLikedPostsPage])
 
   useEffect(() => {
     if (!isAuthReady) return
-    if (activeTab !== "comments" || myComments.length > 0) return
+    if (activeTab !== "comments") return
 
     const fetchComments = async () => {
       try {
         setTabLoading(true)
         setError("")
-
-        const res = await apiFetch<SuccessResponse<MyCommentsResponse>>("/api/mypage/comments", {
-          method: "GET",
-          auth: true,
-        })
-
-        const comments = res?.data?.comments ?? []
-        setMyComments(comments)
-        setCommentCount(comments.length)
+        await fetchMyCommentsPage(myComments.page)
       } catch (err) {
         console.error(err)
         setError("댓글 목록을 불러오지 못했습니다.")
@@ -550,7 +755,7 @@ export default function MyPage() {
     }
 
     fetchComments()
-  }, [activeTab, myComments.length, isAuthReady])
+  }, [activeTab, isAuthReady, fetchMyCommentsPage])
 
   useEffect(() => {
     const handleNotificationsUpdated = async () => {
@@ -576,7 +781,10 @@ export default function MyPage() {
     }
   }, [isAuthReady, refreshInteractionData])
 
-  const handleBookmarkToggle = async (postId: number, nextBookmarked: boolean) => {
+  const handleBookmarkToggle = async (
+    postId: number,
+    nextBookmarked: boolean
+  ) => {
     setMyBookmarkedPostIds((prev) => {
       const next = new Set(prev)
 
@@ -589,16 +797,52 @@ export default function MyPage() {
       return next
     })
 
-    setBookmarkCount((prev) => Math.max(0, prev + (nextBookmarked ? 1 : -1)))
+    setBookmarkCount((prev) =>
+      Math.max(0, prev + (nextBookmarked ? 1 : -1))
+    )
 
-    if (!nextBookmarked && activeTab === "bookmarks") {
-      setBookmarkedPosts((prev) => prev.filter((post) => post.postId !== postId))
+    setMyPosts((prev) => ({
+      ...prev,
+      content: prev.content.map((post) =>
+        post.postId === postId ? { ...post } : post
+      ),
+    }))
+
+    setLikedPosts((prev) => ({
+      ...prev,
+      content: prev.content.map((post) =>
+        post.postId === postId ? { ...post } : post
+      ),
+    }))
+
+    if (activeTab === "bookmarks") {
+      try {
+        setTabLoading(true)
+
+        const targetPage =
+          !nextBookmarked &&
+          bookmarkedPosts.page > 0 &&
+          bookmarkedPosts.content.length <= 1
+            ? bookmarkedPosts.page - 1
+            : bookmarkedPosts.page
+
+        await fetchBookmarkedPostsPage(targetPage)
+      } catch (err) {
+        console.error(err)
+        setError("북마크 목록을 새로고침하지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+
+      return
     }
 
-    try {
-      await refreshInteractionData()
-    } catch (err) {
-      console.error(err)
+    if (!nextBookmarked) {
+      setBookmarkedPosts((prev) => ({
+        ...prev,
+        content: prev.content.filter((post) => post.postId !== postId),
+        totalElements: Math.max(0, prev.totalElements - 1),
+      }))
     }
   }
 
@@ -621,38 +865,61 @@ export default function MyPage() {
 
     setLikeCount((prev) => Math.max(0, prev + (nextLiked ? 1 : -1)))
 
-    setMyPosts((prev) =>
-      prev.map((post) =>
+    setMyPosts((prev) => ({
+      ...prev,
+      content: prev.content.map((post) =>
         post.postId === postId
           ? { ...post, likeCount: nextLikeCount }
           : post
-      )
-    )
+      ),
+    }))
 
-    setBookmarkedPosts((prev) =>
-      prev.map((post) =>
+    setBookmarkedPosts((prev) => ({
+      ...prev,
+      content: prev.content.map((post) =>
         post.postId === postId
           ? { ...post, likeCount: nextLikeCount }
           : post
-      )
-    )
+      ),
+    }))
 
-    if (!nextLiked && activeTab === "likes") {
-      setLikedPosts((prev) => prev.filter((post) => post.postId !== postId))
+    if (activeTab === "likes") {
+      try {
+        setTabLoading(true)
+
+        const targetPage =
+          !nextLiked &&
+          likedPosts.page > 0 &&
+          likedPosts.content.length <= 1
+            ? likedPosts.page - 1
+            : likedPosts.page
+
+        await fetchLikedPostsPage(targetPage)
+      } catch (err) {
+        console.error(err)
+        setError("좋아요 목록을 새로고침하지 못했습니다.")
+      } finally {
+        setTabLoading(false)
+      }
+
+      return
+    }
+
+    if (!nextLiked) {
+      setLikedPosts((prev) => ({
+        ...prev,
+        content: prev.content.filter((post) => post.postId !== postId),
+        totalElements: Math.max(0, prev.totalElements - 1),
+      }))
     } else {
-      setLikedPosts((prev) =>
-        prev.map((post) =>
+      setLikedPosts((prev) => ({
+        ...prev,
+        content: prev.content.map((post) =>
           post.postId === postId
             ? { ...post, likeCount: nextLikeCount }
             : post
-        )
-      )
-    }
-
-    try {
-      await refreshInteractionData()
-    } catch (err) {
-      console.error(err)
+        ),
+      }))
     }
   }
 
@@ -678,9 +945,13 @@ export default function MyPage() {
           <div className="flex-1">
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {displayName}
+                </h1>
                 {displayUsername ? (
-                  <p className="text-sm text-muted-foreground">@{displayUsername}</p>
+                  <p className="text-sm text-muted-foreground">
+                    @{displayUsername}
+                  </p>
                 ) : null}
               </div>
 
@@ -693,7 +964,9 @@ export default function MyPage() {
             </div>
 
             {profileData.bio ? (
-              <p className="mb-4 leading-relaxed text-foreground">{profileData.bio}</p>
+              <p className="mb-4 leading-relaxed text-foreground">
+                {profileData.bio}
+              </p>
             ) : null}
 
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -752,19 +1025,28 @@ export default function MyPage() {
 
         <div className="mt-6 grid grid-cols-4 gap-4 border-t border-border pt-6">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{myPosts.length}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {myPosts.totalElements}
+            </p>
             <p className="text-sm text-muted-foreground">글</p>
           </div>
+
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{bookmarkCount}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {bookmarkCount}
+            </p>
             <p className="text-sm text-muted-foreground">북마크</p>
           </div>
+
           <div className="text-center">
             <p className="text-2xl font-bold text-foreground">{likeCount}</p>
             <p className="text-sm text-muted-foreground">좋아요</p>
           </div>
+
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{commentCount}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {commentCount}
+            </p>
             <p className="text-sm text-muted-foreground">댓글</p>
           </div>
         </div>
@@ -785,6 +1067,7 @@ export default function MyPage() {
             <FileText className="h-4 w-4" />
             내 글
           </TabsTrigger>
+
           <TabsTrigger
             value="bookmarks"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -792,6 +1075,7 @@ export default function MyPage() {
             <Bookmark className="h-4 w-4" />
             북마크
           </TabsTrigger>
+
           <TabsTrigger
             value="likes"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -799,6 +1083,7 @@ export default function MyPage() {
             <Heart className="h-4 w-4" />
             좋아요
           </TabsTrigger>
+
           <TabsTrigger
             value="comments"
             className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -810,16 +1095,24 @@ export default function MyPage() {
 
         <TabsContent value="posts">
           {myPostCards.length > 0 ? (
-            <div className="grid gap-6">
-              {myPostCards.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onLikeToggle={handleLikeToggle}
-                  onBookmarkToggle={handleBookmarkToggle}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-6">
+                {myPostCards.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onLikeToggle={handleLikeToggle}
+                    onBookmarkToggle={handleBookmarkToggle}
+                  />
+                ))}
+              </div>
+
+              <PaginationControls
+                page={myPosts}
+                onPrev={() => fetchMyPostsPage(myPosts.page - 1)}
+                onNext={() => fetchMyPostsPage(myPosts.page + 1)}
+              />
+            </>
           ) : (
             <EmptyState
               icon={<FileText className="h-12 w-12" />}
@@ -832,16 +1125,28 @@ export default function MyPage() {
 
         <TabsContent value="bookmarks">
           {tabLoading ? null : bookmarkedPostCards.length > 0 ? (
-            <div className="grid gap-6">
-              {bookmarkedPostCards.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onLikeToggle={handleLikeToggle}
-                  onBookmarkToggle={handleBookmarkToggle}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-6">
+                {bookmarkedPostCards.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onLikeToggle={handleLikeToggle}
+                    onBookmarkToggle={handleBookmarkToggle}
+                  />
+                ))}
+              </div>
+
+              <PaginationControls
+                page={bookmarkedPosts}
+                onPrev={() =>
+                  fetchBookmarkedPostsPage(bookmarkedPosts.page - 1)
+                }
+                onNext={() =>
+                  fetchBookmarkedPostsPage(bookmarkedPosts.page + 1)
+                }
+              />
+            </>
           ) : (
             <EmptyState
               icon={<Bookmark className="h-12 w-12" />}
@@ -853,16 +1158,24 @@ export default function MyPage() {
 
         <TabsContent value="likes">
           {tabLoading ? null : likedPostCards.length > 0 ? (
-            <div className="grid gap-6">
-              {likedPostCards.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onLikeToggle={handleLikeToggle}
-                  onBookmarkToggle={handleBookmarkToggle}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-6">
+                {likedPostCards.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onLikeToggle={handleLikeToggle}
+                    onBookmarkToggle={handleBookmarkToggle}
+                  />
+                ))}
+              </div>
+
+              <PaginationControls
+                page={likedPosts}
+                onPrev={() => fetchLikedPostsPage(likedPosts.page - 1)}
+                onNext={() => fetchLikedPostsPage(likedPosts.page + 1)}
+              />
+            </>
           ) : (
             <EmptyState
               icon={<Heart className="h-12 w-12" />}
@@ -873,37 +1186,45 @@ export default function MyPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          {tabLoading ? null : myComments.length > 0 ? (
-            <div className="grid gap-4">
-              {myComments.map((comment) => (
-                <Link
-                  key={comment.commentId}
-                  href={`/posts/${comment.postId}#comment-${comment.commentId}`}
-                  className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/50 hover:bg-card/80"
-                >
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="mb-2 inline-flex items-center gap-2 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        내가 작성한 댓글
-                      </p>
+          {tabLoading ? null : myComments.content.length > 0 ? (
+            <>
+              <div className="grid gap-4">
+                {myComments.content.map((comment) => (
+                  <Link
+                    key={comment.commentId}
+                    href={`/posts/${comment.postId}#comment-${comment.commentId}`}
+                    className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/50 hover:bg-card/80"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="mb-2 inline-flex items-center gap-2 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          내가 작성한 댓글
+                        </p>
 
-                      <h3 className="truncate text-base font-semibold text-foreground">
-                        {comment.postTitle}
-                      </h3>
+                        <h3 className="truncate text-base font-semibold text-foreground">
+                          {comment.postTitle}
+                        </h3>
+                      </div>
+
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatRelativeDate(comment.createdAt)}
+                      </span>
                     </div>
 
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {formatRelativeDate(comment.createdAt)}
-                    </span>
-                  </div>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                      {comment.content}
+                    </p>
+                  </Link>
+                ))}
+              </div>
 
-                  <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {comment.content}
-                  </p>
-                </Link>
-              ))}
-            </div>
+              <PaginationControls
+                page={myComments}
+                onPrev={() => fetchMyCommentsPage(myComments.page - 1)}
+                onNext={() => fetchMyCommentsPage(myComments.page + 1)}
+              />
+            </>
           ) : (
             <EmptyState
               icon={<MessageCircle className="h-12 w-12" />}
@@ -913,6 +1234,43 @@ export default function MyPage() {
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function PaginationControls({
+  page,
+  onPrev,
+  onNext,
+}: {
+  page: PageResponse<unknown>
+  onPrev: () => void
+  onNext: () => void
+}) {
+  return (
+    <div className="mt-6 flex items-center justify-center gap-3">
+      <Button
+        variant="outline"
+        disabled={page.first || page.page <= 0}
+        onClick={onPrev}
+      >
+        이전
+      </Button>
+
+      <span className="text-sm text-muted-foreground">
+        {page.page + 1} / {Math.max(page.totalPages, 1)}
+        <span className="ml-2 text-xs text-muted-foreground">
+          총 {page.totalElements}개
+        </span>
+      </span>
+
+      <Button
+        variant="outline"
+        disabled={page.last || !page.hasNext}
+        onClick={onNext}
+      >
+        다음
+      </Button>
     </div>
   )
 }
@@ -933,6 +1291,7 @@ function EmptyState({
       <div className="mx-auto mb-4 text-muted-foreground">{icon}</div>
       <h3 className="mb-2 text-lg font-semibold text-foreground">{title}</h3>
       <p className="text-sm text-muted-foreground">{description}</p>
+
       {action ? (
         <Link href={action.href}>
           <Button className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
