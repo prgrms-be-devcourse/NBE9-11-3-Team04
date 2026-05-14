@@ -91,7 +91,7 @@ class MemberMeAuthorizationTest {
                 )
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("COMMON_401"));
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_INVALID"));
     }
 
     @Test
@@ -107,6 +107,7 @@ class MemberMeAuthorizationTest {
 
         memberRepository.deleteById(savedMember.getUserId());
         memberRepository.flush();
+        entityManager.clear();
 
         mvc.perform(
                         get("/api/users/me")
@@ -114,7 +115,7 @@ class MemberMeAuthorizationTest {
                 )
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("COMMON_401"));
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_INVALID"));
     }
 
     private String loginAndGetAccessToken(String email, String rawPassword) throws Exception {
