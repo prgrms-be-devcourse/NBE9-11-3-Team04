@@ -73,6 +73,7 @@ function getAuthHeaders(): HeadersInit {
   }
 
   const token = getAccessToken()
+
   if (token && token !== "oauth-cookie-session") {
     headers.Authorization = `Bearer ${token}`
   }
@@ -103,45 +104,68 @@ export default function InteractionButtons({
   const [likeLoading, setLikeLoading] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
 
-  const [loginRequiredPopup, setLoginRequiredPopup] = useState<LoginRequiredPopupState>({
-    open: false,
-    message: "로그인이 필요한 기능입니다.",
-  })
+  const [loginRequiredPopup, setLoginRequiredPopup] =
+    useState<LoginRequiredPopupState>({
+      open: false,
+      message: "로그인이 필요한 기능입니다.",
+    })
 
   const loginPath = useMemo(() => "/login", [])
 
-  const openLoginRequiredPopup = useCallback((message = "로그인이 필요한 기능입니다.") => {
-    setLoginRequiredPopup({ open: true, message })
-  }, [])
+  const openLoginRequiredPopup = useCallback(
+    (message = "로그인이 필요한 기능입니다.") => {
+      setLoginRequiredPopup({
+        open: true,
+        message,
+      })
+    },
+    []
+  )
 
-  const closeLoginRequiredPopup = useCallback(() => {
-    setLoginRequiredPopup((prev) => ({ ...prev, open: false }))
-  }, [])
+  const closeLoginRequiredPopup = useCallback(
+    (e?: React.MouseEvent<HTMLButtonElement>) => {
+      e?.preventDefault()
+      e?.stopPropagation()
+      setLoginRequiredPopup((prev) => ({
+        ...prev,
+        open: false,
+      }))
+    },
+    []
+  )
 
-  const moveToLoginPage = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.location.href = loginPath
-    }
-  }, [loginPath])
+  const moveToLoginPage = useCallback(
+    (e?: React.MouseEvent<HTMLButtonElement>) => {
+      e?.preventDefault()
+      e?.stopPropagation()
+
+      if (typeof window !== "undefined") {
+        window.location.href = loginPath
+      }
+    },
+    [loginPath]
+  )
 
   useEffect(() => {
     setLiked(initialLiked)
-  }, [initialLiked])
+  }, [initialLiked, postId])
 
   useEffect(() => {
     setBookmarked(initialBookmarked)
-  }, [initialBookmarked])
+  }, [initialBookmarked, postId])
 
   useEffect(() => {
     setLikeCount(initialLikeCount)
-  }, [initialLikeCount])
+  }, [initialLikeCount, postId])
 
   const requireAuth = () => {
     const auth = getAuthSnapshot()
+
     if (!auth.isLoggedIn) {
       openLoginRequiredPopup()
       return false
     }
+
     return true
   }
 
@@ -160,8 +184,6 @@ export default function InteractionButtons({
 
     setLiked(optimisticLiked)
     setLikeCount(optimisticLikeCount)
-    onLikeToggle?.(optimisticLiked, optimisticLikeCount)
-
     setLikeLoading(true)
 
     try {
@@ -179,11 +201,13 @@ export default function InteractionButtons({
         const errorMessage =
           parsed?.message || parsed?.data?.message || "좋아요 실패"
 
-        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(errorMessage)) {
+        if (
+          isUnauthorizedStatus(res.status) ||
+          isLoginRequiredMessage(errorMessage)
+        ) {
           openLoginRequiredPopup(errorMessage || "로그인이 필요한 기능입니다.")
           setLiked(prevLiked)
           setLikeCount(prevLikeCount)
-          onLikeToggle?.(prevLiked, prevLikeCount)
           return
         }
 
@@ -213,16 +237,14 @@ export default function InteractionButtons({
 
     if (!requireAuth() || bookmarkLoading) return
 
-    const prev = bookmarked
-    const optimistic = !prev
+    const prevBookmarked = bookmarked
+    const optimisticBookmarked = !prevBookmarked
 
-    setBookmarked(optimistic)
-    onBookmarkToggle?.(optimistic)
-
+    setBookmarked(optimisticBookmarked)
     setBookmarkLoading(true)
 
     try {
-      const method = prev ? "DELETE" : "POST"
+      const method = prevBookmarked ? "DELETE" : "POST"
 
       const res = await fetch(`${API_BASE_URL}/api/posts/${postId}/bookmarks`, {
         method,
@@ -236,10 +258,12 @@ export default function InteractionButtons({
         const errorMessage =
           parsed?.message || parsed?.data?.message || "북마크 실패"
 
-        if (isUnauthorizedStatus(res.status) || isLoginRequiredMessage(errorMessage)) {
+        if (
+          isUnauthorizedStatus(res.status) ||
+          isLoginRequiredMessage(errorMessage)
+        ) {
           openLoginRequiredPopup(errorMessage || "로그인이 필요한 기능입니다.")
-          setBookmarked(prev)
-          onBookmarkToggle?.(prev)
+          setBookmarked(prevBookmarked)
           return
         }
 
@@ -247,29 +271,57 @@ export default function InteractionButtons({
       }
 
       const wrapped = parsed as BookmarkWrappedResponse
-      const nextBookmarked = wrapped.data?.bookmarked ?? optimistic
+      const nextBookmarked =
+        wrapped.data?.bookmarked ?? optimisticBookmarked
 
       setBookmarked(nextBookmarked)
       onBookmarkToggle?.(nextBookmarked)
     } catch (err) {
       console.error(err)
-      setBookmarked(prev)
-      onBookmarkToggle?.(prev)
+      setBookmarked(prevBookmarked)
+      onBookmarkToggle?.(prevBookmarked)
     } finally {
       setBookmarkLoading(false)
     }
   }
 
   return (
-    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="flex items-center gap-2"
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+      onMouseDown={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+    >
       {loginRequiredPopup.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-xl border bg-card p-6">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border bg-card p-6"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
             <h3 className="text-lg font-semibold">로그인 안내</h3>
             <p className="mt-3 text-sm">{loginRequiredPopup.message}</p>
+
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={closeLoginRequiredPopup}>취소</button>
-              <button onClick={moveToLoginPage}>로그인</button>
+              <button type="button" onClick={closeLoginRequiredPopup}>
+                취소
+              </button>
+              <button type="button" onClick={moveToLoginPage}>
+                로그인
+              </button>
             </div>
           </div>
         </div>
@@ -293,7 +345,9 @@ export default function InteractionButtons({
         onClick={handleBookmark}
         disabled={bookmarkLoading}
       >
-        <Bookmark className={`h-4 w-4 ${bookmarked ? "fill-current" : ""}`} />
+        <Bookmark
+          className={`h-4 w-4 ${bookmarked ? "fill-current" : ""}`}
+        />
       </Button>
     </div>
   )

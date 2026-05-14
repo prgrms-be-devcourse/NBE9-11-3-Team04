@@ -26,7 +26,11 @@ export interface Post {
 
 interface PostCardProps {
   post: Post
-  onLikeToggle?: (postId: number, nextLiked: boolean, nextLikeCount: number) => void
+  onLikeToggle?: (
+    postId: number,
+    nextLiked: boolean,
+    nextLikeCount: number
+  ) => void
   onBookmarkToggle?: (postId: number, nextBookmarked: boolean) => void
 }
 
@@ -44,7 +48,13 @@ const toPlainText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim()
 
-export function PostCard({ post, onLikeToggle, onBookmarkToggle }: PostCardProps) {
+export function PostCard({
+  post,
+  onLikeToggle,
+  onBookmarkToggle,
+}: PostCardProps) {
+  const postId = Number(post.id)
+
   const authorProfileHref = post.author.userId
     ? `/users/${post.author.userId}`
     : undefined
@@ -62,6 +72,7 @@ export function PostCard({ post, onLikeToggle, onBookmarkToggle }: PostCardProps
             >
               {post.category}
             </Link>
+
             <span className="text-xs text-muted-foreground">
               {post.createdAt}
             </span>
@@ -81,11 +92,15 @@ export function PostCard({ post, onLikeToggle, onBookmarkToggle }: PostCardProps
             {authorProfileHref ? (
               <Link href={authorProfileHref} className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                  <AvatarImage
+                    src={post.author.avatar}
+                    alt={post.author.name}
+                  />
                   <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
                     작성자
                   </AvatarFallback>
                 </Avatar>
+
                 <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                   {post.author.name}
                 </span>
@@ -93,21 +108,27 @@ export function PostCard({ post, onLikeToggle, onBookmarkToggle }: PostCardProps
             ) : (
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                  <AvatarImage
+                    src={post.author.avatar}
+                    alt={post.author.name}
+                  />
                   <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">
                     작성자
                   </AvatarFallback>
                 </Avatar>
+
                 <span className="text-sm text-muted-foreground">
                   {post.author.name}
                 </span>
               </div>
             )}
+
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-xs">{post.comments}</span>
               </div>
+
               <div className="flex items-center gap-1">
                 <Eye className="h-4 w-4" />
                 <span className="text-xs">{post.views}</span>
@@ -116,18 +137,30 @@ export function PostCard({ post, onLikeToggle, onBookmarkToggle }: PostCardProps
           </div>
         </div>
 
-        <InteractionButtons
-          postId={Number(post.id)}
-          initialLiked={post.liked ?? false}
-          initialBookmarked={post.bookmarked ?? false}
-          initialLikeCount={post.likes ?? 0}
-          onLikeToggle={(nextLiked, nextLikeCount) =>
-            onLikeToggle?.(Number(post.id), nextLiked, nextLikeCount)
-          }
-          onBookmarkToggle={(nextBookmarked) =>
-            onBookmarkToggle?.(Number(post.id), nextBookmarked)
-          }
-        />
+        <div
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
+          <InteractionButtons
+            key={`${post.id}-${post.liked}-${post.bookmarked}-${post.likes}`}
+            postId={postId}
+            initialLiked={post.liked ?? false}
+            initialBookmarked={post.bookmarked ?? false}
+            initialLikeCount={post.likes ?? 0}
+            onLikeToggle={(nextLiked, nextLikeCount) =>
+              onLikeToggle?.(postId, nextLiked, nextLikeCount)
+            }
+            onBookmarkToggle={(nextBookmarked) =>
+              onBookmarkToggle?.(postId, nextBookmarked)
+            }
+          />
+        </div>
       </div>
     </article>
   )
