@@ -26,31 +26,25 @@ public class AuthCookieService {
         addAccessTokenCookie(response, token, accessTokenExpirationSeconds);
     }
 
-    // 로그아웃 시 Access Token 쿠키를 즉시 만료시킨다.
+    // 로그아웃 또는 회원탈퇴 시 Access Token 쿠키를 즉시 만료시킨다.
     public void expireAccessTokenCookie(HttpServletResponse response) {
         addAccessTokenCookie(response, "", 0);
     }
 
-    // Access Token 쿠키를 생성해 Set-Cookie 헤더로 응답에 추가한다.
+    // Access Token 쿠키를 Set-Cookie 헤더로 응답에 추가
+    // 실제 쿠키 생성은 buildAccessTokenCookie()에 위임
     private void addAccessTokenCookie(HttpServletResponse response, String token, long maxAgeSeconds) {
-        ResponseCookie cookie = ResponseCookie.from(accessCookieName, token == null ? "" : token)
+        response.addHeader(HttpHeaders.SET_COOKIE, buildAccessTokenCookie(token, maxAgeSeconds));
+    }
+
+    // Access Token 쿠키 문자열을 생성
+    // HttpOnly, Secure, Path, Max-Age, SameSite 등 쿠키 정책을 한 곳에서 관리
+    private String buildAccessTokenCookie(String token, long maxAgeSeconds) {
+        return ResponseCookie.from(accessCookieName, token == null ? "" : token)
                 .httpOnly(true)
                 .secure(accessCookieSecure)
                 .path("/")
                 .maxAge(maxAgeSeconds)
-                .sameSite(accessCookieSameSite)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-    }
-
-    // Access Token 만료 쿠키 헤더 문자열을 생성한다.
-    public String buildExpiredAccessTokenCookieHeader() {
-        return ResponseCookie.from(accessCookieName, "")
-                .httpOnly(true)
-                .secure(accessCookieSecure)
-                .path("/")
-                .maxAge(0)
                 .sameSite(accessCookieSameSite)
                 .build()
                 .toString();

@@ -10,16 +10,12 @@ import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.response.successCode.MemberSuccessCode;
 import com.back.devc.global.security.jwt.AuthCookieService;
 import com.back.devc.global.security.jwt.JwtPrincipal;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,7 +42,7 @@ public class MemberController {
                 .body(SuccessResponse.of(successCode, body));
     }
 
-    // 유저 프로필 조회
+    // 공개 프로필 조회
     @GetMapping("/{userId}/profile")
     public ResponseEntity<SuccessResponse<PublicProfileResponse>> getPublicProfile(
             @PathVariable Long userId
@@ -62,7 +58,8 @@ public class MemberController {
     // 회원 탈퇴
     @DeleteMapping("/me")
     public ResponseEntity<SuccessResponse<MemberWithdrawResponse>> withdraw(
-            @AuthenticationPrincipal JwtPrincipal principal
+            @AuthenticationPrincipal JwtPrincipal principal,
+            HttpServletResponse response
     ) {
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
@@ -70,12 +67,12 @@ public class MemberController {
 
         MemberWithdrawResponse body = memberService.withdraw(principal.userId());
         SecurityContextHolder.clearContext();
+        authCookieService.expireAccessTokenCookie(response);
 
         MemberSuccessCode successCode = MemberSuccessCode.MEMBER_200_WITHDRAW_SUCCESS;
 
         return ResponseEntity
                 .status(successCode.getStatus())
-                .header(HttpHeaders.SET_COOKIE, authCookieService.buildExpiredAccessTokenCookieHeader())
                 .body(SuccessResponse.of(successCode, body));
     }
 }
