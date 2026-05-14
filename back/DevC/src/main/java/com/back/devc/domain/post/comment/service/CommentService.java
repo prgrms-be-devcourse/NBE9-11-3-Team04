@@ -19,6 +19,7 @@ import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.CommentErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ public class CommentService {
     private final MemberRepository memberRepository;
     private final CommentAttachmentService commentAttachmentService;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public CommentResponse createComment(Long postId, Long loginUserId, CommentCreateRequest request) {
@@ -70,8 +72,9 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         postService.increaseCommentCount(postId);
         log.info("댓글 저장 완료 - commentId={}, postId={}, loginUserId={}", savedComment.getId(), postId, loginUserId);
-        notificationService.createCommentNotification(postId, loginUserId, savedComment.getId());
-        log.info("댓글 알림 처리 요청 완료 - commentId={}, postId={}", savedComment.getId(), postId);
+        // 댓글 저장 트랜잭션이 정상 커밋된 이후 알림을 생성하도록 이벤트 발행
+        eventPublisher.publishEvent(new CommentCreatedEvent(postId, loginUserId, savedComment.getId()));
+        log.info("댓글 알림 이벤트 발행 완료 - commentId={}, postId={}", savedComment.getId(), postId);
 
         return toResponse(savedComment, post.getTitle(), MemberDisplayUtil.getDisplayName(member));
     }
@@ -117,8 +120,9 @@ public class CommentService {
         Comment savedReply = commentRepository.save(reply);
         postService.increaseCommentCount(parentComment.getPostId());
         log.info("대댓글 저장 완료 - replyCommentId={}, parentCommentId={}, loginUserId={}", savedReply.getId(), parentCommentId, loginUserId);
-        notificationService.createReplyNotification(parentCommentId, loginUserId, savedReply.getId());
-        log.info("답글 알림 처리 요청 완료 - replyCommentId={}, parentCommentId={}", savedReply.getId(), parentCommentId);
+        // 대댓글 저장 트랜잭션이 정상 커밋된 이후 알림을 생성하도록 이벤트 발행
+        eventPublisher.publishEvent(new ReplyCreatedEvent(parentCommentId, loginUserId, savedReply.getId()));
+        log.info("답글 알림 이벤트 발행 완료 - replyCommentId={}, parentCommentId={}", savedReply.getId(), parentCommentId);
 
         return toResponse(savedReply, post.getTitle(), MemberDisplayUtil.getDisplayName(member));
     }
@@ -252,5 +256,11 @@ public class CommentService {
                 });
 
         return MemberDisplayUtil.getDisplayName(member);
+    }
+
+    public record CommentCreatedEvent(Long postId, Long actorUserId, Long commentId) {
+    }
+
+    public record ReplyCreatedEvent(Long parentCommentId, Long actorUserId, Long replyCommentId) {
     }
 }

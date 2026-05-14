@@ -10,9 +10,16 @@ import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.NotificationErrorCode;
+import com.back.devc.domain.post.comment.service.CommentService.CommentCreatedEvent;
+import com.back.devc.domain.post.comment.service.CommentService.ReplyCreatedEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.List;
 
@@ -34,6 +41,7 @@ import java.util.List;
  * - soft delete 된 부모 댓글에는 답글 알림을 만들지 않는다.
  * - 좋아요 알림은 취소 후 다시 눌렀을 때 중복 생성되지 않도록 한 번만 만든다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -47,6 +55,36 @@ public class NotificationService {
     private final MemberRepository memberRepository;
     // 게시글 작성자(userId)를 찾아 "알림 수신자"를 결정할 때 사용
     private final PostRepository postRepository;
+
+    /**
+     * 댓글 저장 트랜잭션이 정상 커밋된 이후 댓글 알림을 생성한다.
+     * 알림 생성에 실패해도 이미 커밋된 댓글 작성 결과에는 영향을 주지 않도록 예외를 삼킨다.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleCommentCreatedEvent(CommentCreatedEvent event) {
+        try {
+            createCommentNotification(event.postId(), event.actorUserId(), event.commentId());
+        } catch (Exception e) {
+            log.warn("댓글 알림 생성 실패 - postId={}, actorUserId={}, commentId={}",
+                    event.postId(), event.actorUserId(), event.commentId(), e);
+        }
+    }
+
+    /**
+     * 대댓글 저장 트랜잭션이 정상 커밋된 이후 대댓글 알림을 생성한다.
+     * 알림 생성에 실패해도 이미 커밋된 대댓글 작성 결과에는 영향을 주지 않도록 예외를 삼킨다.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleReplyCreatedEvent(ReplyCreatedEvent event) {
+        try {
+            createReplyNotification(event.parentCommentId(), event.actorUserId(), event.replyCommentId());
+        } catch (Exception e) {
+            log.warn("대댓글 알림 생성 실패 - parentCommentId={}, actorUserId={}, replyCommentId={}",
+                    event.parentCommentId(), event.actorUserId(), event.replyCommentId(), e);
+        }
+    }
 
     /**
      * 게시글 댓글 알림 생성
