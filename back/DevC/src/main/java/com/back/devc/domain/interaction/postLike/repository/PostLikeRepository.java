@@ -3,6 +3,8 @@ package com.back.devc.domain.interaction.postLike.repository;
 import com.back.devc.domain.interaction.postLike.entity.PostLike;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -32,6 +34,11 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
      * 삭제되지 않은 게시글에 대한 좋아요 목록만 조회
      */
     List<PostLike> findAllByMemberAndPost_IsDeletedFalse(Member member);
+
+    /**
+     * 삭제되지 않은 게시글에 대한 좋아요 목록 페이징 조회
+     */
+    Page<PostLike> findAllByMemberAndPost_IsDeletedFalse(Member member, Pageable pageable);
 
     /**
      * 특정 게시글에 연결된 좋아요 전체 삭제

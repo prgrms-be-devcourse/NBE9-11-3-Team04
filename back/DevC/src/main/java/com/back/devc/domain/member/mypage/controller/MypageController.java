@@ -45,7 +45,7 @@ public class MypageController {
     @GetMapping("/posts")
     public ResponseEntity<SuccessResponse<PageResponse<MyPostResponse>>> getMyPosts(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PageableDefault(size = 5) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable
     ) {
         validatePrincipal(principal);
 
@@ -62,7 +62,7 @@ public class MypageController {
     @GetMapping("/comments")
     public ResponseEntity<SuccessResponse<PageResponse<MyCommentResponse>>> getMyComments(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PageableDefault(size = 5) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable
     ) {
         validatePrincipal(principal);
 
@@ -79,7 +79,7 @@ public class MypageController {
     @GetMapping("/likes")
     public ResponseEntity<SuccessResponse<PageResponse<LikedPostResponse>>> getMyLikedPosts(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PageableDefault(size = 5) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable
     ) {
         validatePrincipal(principal);
 
@@ -96,7 +96,7 @@ public class MypageController {
     @GetMapping("/bookmarks")
     public ResponseEntity<SuccessResponse<PageResponse<BookmarkedPostResponse>>> getMyBookmarkedPosts(
             @AuthenticationPrincipal JwtPrincipal principal,
-            @PageableDefault(size = 5) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable
     ) {
         validatePrincipal(principal);
 

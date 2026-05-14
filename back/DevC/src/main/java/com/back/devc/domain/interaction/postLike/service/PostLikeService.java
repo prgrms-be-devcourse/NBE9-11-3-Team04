@@ -1,5 +1,6 @@
 package com.back.devc.domain.interaction.postLike.service;
 
+import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostsQuery;
@@ -13,9 +14,12 @@ import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.errorcode.PostLikeErrorCode;
+import com.back.devc.global.response.PageResponse;
 import com.back.devc.global.response.successCode.PostLikeSuccessCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +31,7 @@ import java.util.List;
 public class PostLikeService {
 
     private final PostLikeRepository postLikeRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final NotificationService notificationService;
@@ -105,7 +110,7 @@ public class PostLikeService {
     }
 
     /**
-     * 사용자가 좋아요한 게시글 목록 조회
+     * 사용자가 좋아요한 게시글 목록 조회 - 기존 List 방식
      */
     public List<LikedPostResponse> getLikedPosts(LikedPostsQuery query) {
         Member member = findMemberById(query.userId());
@@ -113,20 +118,29 @@ public class PostLikeService {
         List<PostLike> postLikes = postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return postLikes.stream()
-                .map(postLike -> {
-                    Post post = postLike.getPost();
-
-                    return new LikedPostResponse(
-                            post.getPostId(),
-                            post.getTitle(),
-                            MemberDisplayUtil.getDisplayName(post.getMember()),
-                            post.getLikeCount(),
-                            post.getCommentCount(),
-                            post.getViewCount(),
-                            post.getCreatedAt()
-                    );
-                })
+                .map(postLike -> toLikedPostResponse(postLike, query.userId()))
                 .toList();
+    }
+
+    /**
+     * 사용자가 좋아요한 게시글 목록 조회 - 페이징 방식
+     */
+    public PageResponse<LikedPostResponse> getLikedPosts(
+            Long userId,
+            Pageable pageable
+    ) {
+        Member member = findMemberById(userId);
+
+        Page<PostLike> postLikes = postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(
+                member,
+                pageable
+        );
+
+        Page<LikedPostResponse> responses = postLikes.map(
+                postLike -> toLikedPostResponse(postLike, userId)
+        );
+
+        return PageResponse.from(responses);
     }
 
     /**
@@ -134,6 +148,32 @@ public class PostLikeService {
      */
     public boolean isLikedByUser(Long userId, Long postId) {
         return postLikeRepository.existsByMember_UserIdAndPost_PostId(userId, postId);
+    }
+
+    private LikedPostResponse toLikedPostResponse(
+            PostLike postLike,
+            Long userId
+    ) {
+        Post post = postLike.getPost();
+        Long postId = post.getPostId();
+
+        boolean liked = true;
+        boolean bookmarked = bookmarkRepository.existsByMember_UserIdAndPost_PostId(
+                userId,
+                postId
+        );
+
+        return new LikedPostResponse(
+                postId,
+                post.getTitle(),
+                MemberDisplayUtil.getDisplayName(post.getMember()),
+                post.getLikeCount(),
+                post.getCommentCount(),
+                post.getViewCount(),
+                post.getCreatedAt(),
+                liked,
+                bookmarked
+        );
     }
 
     /**
