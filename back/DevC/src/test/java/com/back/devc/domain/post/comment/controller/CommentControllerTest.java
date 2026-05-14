@@ -1,38 +1,34 @@
 package com.back.devc.domain.post.comment.controller;
 
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
 import com.back.devc.domain.post.comment.dto.CommentListResponse;
 import com.back.devc.domain.post.comment.dto.CommentResponse;
 import com.back.devc.domain.post.comment.service.CommentService;
+import com.back.devc.global.security.jwt.JwtPrincipal;
 import com.back.devc.global.security.jwt.JwtProvider;
-import com.back.devc.domain.member.member.repository.MemberRepository;
-import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import com.back.devc.global.security.jwt.JwtPrincipal;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import org.springframework.security.core.context.SecurityContextHolder;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @WebMvcTest(CommentController.class)
@@ -181,14 +177,16 @@ class CommentControllerTest {
     void getComments_success() throws Exception {
         CommentListResponse response = org.mockito.Mockito.mock(CommentListResponse.class);
 
-        given(commentService.getComments(1L)).willReturn(response);
+        given(commentService.getComments(1L, 0, 20)).willReturn(response);
 
-        mockMvc.perform(get("/api/posts/{postId}/comments", 1L))
+        mockMvc.perform(get("/api/posts/{postId}/comments", 1L)
+                        .param("page", "0")
+                        .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("COMMENT_200_LIST"))
                 .andExpect(jsonPath("$.message").value("댓글 목록 조회 성공"));
 
-        verify(commentService).getComments(1L);
+        verify(commentService).getComments(1L, 0, 20);
     }
 
     private Authentication createAuthentication() {
