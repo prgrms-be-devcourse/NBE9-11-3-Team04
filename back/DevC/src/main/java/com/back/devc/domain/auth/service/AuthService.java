@@ -13,6 +13,7 @@ import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +71,7 @@ public class AuthService {
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
         log.info("회원가입 시작 - email={}, nickname={}", request.email(), request.nickname());
+
         if (memberRepository.existsByEmail(request.email())) {
             log.warn("회원가입 실패 - 이메일 중복, email={}", request.email());
             throw new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
@@ -82,15 +84,58 @@ public class AuthService {
 
         String encodedPassword = passwordEncoder.encode(request.password());
         Member member = Member.createLocalMember(request.email(), encodedPassword, request.nickname());
-        Member savedMember = memberRepository.save(member);
-        log.info("회원가입 완료 - userId={}, email={}", savedMember.getUserId(), savedMember.getEmail());
 
-        return new SignUpResponse(
-                savedMember.getUserId(),
-                savedMember.getEmail(),
-                savedMember.getNickname(),
-                savedMember.getRole(),
-                savedMember.getStatus()
-        );
+        try {
+            // unique 제약 조건 위반을 회원가입 메서드 안에서 바로 감지하기 위해 flush까지 수행
+            Member savedMember = memberRepository.saveAndFlush(member);
+
+            log.info("회원가입 완료 - userId={}, email={}", savedMember.getUserId(), savedMember.getEmail());
+
+            return new SignUpResponse(
+                    savedMember.getUserId(),
+                    savedMember.getEmail(),
+                    savedMember.getNickname(),
+                    savedMember.getRole(),
+                    savedMember.getStatus()
+            );
+        } catch (DataIntegrityViolationException e) {
+            //  동시 회원가입 상황에서 DB unique 제약 조건 위반 시 기존 중복 예외로 변환
+            throw convertSignUpDuplicateException(request, e);
+        }
+    }
+
+    private ApiException convertSignUpDuplicateException(
+            SignUpRequest request,
+            DataIntegrityViolationException e
+    ) {
+        String message = e.getMostSpecificCause().getMessage();
+
+        if (message != null) {
+            String lowerMessage = message.toLowerCase();
+
+            if (lowerMessage.contains("uk_users_email")) {
+                log.warn("회원가입 실패 - DB 이메일 unique 제약 조건 위반, email={}", request.email());
+                return new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+
+            if (lowerMessage.contains("uk_users_nickname")) {
+                log.warn("회원가입 실패 - DB 닉네임 unique 제약 조건 위반, nickname={}", request.nickname());
+                return new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
+            }
+        }
+
+        // DB마다 제약 조건 위반 메시지가 다를 수 있으므로 실제 중복 여부를 한 번 더 확인
+        if (memberRepository.existsByEmail(request.email())) {
+            log.warn("회원가입 실패 - DB 저장 후 이메일 중복 확인, email={}", request.email());
+            return new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        if (memberRepository.existsByNickname(request.nickname())) {
+            log.warn("회원가입 실패 - DB 저장 후 닉네임 중복 확인, nickname={}", request.nickname());
+            return new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
+
+        // 이메일/닉네임 중복이 아닌 다른 DB 무결성 오류는 원래 예외 그대로 전파
+        throw e;
     }
 }
