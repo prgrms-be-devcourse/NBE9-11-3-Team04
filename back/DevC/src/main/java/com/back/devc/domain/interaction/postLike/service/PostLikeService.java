@@ -130,6 +130,13 @@ public class PostLikeService {
     }
 
     /**
+     * 현재 로그인한 사용자가 특정 게시글에 좋아요했는지 확인
+     */
+    public boolean isLikedByUser(Long userId, Long postId) {
+        return postLikeRepository.existsByMember_UserIdAndPost_PostId(userId, postId);
+    }
+
+    /**
      * 회원 조회 공통 메서드
      * 목록 조회처럼 Member 엔티티가 필요한 경우 사용
      */

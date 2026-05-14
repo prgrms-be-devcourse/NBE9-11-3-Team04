@@ -1,32 +1,31 @@
 package com.back.devc.domain.interaction.notification.controller;
 
-import com.back.devc.global.security.jwt.JwtPrincipal;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-
-import java.util.List;
-
 import com.back.devc.domain.interaction.notification.dto.NotificationListResponse;
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
-import com.back.devc.global.security.jwt.JwtProvider;
 import com.back.devc.domain.member.member.repository.MemberRepository;
-import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import org.springframework.test.context.ActiveProfiles;
+import com.back.devc.global.security.jwt.JwtPrincipal;
+import com.back.devc.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @WebMvcTest(NotificationController.class)
@@ -63,18 +62,33 @@ class NotificationControllerTest {
                 false,
                 null
         );
-        NotificationListResponse response = new NotificationListResponse(List.of(notification));
+        NotificationListResponse response = new NotificationListResponse(
+                List.of(notification),
+                0,
+                20,
+                1,
+                1,
+                false
+        );
 
-        given(notificationService.getMyNotifications(1L)).willReturn(response);
+        given(notificationService.getMyNotifications(1L, 0, 20, "all")).willReturn(response);
         mockMvc.perform(get("/api/notifications")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("tab", "all")
                         .principal(createAuthentication()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("NOTIFICATION_200_LIST"))
                 .andExpect(jsonPath("$.message").value("알림 목록 조회 성공"))
                 .andExpect(jsonPath("$.data.notifications.length()").value(1))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
                 .andExpect(jsonPath("$.data.notifications[0].type").value("COMMENT"))
                 .andExpect(jsonPath("$.data.notifications[0].message").value("작성자B님이 게시글에 댓글을 남겼습니다."));
-        verify(notificationService).getMyNotifications(1L);
+        verify(notificationService).getMyNotifications(1L, 0, 20, "all");
     }
 
     @Test

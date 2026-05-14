@@ -20,6 +20,17 @@ type SuccessResponse<T> = {
   data: T
 }
 
+type PageResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+  hasNext: boolean
+}
+
 type PostPageResponse = {
   content: {
     postId: number
@@ -194,18 +205,24 @@ export default function HomePage() {
         }
 
         const [bookmarksRes, likesRes] = await Promise.all([
-          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
-            method: "GET",
-            auth: true,
-          }),
+          apiFetch<SuccessResponse<PageResponse<BookmarkedPostResponse>>>(
+            "/api/mypage/bookmarks",
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
+          apiFetch<SuccessResponse<PageResponse<LikedPostResponse>>>(
+            "/api/mypage/likes",
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
         ])
 
-        const bookmarks = bookmarksRes?.data ?? []
-        const likes = likesRes?.data ?? []
+        const bookmarks = bookmarksRes.data.content
+        const likes = likesRes.data.content
 
         const bookmarkedPostIds = new Set(bookmarks.map((post) => post.postId))
         const likedPostIds = new Set(likes.map((post) => post.postId))
@@ -221,6 +238,7 @@ export default function HomePage() {
       }
     } catch (err) {
       if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        setPosts([])
         setError("북마크는 로그인 후 확인할 수 있습니다.")
       } else {
         setError(
