@@ -410,7 +410,7 @@ export default function PostDetailPage() {
               </div>
             )}
             <div>
-            <h1 className="text-2xl font-bold text-foreground">{post?.title}</h1>
+            <h1 className="text-2xl font-bold break-words text-foreground">{post?.title}</h1>
             {post?.userId ? (
               <div className="mt-2 text-sm text-muted-foreground">
                 작성자:{" "}
