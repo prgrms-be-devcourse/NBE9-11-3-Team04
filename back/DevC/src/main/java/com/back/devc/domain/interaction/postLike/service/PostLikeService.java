@@ -34,64 +34,73 @@ public class PostLikeService {
     /**
      * 게시글 좋아요 추가
      *
-     * 이미 좋아요가 존재하면 저장하지 않고 현재 상태만 반환한다.
-     * 처음 좋아요하는 경우에만 좋아요 엔티티 저장, 좋아요 수 증가, 알림 생성 수행.
+     * 동시성 처리 방식:
+     * - exists 확인 후 save 하지 않음
+     * - DB unique constraint + insert ignore 사용
+     * - 실제 insert가 성공한 경우에만 likeCount 증가
      */
     @Transactional
     public PostLikeResponse createLike(PostLikeCommand command) {
-        Member member = findMemberById(command.userId());
-        Post post = findPostById(command.postId());
+        Long userId = command.userId();
+        Long postId = command.postId();
 
-        if (postLikeRepository.existsByMemberAndPost(member, post)) {
-            return buildPostLikeResponse(
-                    post,
-                    true,
-                    PostLikeSuccessCode.POST_LIKE_ALREADY_EXISTS
-            );
+        validateMemberExists(userId);
+        validatePostExists(postId);
+
+        int insertedCount = postLikeRepository.insertIgnore(userId, postId);
+
+        if (insertedCount > 0) {
+            postRepository.increaseLikeCount(postId);
+            notificationService.createPostLikeNotification(postId, userId);
         }
 
-        PostLike postLike = PostLike.create(member, post);
-        postLikeRepository.save(postLike);
+        int likeCount = postRepository.findLikeCountByPostId(postId);
 
-        post.increaseLikeCount();
-        notificationService.createPostLikeNotification(post.getPostId(), member.getUserId());
+        PostLikeSuccessCode successCode = insertedCount > 0
+                ? PostLikeSuccessCode.POST_LIKE_CREATED
+                : PostLikeSuccessCode.POST_LIKE_ALREADY_EXISTS;
 
-        return buildPostLikeResponse(
-                post,
+        return new PostLikeResponse(
+                postId,
                 true,
-                PostLikeSuccessCode.POST_LIKE_CREATED
+                likeCount,
+                successCode.getMessage()
         );
     }
 
     /**
      * 게시글 좋아요 취소
      *
-     * 좋아요가 없으면 현재 상태만 반환한다.
-     * 좋아요가 있으면 삭제 후 좋아요 수 감소 처리.
+     * 동시성 처리 방식:
+     * - 좋아요 엔티티 조회 후 delete 하지 않음
+     * - delete query의 affected row 수를 기준으로 count 감소
+     * - 실제 삭제된 경우에만 likeCount 감소
      */
     @Transactional
     public PostLikeResponse cancelLike(PostLikeCommand command) {
-        Member member = findMemberById(command.userId());
-        Post post = findPostById(command.postId());
+        Long userId = command.userId();
+        Long postId = command.postId();
 
-        PostLike postLike = postLikeRepository.findByMemberAndPost(member, post)
-                .orElse(null);
+        validateMemberExists(userId);
+        validatePostExists(postId);
 
-        if (postLike == null) {
-            return buildPostLikeResponse(
-                    post,
-                    false,
-                    PostLikeSuccessCode.POST_LIKE_ALREADY_CANCELED
-            );
+        int deletedCount = postLikeRepository.deleteByUserIdAndPostId(userId, postId);
+
+        if (deletedCount > 0) {
+            postRepository.decreaseLikeCount(postId);
         }
 
-        postLikeRepository.delete(postLike);
-        post.decreaseLikeCount();
+        int likeCount = postRepository.findLikeCountByPostId(postId);
 
-        return buildPostLikeResponse(
-                post,
+        PostLikeSuccessCode successCode = deletedCount > 0
+                ? PostLikeSuccessCode.POST_LIKE_CANCELED
+                : PostLikeSuccessCode.POST_LIKE_ALREADY_CANCELED;
+
+        return new PostLikeResponse(
+                postId,
                 false,
-                PostLikeSuccessCode.POST_LIKE_CANCELED
+                likeCount,
+                successCode.getMessage()
         );
     }
 
@@ -122,7 +131,7 @@ public class PostLikeService {
 
     /**
      * 회원 조회 공통 메서드
-     * 서비스 내부 중복 제거용
+     * 목록 조회처럼 Member 엔티티가 필요한 경우 사용
      */
     private Member findMemberById(Long userId) {
         return memberRepository.findById(userId)
@@ -132,26 +141,24 @@ public class PostLikeService {
     }
 
     /**
-     * 게시글 조회 공통 메서드
-     * 서비스 내부 중복 제거용
+     * 좋아요 생성/취소에서는 엔티티 조회 대신 존재 여부만 검증한다.
      */
-    private Post findPostById(Long postId) {
-        return postRepository.findByPostIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode()
-                ));
+    private void validateMemberExists(Long userId) {
+        if (!memberRepository.existsById(userId)) {
+            throw new EntityNotFoundException(
+                    PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode()
+            );
+        }
     }
 
     /**
-     * 좋아요 응답 DTO 생성 공통 메서드
-     * 응답 구조 변경 시 한 곳만 수정하면 되게 분리
+     * 좋아요 생성/취소 대상 게시글 존재 여부 검증
      */
-    private PostLikeResponse buildPostLikeResponse(Post post, boolean liked, PostLikeSuccessCode successCode) {
-        return new PostLikeResponse(
-                post.getPostId(),
-                liked,
-                post.getLikeCount(),
-                successCode.getMessage()
-        );
+    private void validatePostExists(Long postId) {
+        if (postRepository.findByPostIdAndIsDeletedFalse(postId).isEmpty()) {
+            throw new EntityNotFoundException(
+                    PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode()
+            );
+        }
     }
 }
