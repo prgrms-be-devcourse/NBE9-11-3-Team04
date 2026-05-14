@@ -6,6 +6,7 @@ import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse;
 import com.back.devc.domain.interaction.bookmark.entity.Bookmark;
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
+import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
@@ -28,6 +29,7 @@ import java.util.List;
 public class BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
+    private final PostLikeRepository postLikeRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
 
@@ -81,8 +83,6 @@ public class BookmarkService {
 
     /**
      * 북마크 목록 조회 - 기존 List 방식
-     *
-     * 다른 곳에서 사용 중일 수 있으므로 유지.
      */
     public List<BookmarkedPostResponse> getBookmarkedPosts(Long userId) {
         Member member = findMemberById(userId);
@@ -90,7 +90,7 @@ public class BookmarkService {
         List<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return bookmarks.stream()
-                .map(this::toBookmarkedPostResponse)
+                .map(bookmark -> toBookmarkedPostResponse(bookmark, userId))
                 .toList();
     }
 
@@ -108,26 +108,38 @@ public class BookmarkService {
                 pageable
         );
 
-        Page<BookmarkedPostResponse> responses = bookmarks.map(this::toBookmarkedPostResponse);
+        Page<BookmarkedPostResponse> responses = bookmarks.map(
+                bookmark -> toBookmarkedPostResponse(bookmark, userId)
+        );
 
         return PageResponse.from(responses);
     }
 
-    /**
-     * Bookmark 엔티티를 북마크 게시글 응답 DTO로 변환
-     */
-    private BookmarkedPostResponse toBookmarkedPostResponse(Bookmark bookmark) {
+    private BookmarkedPostResponse toBookmarkedPostResponse(
+            Bookmark bookmark,
+            Long userId
+    ) {
         Post post = bookmark.getPost();
+        Long postId = post.getPostId();
+
+        boolean liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
+                userId,
+                postId
+        );
+
+        boolean bookmarked = true;
 
         return new BookmarkedPostResponse(
-                post.getPostId(),
+                postId,
                 post.getTitle(),
                 MemberDisplayUtil.getDisplayName(post.getMember()),
                 post.getCategory().getCategoryId(),
                 post.getLikeCount(),
                 post.getCommentCount(),
                 post.getViewCount(),
-                post.getCreatedAt()
+                post.getCreatedAt(),
+                liked,
+                bookmarked
         );
     }
 
