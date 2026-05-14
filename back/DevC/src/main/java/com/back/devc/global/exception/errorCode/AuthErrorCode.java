@@ -20,7 +20,21 @@ public enum AuthErrorCode implements ErrorCodeSpec {
             "COMMON_410",
             "이미 삭제된 리소스입니다."
     ),
-
+    TOKEN_MISSING(
+            HttpStatus.UNAUTHORIZED,
+            "AUTH_401_TOKEN_MISSING",
+            "Access Token이 필요합니다."
+    ),
+    TOKEN_EXPIRED(
+            HttpStatus.UNAUTHORIZED,
+            "AUTH_401_TOKEN_EXPIRED",
+            "Access Token이 만료되었습니다."
+    ),
+    TOKEN_INVALID(
+            HttpStatus.UNAUTHORIZED,
+            "AUTH_401_TOKEN_INVALID",
+            "유효하지 않은 Access Token입니다."
+    ),
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND,
             "AUTH_404_EMAIL_NOT_FOUND",
             "존재하지 않는 이메일입니다."
@@ -63,6 +77,4 @@ public enum AuthErrorCode implements ErrorCodeSpec {
     private final HttpStatus status;
     private final String code;
     private final String message;
-
-
 }
