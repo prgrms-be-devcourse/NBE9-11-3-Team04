@@ -12,8 +12,11 @@ import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.errorcode.BookmarkErrorCode;
+import com.back.devc.global.response.PageResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,26 +79,56 @@ public class BookmarkService {
         );
     }
 
+    /**
+     * 북마크 목록 조회 - 기존 List 방식
+     *
+     * 다른 곳에서 사용 중일 수 있으므로 유지.
+     */
     public List<BookmarkedPostResponse> getBookmarkedPosts(Long userId) {
         Member member = findMemberById(userId);
 
         List<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return bookmarks.stream()
-                .map(bookmark -> {
-                    Post post = bookmark.getPost();
-                    return new BookmarkedPostResponse(
-                            post.getPostId(),
-                            post.getTitle(),
-                            MemberDisplayUtil.getDisplayName(post.getMember()),
-                            post.getCategory().getCategoryId(),
-                            post.getLikeCount(),
-                            post.getCommentCount(),
-                            post.getViewCount(),
-                            post.getCreatedAt()
-                    );
-                })
+                .map(this::toBookmarkedPostResponse)
                 .toList();
+    }
+
+    /**
+     * 북마크 목록 조회 - 페이징 방식
+     */
+    public PageResponse<BookmarkedPostResponse> getBookmarkedPosts(
+            Long userId,
+            Pageable pageable
+    ) {
+        Member member = findMemberById(userId);
+
+        Page<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(
+                member,
+                pageable
+        );
+
+        Page<BookmarkedPostResponse> responses = bookmarks.map(this::toBookmarkedPostResponse);
+
+        return PageResponse.from(responses);
+    }
+
+    /**
+     * Bookmark 엔티티를 북마크 게시글 응답 DTO로 변환
+     */
+    private BookmarkedPostResponse toBookmarkedPostResponse(Bookmark bookmark) {
+        Post post = bookmark.getPost();
+
+        return new BookmarkedPostResponse(
+                post.getPostId(),
+                post.getTitle(),
+                MemberDisplayUtil.getDisplayName(post.getMember()),
+                post.getCategory().getCategoryId(),
+                post.getLikeCount(),
+                post.getCommentCount(),
+                post.getViewCount(),
+                post.getCreatedAt()
+        );
     }
 
     /**
