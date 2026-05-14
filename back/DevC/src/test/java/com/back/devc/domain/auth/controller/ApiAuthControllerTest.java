@@ -132,7 +132,7 @@ public class ApiAuthControllerTest {
         mvc.perform(get("/api/users/me"))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("COMMON_401"));
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_MISSING"));
     }
 
     @Test
