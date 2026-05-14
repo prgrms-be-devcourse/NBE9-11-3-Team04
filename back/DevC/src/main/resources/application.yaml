@@ -1,0 +1,52 @@
+spring:
+  datasource:
+#    url: jdbc:mysql://localhost:3306/devc?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+#    username: devc
+#    password: devc1234
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  application:
+    name: p-24-260305
+
+  profiles:
+    active: dev
+
+  output:
+    ansi:
+      enabled: always
+
+  thymeleaf:
+    cache: false
+    prefix: file:src/main/resources/templates/
+
+  mvc:
+    hiddenmethod:
+      filter:
+        enabled: true
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+springdoc:
+  default-produces-media-type: application/json; charset=UTF-8
+
+logging:
+  level:
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.orm.jdbc.extract: WARN
+    org.springframework.transaction.interceptor: WARN
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
+    org.hibernate.SQL: WARN
+    com.zaxxer.hikari: WARN
+    com.back: INFO
+
+custom:
+  jwt:
+    secret-key: "QkFzZv1faT1CmjVCThXvSf+/m+5jVqwaqPB5MqLpFPvpYwDj6kIQhnjrFn47eM4PLiL9bkRYwc2ILoy/9b2zhg=="
+    access-token-expiration-seconds: 3600

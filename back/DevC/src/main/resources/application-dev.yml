@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    url: jdbc:h2:./db_dev;MODE=MySQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  security:
+    oauth2:
+      client:
+        registration:
+          github: # 환경 변수
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
+            client-name: Kakao
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - profile
+              - email
+            redirect-uri: "http://localhost:8080/login/oauth2/code/google"
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://accounts.google.com/o/oauth2/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+custom:
+  oauth2:
+    frontend-success-url: http://localhost:3000/oauth/callback
+    frontend-failure-url: http://localhost:3000/login
+    frontend-signup-url: http://localhost:3000/oauth/signup
+    allowed-redirect-uris: http://localhost:3000/login,http://localhost:3000/oauth/signup,http://localhost:3000/oauth/callback
+
+  cors:
+    allowed-origins: http://localhost:3000
+
+  jwt:
+    secret-key: "로컬용-충분히-긴-시크릿-문자열"
+    access-token-expiration-seconds: 3600
+    access-cookie-name: access_token
+    access-cookie-secure: false
+    access-cookie-same-site: Lax

@@ -1,0 +1,21 @@
+# DB
+/db_dev.mv.db
+/db_dev.trace.db
+
+# IntelliJ
+**/.idea/
+*.iml
+out/
+
+# OS
+.DS_Store
+
+# Frontend
+frontend/node_modules/
+
+# Backend / Gradle
+**/build/
+.gradle/
+
+# uploads
+/uploads/
