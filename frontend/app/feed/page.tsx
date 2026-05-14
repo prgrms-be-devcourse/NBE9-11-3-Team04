@@ -18,6 +18,17 @@ type SuccessResponse<T> = {
   data: T
 }
 
+type PageResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+  hasNext: boolean
+}
+
 type BookmarkedPostResponse = {
   postId: number
   title: string
@@ -99,18 +110,24 @@ export default function FeedPage() {
         setError("")
 
         const [bookmarksRes, likesRes] = await Promise.all([
-          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
-            method: "GET",
-            auth: true,
-          }),
+          apiFetch<SuccessResponse<PageResponse<BookmarkedPostResponse>>>(
+            "/api/mypage/bookmarks",
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
+          apiFetch<SuccessResponse<PageResponse<LikedPostResponse>>>(
+            "/api/mypage/likes",
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
         ])
 
-        const bookmarks = bookmarksRes?.data ?? []
-        const likes = likesRes?.data ?? []
+        const bookmarks = bookmarksRes.data.content
+        const likes = likesRes.data.content
 
         setBookmarkedPosts(bookmarks)
         setBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))

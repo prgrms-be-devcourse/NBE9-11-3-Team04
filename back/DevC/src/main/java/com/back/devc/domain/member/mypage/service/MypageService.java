@@ -68,7 +68,9 @@ public class MypageService {
                 post.getLikeCount(),
                 post.getCommentCount(),
                 post.getViewCount(),
-                post.getCreatedAt()
+                post.getCreatedAt(),
+                postLikeService.isLikedByUser(userId, post.getPostId()),
+                bookmarkService.isBookmarkedByUser(userId, post.getPostId())
         ));
 
         return PageResponse.from(response);
