@@ -29,6 +29,11 @@ type NotificationItem = {
 
 type NotificationListResponse = {
     notifications: NotificationItem[]
+    page?: number
+    size?: number
+    totalElements?: number
+    totalPages?: number
+    hasNext?: boolean
 }
 
 type SuccessResponse<T> = {
@@ -48,15 +53,21 @@ function extractNotificationListResponse(responseBody: unknown): NotificationLis
         | { data?: NotificationListResponse }
 
     if (Array.isArray((body as NotificationListResponse).notifications)) {
+        const directBody = body as NotificationListResponse
+
         return {
-            notifications: ((body as NotificationListResponse).notifications ?? []).map(normalizeNotification),
+            ...directBody,
+            notifications: (directBody.notifications ?? []).map(normalizeNotification),
         }
     }
 
     const nestedNotifications = (body as SuccessResponse<NotificationListResponse>).data?.notifications
 
     if (Array.isArray(nestedNotifications)) {
+        const nestedBody = (body as SuccessResponse<NotificationListResponse>).data
+
         return {
+            ...nestedBody,
             notifications: nestedNotifications.map(normalizeNotification),
         }
     }
@@ -198,6 +209,8 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isAuthReady, setIsAuthReady] = useState(false)
+    const [currentPage, setCurrentPage] = useState(0)
+    const [totalPages, setTotalPages] = useState(0)
 
     useEffect(() => {
         let isMounted = true
@@ -245,69 +258,70 @@ export default function NotificationsPage() {
         }
     }, [router])
 
-    const loadNotifications = useCallback(async () => {
-        try {
-            setLoading(true)
-            setError(null)
+    const loadNotifications = useCallback(
+        async (page = 0, tab = activeTab) => {
+            try {
+                setLoading(true)
+                setError(null)
 
-            const response = await fetch(`${API_BASE_URL}/api/notifications`, {
-                cache: "no-store",
-                headers: getAuthHeaders(),
-                credentials: "include",
-            })
+                const response = await fetch(
+                    `${API_BASE_URL}/api/notifications?page=${page}&size=20&tab=${tab}`,
+                    {
+                        cache: "no-store",
+                        headers: getAuthHeaders(),
+                        credentials: "include",
+                    }
+                )
 
-            if (!response.ok) {
-                throw new Error("알림 목록을 불러오지 못했습니다.")
+                if (!response.ok) {
+                    throw new Error("알림 목록을 불러오지 못했습니다.")
+                }
+
+                const responseBody = await response.json()
+                const data = extractNotificationListResponse(responseBody)
+
+                setNotifications(data.notifications ?? [])
+                setCurrentPage(data.page ?? page)
+                setTotalPages(data.totalPages ?? 0)
+            } catch (fetchError) {
+                const message =
+                    fetchError instanceof Error ? fetchError.message : "알림 요청 중 오류가 발생했습니다."
+                setError(message)
+            } finally {
+                setLoading(false)
             }
-
-            const responseBody = await response.json()
-            const data = extractNotificationListResponse(responseBody)
-            setNotifications(data.notifications ?? [])
-        } catch (fetchError) {
-            const message =
-                fetchError instanceof Error ? fetchError.message : "알림 요청 중 오류가 발생했습니다."
-            setError(message)
-        } finally {
-            setLoading(false)
-        }
-    }, [])
+        },
+        [activeTab]
+    )
 
     useEffect(() => {
         if (!isAuthReady) {
             return
         }
 
-        void loadNotifications()
-
-        const handleNotificationsUpdated = () => {
-            void loadNotifications()
-        }
+        void loadNotifications(0, activeTab)
 
         const handleWindowFocus = () => {
-            void loadNotifications()
+            void loadNotifications(currentPage, activeTab)
         }
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === "visible") {
-                void loadNotifications()
+                void loadNotifications(currentPage, activeTab)
             }
         }
 
-        const intervalId = window.setInterval(() => {
-            void loadNotifications()
-        }, 10000)
+        // Removed interval-based polling for notifications
 
-        window.addEventListener("notifications-updated", handleNotificationsUpdated)
         window.addEventListener("focus", handleWindowFocus)
         document.addEventListener("visibilitychange", handleVisibilityChange)
 
         return () => {
-            window.clearInterval(intervalId)
-            window.removeEventListener("notifications-updated", handleNotificationsUpdated)
+            // Removed interval cleanup
             window.removeEventListener("focus", handleWindowFocus)
             document.removeEventListener("visibilitychange", handleVisibilityChange)
         }
-    }, [isAuthReady, loadNotifications])
+    }, [isAuthReady, loadNotifications, activeTab])
 
     const markAllAsRead = async () => {
         const unreadNotifications = notifications.filter((notification) => !notification.isRead)
@@ -334,7 +348,13 @@ export default function NotificationsPage() {
                 })
             )
 
-            await loadNotifications()
+            setNotifications((previousNotifications) =>
+                previousNotifications.map((notification) => ({
+                    ...notification,
+                    isRead: true,
+                    read: true,
+                }))
+            )
             dispatchNotificationsUpdated()
         } catch (readError) {
             const message =
@@ -357,13 +377,38 @@ export default function NotificationsPage() {
                 throw new Error("알림 읽음 처리에 실패했습니다.")
             }
 
-            await loadNotifications()
+            setNotifications((previousNotifications) =>
+                previousNotifications.map((notification) =>
+                    notification.notificationId === notificationId
+                        ? {
+                            ...notification,
+                            isRead: true,
+                            read: true,
+                        }
+                        : notification
+                )
+            )
             dispatchNotificationsUpdated()
         } catch (readError) {
             const message =
                 readError instanceof Error ? readError.message : "알림 읽음 처리 중 오류가 발생했습니다."
             setError(message)
         }
+    }
+
+    const handleTabChange = (nextTab: string) => {
+        setActiveTab(nextTab)
+        void loadNotifications(0, nextTab)
+    }
+
+    const pageNumbers = Array.from({length: totalPages}, (_, index) => index)
+
+    const changePage = (page: number) => {
+        if (page === currentPage) {
+            return
+        }
+
+        void loadNotifications(page, activeTab)
     }
 
     const unreadCount = notifications.filter((notification) => !notification.isRead).length
@@ -414,7 +459,7 @@ export default function NotificationsPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => void loadNotifications()}>
+                    <Button variant="outline" onClick={() => void loadNotifications(0, activeTab)}>
                         새로고침
                     </Button>
                     {unreadCount > 0 && (
@@ -433,7 +478,7 @@ export default function NotificationsPage() {
                 </div>
             ) : null}
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
                 <TabsList className="mb-6 w-full justify-start bg-secondary">
                     <TabsTrigger
                         value="all"
@@ -463,9 +508,9 @@ export default function NotificationsPage() {
                             className="rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground">
                             알림을 불러오는 중입니다...
                         </div>
-                    ) : getFilteredNotifications().length > 0 ? (
+                    ) : notifications.length > 0 ? (
                         <div className="space-y-2">
-                            {getFilteredNotifications().map((notification) => {
+                            {notifications.map((notification) => {
                                 const mappedType = mapBackendType(notification.type)
 
                                 return (
@@ -516,6 +561,21 @@ export default function NotificationsPage() {
                                     </div>
                                 )
                             })}
+                            {totalPages > 1 ? (
+                                <div className="flex flex-wrap justify-center gap-2 pt-4">
+                                    {pageNumbers.map((page) => (
+                                        <Button
+                                            key={page}
+                                            type="button"
+                                            variant={page === currentPage ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => changePage(page)}
+                                        >
+                                            {page + 1}
+                                        </Button>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
                     ) : (
                         <div className="rounded-lg border border-border bg-card p-12 text-center">
