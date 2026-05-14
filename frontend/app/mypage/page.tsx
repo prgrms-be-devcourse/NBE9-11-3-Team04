@@ -28,7 +28,7 @@ import {
 } from "@/lib/auth-storage"
 import { apiFetch } from "@/lib/api"
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
 
 type SuccessResponse<T> = {
   code: string
@@ -61,6 +61,8 @@ type MyPostResponse = {
   commentCount: number
   viewCount: number
   createdAt: string
+  liked: boolean
+  bookmarked: boolean
 }
 
 type MyCommentItem = {
@@ -79,6 +81,8 @@ type LikedPostResponse = {
   commentCount: number
   viewCount: number
   createdAt: string
+  liked: boolean
+  bookmarked: boolean
 }
 
 type BookmarkedPostResponse = {
@@ -89,6 +93,8 @@ type BookmarkedPostResponse = {
   commentCount: number
   viewCount: number
   createdAt: string
+  liked: boolean
+  bookmarked: boolean
 }
 
 type LocalProfileData = {
@@ -249,9 +255,7 @@ function formatJoinedAt(email?: string | null) {
 
 function mapMyPostsToPostCard(
   posts: MyPostResponse[],
-  displayName: string,
-  likedPostIds: Set<number>,
-  bookmarkedPostIds: Set<number>
+  displayName: string
 ): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
@@ -266,15 +270,13 @@ function mapMyPostsToPostCard(
     comments: post.commentCount,
     views: post.viewCount,
     tags: [],
-    liked: likedPostIds.has(post.postId),
-    bookmarked: bookmarkedPostIds.has(post.postId),
+    liked: post.liked,
+    bookmarked: post.bookmarked,
   }))
 }
 
 function mapBookmarkedPostsToPostCard(
-  posts: BookmarkedPostResponse[],
-  likedPostIds: Set<number>,
-  bookmarkedPostIds: Set<number>
+  posts: BookmarkedPostResponse[]
 ): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
@@ -289,15 +291,13 @@ function mapBookmarkedPostsToPostCard(
     comments: post.commentCount,
     views: post.viewCount,
     tags: [],
-    liked: likedPostIds.has(post.postId),
-    bookmarked: bookmarkedPostIds.has(post.postId),
+    liked: post.liked,
+    bookmarked: post.bookmarked,
   }))
 }
 
 function mapLikedPostsToPostCard(
-  posts: LikedPostResponse[],
-  likedPostIds: Set<number>,
-  bookmarkedPostIds: Set<number>
+  posts: LikedPostResponse[]
 ): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
@@ -312,8 +312,8 @@ function mapLikedPostsToPostCard(
     comments: post.commentCount,
     views: post.viewCount,
     tags: [],
-    liked: likedPostIds.has(post.postId),
-    bookmarked: bookmarkedPostIds.has(post.postId),
+    liked: post.liked,
+    bookmarked: post.bookmarked,
   }))
 }
 
@@ -351,11 +351,6 @@ export default function MyPage() {
   const [likeCount, setLikeCount] = useState(0)
   const [commentCount, setCommentCount] = useState(0)
 
-  const [myLikedPostIds, setMyLikedPostIds] = useState<Set<number>>(new Set())
-  const [myBookmarkedPostIds, setMyBookmarkedPostIds] = useState<Set<number>>(
-    new Set()
-  )
-
   const websiteHref = useMemo(
     () => normalizeWebsiteUrl(profileData.website),
     [profileData.website]
@@ -370,34 +365,18 @@ export default function MyPage() {
   )
 
   const myPostCards = useMemo(
-    () =>
-      mapMyPostsToPostCard(
-        myPosts.content,
-        displayName,
-        myLikedPostIds,
-        myBookmarkedPostIds
-      ),
-    [myPosts.content, displayName, myLikedPostIds, myBookmarkedPostIds]
+    () => mapMyPostsToPostCard(myPosts.content, displayName),
+    [myPosts.content, displayName]
   )
 
   const bookmarkedPostCards = useMemo(
-    () =>
-      mapBookmarkedPostsToPostCard(
-        bookmarkedPosts.content,
-        myLikedPostIds,
-        myBookmarkedPostIds
-      ),
-    [bookmarkedPosts.content, myLikedPostIds, myBookmarkedPostIds]
+    () => mapBookmarkedPostsToPostCard(bookmarkedPosts.content),
+    [bookmarkedPosts.content]
   )
 
   const likedPostCards = useMemo(
-    () =>
-      mapLikedPostsToPostCard(
-        likedPosts.content,
-        myLikedPostIds,
-        myBookmarkedPostIds
-      ),
-    [likedPosts.content, myLikedPostIds, myBookmarkedPostIds]
+    () => mapLikedPostsToPostCard(likedPosts.content),
+    [likedPosts.content]
   )
 
   const fetchMyPostsPage = useCallback(async (page: number) => {
@@ -432,15 +411,6 @@ export default function MyPage() {
 
     setBookmarkedPosts(bookmarksPage)
     setBookmarkCount(bookmarksPage.totalElements)
-    setMyBookmarkedPostIds((prev) => {
-      const next = new Set(prev)
-
-      bookmarksPage.content.forEach((post) => {
-        next.add(post.postId)
-      })
-
-      return next
-    })
   }, [])
 
   const fetchLikedPostsPage = useCallback(async (page: number) => {
@@ -459,15 +429,6 @@ export default function MyPage() {
 
     setLikedPosts(likesPage)
     setLikeCount(likesPage.totalElements)
-    setMyLikedPostIds((prev) => {
-      const next = new Set(prev)
-
-      likesPage.content.forEach((post) => {
-        next.add(post.postId)
-      })
-
-      return next
-    })
   }, [])
 
   const fetchMyCommentsPage = useCallback(async (page: number) => {
@@ -519,17 +480,7 @@ export default function MyPage() {
         0
       )
 
-      setBookmarkedPosts(bookmarksPage)
       setBookmarkCount(bookmarksPage.totalElements)
-      setMyBookmarkedPostIds((prev) => {
-        const next = new Set(prev)
-
-        bookmarksPage.content.forEach((post) => {
-          next.add(post.postId)
-        })
-
-        return next
-      })
     }
 
     if (likesRes.status === "fulfilled") {
@@ -538,17 +489,7 @@ export default function MyPage() {
         0
       )
 
-      setLikedPosts(likesPage)
       setLikeCount(likesPage.totalElements)
-      setMyLikedPostIds((prev) => {
-        const next = new Set(prev)
-
-        likesPage.content.forEach((post) => {
-          next.add(post.postId)
-        })
-
-        return next
-      })
     }
 
     if (commentsRes.status === "fulfilled") {
@@ -557,7 +498,6 @@ export default function MyPage() {
         0
       )
 
-      setMyComments(commentsPage)
       setCommentCount(commentsPage.totalElements)
     }
   }, [])
@@ -785,18 +725,6 @@ export default function MyPage() {
     postId: number,
     nextBookmarked: boolean
   ) => {
-    setMyBookmarkedPostIds((prev) => {
-      const next = new Set(prev)
-
-      if (nextBookmarked) {
-        next.add(postId)
-      } else {
-        next.delete(postId)
-      }
-
-      return next
-    })
-
     setBookmarkCount((prev) =>
       Math.max(0, prev + (nextBookmarked ? 1 : -1))
     )
@@ -804,14 +732,18 @@ export default function MyPage() {
     setMyPosts((prev) => ({
       ...prev,
       content: prev.content.map((post) =>
-        post.postId === postId ? { ...post } : post
+        post.postId === postId
+          ? { ...post, bookmarked: nextBookmarked }
+          : post
       ),
     }))
 
     setLikedPosts((prev) => ({
       ...prev,
       content: prev.content.map((post) =>
-        post.postId === postId ? { ...post } : post
+        post.postId === postId
+          ? { ...post, bookmarked: nextBookmarked }
+          : post
       ),
     }))
 
@@ -837,13 +769,17 @@ export default function MyPage() {
       return
     }
 
-    if (!nextBookmarked) {
-      setBookmarkedPosts((prev) => ({
-        ...prev,
-        content: prev.content.filter((post) => post.postId !== postId),
-        totalElements: Math.max(0, prev.totalElements - 1),
-      }))
-    }
+    setBookmarkedPosts((prev) => ({
+      ...prev,
+      content: nextBookmarked
+        ? prev.content.map((post) =>
+            post.postId === postId
+              ? { ...post, bookmarked: nextBookmarked }
+              : post
+          )
+        : prev.content.filter((post) => post.postId !== postId),
+      totalElements: Math.max(0, prev.totalElements + (nextBookmarked ? 1 : -1)),
+    }))
   }
 
   const handleLikeToggle = async (
@@ -851,25 +787,17 @@ export default function MyPage() {
     nextLiked: boolean,
     nextLikeCount: number
   ) => {
-    setMyLikedPostIds((prev) => {
-      const next = new Set(prev)
-
-      if (nextLiked) {
-        next.add(postId)
-      } else {
-        next.delete(postId)
-      }
-
-      return next
-    })
-
     setLikeCount((prev) => Math.max(0, prev + (nextLiked ? 1 : -1)))
 
     setMyPosts((prev) => ({
       ...prev,
       content: prev.content.map((post) =>
         post.postId === postId
-          ? { ...post, likeCount: nextLikeCount }
+          ? {
+              ...post,
+              liked: nextLiked,
+              likeCount: nextLikeCount,
+            }
           : post
       ),
     }))
@@ -878,7 +806,11 @@ export default function MyPage() {
       ...prev,
       content: prev.content.map((post) =>
         post.postId === postId
-          ? { ...post, likeCount: nextLikeCount }
+          ? {
+              ...post,
+              liked: nextLiked,
+              likeCount: nextLikeCount,
+            }
           : post
       ),
     }))
@@ -905,22 +837,17 @@ export default function MyPage() {
       return
     }
 
-    if (!nextLiked) {
-      setLikedPosts((prev) => ({
-        ...prev,
-        content: prev.content.filter((post) => post.postId !== postId),
-        totalElements: Math.max(0, prev.totalElements - 1),
-      }))
-    } else {
-      setLikedPosts((prev) => ({
-        ...prev,
-        content: prev.content.map((post) =>
-          post.postId === postId
-            ? { ...post, likeCount: nextLikeCount }
-            : post
-        ),
-      }))
-    }
+    setLikedPosts((prev) => ({
+      ...prev,
+      content: nextLiked
+        ? prev.content.map((post) =>
+            post.postId === postId
+              ? { ...post, liked: nextLiked, likeCount: nextLikeCount }
+              : post
+          )
+        : prev.content.filter((post) => post.postId !== postId),
+      totalElements: Math.max(0, prev.totalElements + (nextLiked ? 1 : -1)),
+    }))
   }
 
   if (loading) {

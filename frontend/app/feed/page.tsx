@@ -18,6 +18,17 @@ type SuccessResponse<T> = {
   data: T
 }
 
+type PageResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+  hasNext: boolean
+}
+
 type BookmarkedPostResponse = {
   postId: number
   title: string
@@ -78,10 +89,17 @@ function mapBookmarkedPostsToPostCard(
 
 export default function FeedPage() {
   const router = useRouter()
+
   const [searchQuery, setSearchQuery] = useState("")
   const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPostResponse[]>([])
   const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set())
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState<Set<number>>(new Set())
+
+  const [page, setPage] = useState(0)
+  const [size] = useState(10)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -99,22 +117,34 @@ export default function FeedPage() {
         setError("")
 
         const [bookmarksRes, likesRes] = await Promise.all([
-          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
-            method: "GET",
-            auth: true,
-          }),
+          apiFetch<SuccessResponse<PageResponse<BookmarkedPostResponse>>>(
+            `/api/mypage/bookmarks?page=${page}&size=${size}`,
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
+          apiFetch<SuccessResponse<PageResponse<LikedPostResponse>>>(
+            `/api/mypage/likes?page=0&size=1000`,
+            {
+              method: "GET",
+              auth: true,
+            }
+          ),
         ])
 
-        const bookmarks = bookmarksRes?.data ?? []
-        const likes = likesRes?.data ?? []
+        const bookmarkPage = bookmarksRes?.data
+        const likePage = likesRes?.data
+
+        const bookmarks = bookmarkPage?.content ?? []
+        const likes = likePage?.content ?? []
 
         setBookmarkedPosts(bookmarks)
         setBookmarkedPostIds(new Set(bookmarks.map((post) => post.postId)))
         setLikedPostIds(new Set(likes.map((post) => post.postId)))
+
+        setTotalPages(bookmarkPage?.totalPages ?? 0)
+        setTotalElements(bookmarkPage?.totalElements ?? 0)
       } catch (err) {
         if (err instanceof Error && err.message === "UNAUTHORIZED") {
           router.replace("/login")
@@ -129,7 +159,7 @@ export default function FeedPage() {
     }
 
     void fetchData()
-  }, [router])
+  }, [router, page, size])
 
   const handleBookmarkToggle = (postId: number, nextBookmarked: boolean) => {
     setBookmarkedPostIds((prev) => {
@@ -145,7 +175,17 @@ export default function FeedPage() {
     })
 
     if (!nextBookmarked) {
-      setBookmarkedPosts((prev) => prev.filter((post) => post.postId !== postId))
+      setBookmarkedPosts((prev) => {
+        const next = prev.filter((post) => post.postId !== postId)
+
+        if (next.length === 0 && page > 0) {
+          setPage((prevPage) => prevPage - 1)
+        }
+
+        return next
+      })
+
+      setTotalElements((prev) => Math.max(prev - 1, 0))
     }
   }
 
@@ -195,6 +235,44 @@ export default function FeedPage() {
                   onBookmarkToggle={handleBookmarkToggle}
                 />
               ))}
+
+              {totalPages > 1 && (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={page === 0}
+                    onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+                  >
+                    이전
+                  </Button>
+
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <Button
+                      key={index}
+                      type="button"
+                      variant={page === index ? "default" : "outline"}
+                      onClick={() => setPage(index)}
+                      className={
+                        page === index ? "bg-primary text-primary-foreground" : ""
+                      }
+                    >
+                      {index + 1}
+                    </Button>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={page >= totalPages - 1}
+                    onClick={() =>
+                      setPage((prev) => Math.min(prev + 1, totalPages - 1))
+                    }
+                  >
+                    다음
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card p-12 text-center">
@@ -220,7 +298,7 @@ export default function FeedPage() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold text-foreground">북마크한 글</h2>
               <span className="text-sm text-muted-foreground">
-                {bookmarkedPosts.length}개
+                {totalElements}개
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -240,6 +318,9 @@ export default function FeedPage() {
                 className="bg-secondary pl-9"
               />
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              현재 페이지의 북마크 안에서 검색됩니다.
+            </p>
           </div>
         </div>
       </div>

@@ -13,11 +13,24 @@ import {
 } from "@/lib/auth-storage"
 import { apiFetch } from "@/lib/api"
 
+const PAGE_SIZE = 10
+
 type SuccessResponse<T> = {
   code: string
   message: string
   timestamp: string
   data: T
+}
+
+type PageResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+  hasNext: boolean
 }
 
 type PostPageResponse = {
@@ -45,10 +58,8 @@ type BookmarkedPostResponse = {
   commentCount: number
   viewCount: number
   createdAt: string
-}
-
-type LikedPostResponse = {
-  postId: number
+  liked: boolean
+  bookmarked: boolean
 }
 
 const API_BASE_URL =
@@ -104,11 +115,7 @@ function getAuthHeaders(): HeadersInit {
   return headers
 }
 
-function mapBookmarkedPostsToPostCard(
-  posts: BookmarkedPostResponse[],
-  likedPostIds: Set<number>,
-  bookmarkedPostIds: Set<number>
-): Post[] {
+function mapBookmarkedPostsToPostCard(posts: BookmarkedPostResponse[]): Post[] {
   return posts.map((post) => ({
     id: String(post.postId),
     title: post.title,
@@ -122,8 +129,8 @@ function mapBookmarkedPostsToPostCard(
     comments: post.commentCount,
     views: post.viewCount,
     tags: [],
-    liked: likedPostIds.has(post.postId),
-    bookmarked: bookmarkedPostIds.has(post.postId),
+    liked: post.liked,
+    bookmarked: post.bookmarked,
   }))
 }
 
@@ -193,28 +200,15 @@ export default function HomePage() {
           return
         }
 
-        const [bookmarksRes, likesRes] = await Promise.all([
-          apiFetch<SuccessResponse<BookmarkedPostResponse[]>>("/api/mypage/bookmarks", {
-            method: "GET",
-            auth: true,
-          }),
-          apiFetch<SuccessResponse<LikedPostResponse[]>>("/api/mypage/likes", {
-            method: "GET",
-            auth: true,
-          }),
-        ])
+        const bookmarksRes = await apiFetch<
+          SuccessResponse<PageResponse<BookmarkedPostResponse>>
+        >(`/api/mypage/bookmarks?page=0&size=${PAGE_SIZE}`, {
+          method: "GET",
+          auth: true,
+        })
 
-        const bookmarks = bookmarksRes?.data ?? []
-        const likes = likesRes?.data ?? []
-
-        const bookmarkedPostIds = new Set(bookmarks.map((post) => post.postId))
-        const likedPostIds = new Set(likes.map((post) => post.postId))
-
-        const mapped = mapBookmarkedPostsToPostCard(
-          bookmarks,
-          likedPostIds,
-          bookmarkedPostIds
-        )
+        const bookmarks = bookmarksRes?.data?.content ?? []
+        const mapped = mapBookmarkedPostsToPostCard(bookmarks)
 
         setPosts(mapped)
         return
@@ -299,13 +293,17 @@ export default function HomePage() {
               )
             }}
             onBookmarkToggle={(postId, nextBookmarked) => {
-              setPosts((prev) =>
-                prev.map((p) =>
+              setPosts((prev) => {
+                if (activeTab === "feed" && !nextBookmarked) {
+                  return prev.filter((p) => Number(p.id) !== postId)
+                }
+
+                return prev.map((p) =>
                   Number(p.id) === postId
                     ? { ...p, bookmarked: nextBookmarked }
                     : p
                 )
-              )
+              })
             }}
           />
         ))}
