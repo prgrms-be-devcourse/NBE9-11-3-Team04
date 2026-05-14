@@ -4,20 +4,17 @@ import com.back.devc.domain.interaction.notification.service.NotificationService
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
-import com.back.devc.domain.post.comment.dto.CommentCreateRequest;
-import com.back.devc.domain.post.comment.dto.CommentDeleteResponse;
-import com.back.devc.domain.post.comment.dto.CommentListResponse;
-import com.back.devc.domain.post.comment.dto.CommentResponse;
-import com.back.devc.domain.post.comment.dto.CommentUpdateRequest;
+import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
+import com.back.devc.domain.post.comment.dto.*;
 import com.back.devc.domain.post.comment.entity.Comment;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
-import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.domain.post.post.service.PostService;
+import com.back.devc.global.exception.ApiException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,10 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -51,6 +45,9 @@ class CommentServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private PostService postService;
 
     @InjectMocks
     private CommentService commentService;
@@ -89,6 +86,8 @@ class CommentServiceTest {
         assertThat(response.userId()).isEqualTo(loginUserId);
         assertThat(response.parentCommentId()).isNull();
         assertThat(response.content()).isEqualTo("첫 댓글입니다.");
+        // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
+        verify(postService).increaseCommentCount(postId);
         verify(notificationService).createCommentNotification(postId, loginUserId, 1L);
     }
 
@@ -122,6 +121,8 @@ class CommentServiceTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.commentId()).isEqualTo(2L);
+        // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
+        verify(postService).increaseCommentCount(postId);
         verify(notificationService).createCommentNotification(postId, loginUserId, 2L);
     }
 
@@ -162,6 +163,8 @@ class CommentServiceTest {
         assertThat(response.commentId()).isEqualTo(200L);
         assertThat(response.parentCommentId()).isEqualTo(parentCommentId);
         assertThat(response.content()).isEqualTo("대댓글입니다.");
+        // 대댓글 작성 성공 시 부모 댓글이 속한 게시글의 댓글 수 증가 로직이 호출되는지 확인
+        verify(postService).increaseCommentCount(postId);
         verify(notificationService).createReplyNotification(parentCommentId, loginUserId, 200L);
     }
 
@@ -176,7 +179,8 @@ class CommentServiceTest {
         when(commentRepository.findById(parentCommentId)).thenReturn(Optional.of(deletedParentComment));
 
         // when & then
-        assertThrows(IllegalArgumentException.class,
+        // 현재 서비스는 삭제된 부모 댓글에 답글 작성 시 공통 예외 ApiException을 발생시킴
+        assertThrows(ApiException.class,
                 () -> commentService.createReply(parentCommentId, 2L, new CommentCreateRequest("대댓글")));
         verify(notificationService, never()).createReplyNotification(any(), any(), any());
     }
@@ -231,6 +235,8 @@ class CommentServiceTest {
         assertThat(comment.getContent()).isEqualTo("삭제된 댓글입니다.");
         assertThat(response.commentId()).isEqualTo(commentId);
         assertThat(response.message()).isEqualTo("댓글 삭제 성공");
+        // 댓글 삭제 성공 시 게시글 댓글 수 감소 로직이 호출되는지 확인
+        verify(postService).decreaseCommentCount(comment.getPostId());
     }
 
     @Test
