@@ -28,69 +28,56 @@ public class BookmarkService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
 
+    /**
+     * 게시글 북마크 추가
+     *
+     * 동시성 처리 방식:
+     * - exists 확인 후 save 하지 않음
+     * - DB unique constraint + insert ignore 사용
+     * - 이미 북마크된 상태면 그대로 성공 응답
+     */
     @Transactional
     public BookmarkResponse createBookmark(BookmarkCreateCommand command) {
-        Member member = memberRepository.findById(command.memberId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
-                ));
+        Long userId = command.memberId();
+        Long postId = command.postId();
 
-        Post post = postRepository.findByPostIdAndIsDeletedFalse(command.postId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
-                ));
+        validateMemberExists(userId);
+        validatePostExists(postId);
 
-        if (bookmarkRepository.existsByMemberAndPost(member, post)) {
-            return new BookmarkResponse(
-                    post.getPostId(),
-                    true
-            );
-        }
-
-        Bookmark bookmark = Bookmark.create(member, post);
-        bookmarkRepository.save(bookmark);
+        bookmarkRepository.insertIgnore(userId, postId);
 
         return new BookmarkResponse(
-                post.getPostId(),
+                postId,
                 true
         );
     }
 
+    /**
+     * 게시글 북마크 취소
+     *
+     * 동시성 처리 방식:
+     * - 북마크 엔티티 조회 후 delete 하지 않음
+     * - delete query의 affected row 수를 기준으로 처리
+     * - 이미 취소된 상태면 그대로 성공 응답
+     */
     @Transactional
     public BookmarkResponse cancelBookmark(BookmarkDeleteCommand command) {
-        Member member = memberRepository.findById(command.memberId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
-                ));
+        Long userId = command.memberId();
+        Long postId = command.postId();
 
-        Post post = postRepository.findByPostIdAndIsDeletedFalse(command.postId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
-                ));
+        validateMemberExists(userId);
+        validatePostExists(postId);
 
-        Bookmark bookmark = bookmarkRepository.findByMemberAndPost(member, post)
-                .orElse(null);
-
-        if (bookmark == null) {
-            return new BookmarkResponse(
-                    post.getPostId(),
-                    false
-            );
-        }
-
-        bookmarkRepository.delete(bookmark);
+        bookmarkRepository.deleteByUserIdAndPostId(userId, postId);
 
         return new BookmarkResponse(
-                post.getPostId(),
+                postId,
                 false
         );
     }
 
     public List<BookmarkedPostResponse> getBookmarkedPosts(Long userId) {
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
-                ));
+        Member member = findMemberById(userId);
 
         List<Bookmark> bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
@@ -109,5 +96,37 @@ public class BookmarkService {
                     );
                 })
                 .toList();
+    }
+
+    /**
+     * 북마크 목록 조회처럼 Member 엔티티가 필요한 경우 사용
+     */
+    private Member findMemberById(Long userId) {
+        return memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+                ));
+    }
+
+    /**
+     * 북마크 생성/취소에서는 엔티티 조회 대신 존재 여부만 검증한다.
+     */
+    private void validateMemberExists(Long userId) {
+        if (!memberRepository.existsById(userId)) {
+            throw new EntityNotFoundException(
+                    BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+            );
+        }
+    }
+
+    /**
+     * 북마크 생성/취소 대상 게시글 존재 여부 검증
+     */
+    private void validatePostExists(Long postId) {
+        if (postRepository.findByPostIdAndIsDeletedFalse(postId).isEmpty()) {
+            throw new EntityNotFoundException(
+                    BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
+            );
+        }
     }
 }

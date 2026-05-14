@@ -4,6 +4,9 @@ import com.back.devc.domain.interaction.postLike.entity.PostLike;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.post.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +40,48 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
 
     /**
      * userId, postId 기반 존재 여부 확인
-     * 필요 시 엔티티 조회 없이 빠르게 체크할 수 있다.
      */
     boolean existsByMember_UserIdAndPost_PostId(Long userId, Long postId);
+
+    /**
+     * 좋아요 생성
+     *
+     * MySQL / MariaDB 기준:
+     * - 처음 좋아요면 1 반환
+     * - 이미 좋아요가 있으면 0 반환
+     */
+    @Modifying
+    @Query(
+            value = """
+                    insert ignore into post_likes (user_id, post_id, created_at)
+                    values (:userId, :postId, now())
+                    """,
+            nativeQuery = true
+    )
+    int insertIgnore(
+            @Param("userId") Long userId,
+            @Param("postId") Long postId
+    );
+
+    /**
+     * 좋아요 취소
+     *
+     * - 실제 삭제되면 1 반환
+     * - 이미 취소된 상태면 0 반환
+     */
+    @Modifying
+    @Query("""
+            delete from PostLike pl
+            where pl.member.userId = :userId
+            and pl.post.postId = :postId
+            """)
+    int deleteByUserIdAndPostId(
+            @Param("userId") Long userId,
+            @Param("postId") Long postId
+    );
+
+    /**
+     * 동시성 테스트 또는 검증용
+     */
+    long countByPost_PostId(Long postId);
 }
