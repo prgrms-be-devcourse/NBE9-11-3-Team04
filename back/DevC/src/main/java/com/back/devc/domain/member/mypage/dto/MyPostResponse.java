@@ -8,6 +8,8 @@ public record MyPostResponse(
         long likeCount,
         long commentCount,
         long viewCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean liked,
+        boolean bookmarked
 ) {
 }
