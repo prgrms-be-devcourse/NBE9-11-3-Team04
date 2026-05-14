@@ -20,6 +20,9 @@ import com.back.devc.global.exception.errorCode.CommentErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -156,8 +159,9 @@ public class CommentService {
         return new CommentDeleteResponse(commentId, "댓글 삭제 성공");
     }
 
-    public CommentListResponse getComments(Long postId) {
-        log.info("댓글 목록 조회 시작 - postId={}", postId);
+    public CommentListResponse getComments(Long postId, int page, int size) {
+        log.info("댓글 목록 조회 시작 - postId={}, page={}, size={}", postId, page, size);
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> {
                     log.warn("댓글 목록 조회 실패 - 게시글 없음, postId={}", postId);
@@ -170,13 +174,36 @@ public class CommentService {
             throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
         }
 
-        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
-        log.info("댓글 목록 조회 완료 - postId={}, count={}", postId, comments.size());
-        List<CommentResponse> responses = comments.stream()
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 20);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+
+        Page<Comment> commentPage = commentRepository.findByPostIdAndParentCommentIdIsNullAndIsDeletedFalseOrderByCreatedAtAsc(
+                postId,
+                pageable
+        );
+
+        List<CommentResponse> parentComments = commentPage.getContent()
+                .stream()
                 .map(comment -> toResponse(comment, post.getTitle(), findMemberNickname(comment.getUserId())))
                 .toList();
 
-        return new CommentListResponse(buildCommentHierarchy(responses));
+        log.info(
+                "댓글 목록 조회 완료 - postId={}, page={}, size={}, count={}",
+                postId,
+                commentPage.getNumber(),
+                commentPage.getSize(),
+                parentComments.size()
+        );
+
+        return new CommentListResponse(
+                parentComments,
+                commentPage.getNumber(),
+                commentPage.getSize(),
+                commentPage.getTotalElements(),
+                commentPage.getTotalPages(),
+                commentPage.hasNext()
+        );
     }
 
     private List<CommentResponse> buildCommentHierarchy(List<CommentResponse> allComments) {
