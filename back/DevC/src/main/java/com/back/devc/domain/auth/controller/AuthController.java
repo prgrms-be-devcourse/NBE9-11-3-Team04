@@ -12,9 +12,11 @@ import com.back.devc.global.security.jwt.AuthCookieService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -43,7 +45,7 @@ public class AuthController {
             HttpServletResponse response
     ) {
         LoginResponse body = authService.login(request);
-        authCookieService.addAccessTokenCookie(response, body.accessToken());
+        authCookieService.setAccessTokenCookie(response, body.accessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.AUTH_200_LOGIN_SUCCESS;
         return ResponseEntity

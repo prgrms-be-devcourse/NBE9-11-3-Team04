@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,9 +34,6 @@ public class OAuth2Controller {
 
     private final OAuth2MemberService oAuth2MemberService;
     private final AuthCookieService authCookieService;
-
-    @Value("${custom.jwt.access-token-expiration-seconds:3600}")
-    private long accessTokenExpirationSeconds;
 
     // OAuth2 로그인 상태/회원가입 대기 상태를 조회한다.
     @GetMapping("/me")
@@ -95,7 +91,7 @@ public class OAuth2Controller {
             HttpServletResponse response
     ) {
         LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.code());
-        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
+        authCookieService.setAccessTokenCookie(response, body.accessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_EXCHANGE_SUCCESS;
         return ResponseEntity
@@ -122,7 +118,7 @@ public class OAuth2Controller {
 
         LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
-        authCookieService.setAccessTokenCookie(response, body.accessToken(), accessTokenExpirationSeconds);
+        authCookieService.setAccessTokenCookie(response, body.accessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_201_SIGNUP_COMPLETE_SUCCESS;
         return ResponseEntity
