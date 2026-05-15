@@ -10,6 +10,7 @@ import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.CommentAttachmentErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,12 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -37,6 +38,7 @@ public class CommentAttachmentService {
             Long commentId,
             CommentAttachmentUploadRequest request
     ) {
+        log.info("댓글 첨부파일 업로드 시작 - commentId={}", commentId);
         commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
@@ -44,13 +46,20 @@ public class CommentAttachmentService {
         List<Integer> fileOrders = request.fileOrders();
 
         if (files == null || files.isEmpty()) {
+            log.info("댓글 첨부파일 업로드 생략 - 첨부파일 없음, commentId={}", commentId);
             return new CommentAttachmentListResponse(List.of());
         }
+
+        log.info("댓글 첨부파일 업로드 파일 수 확인 - commentId={}, fileCount={}", commentId, files.size());
 
         List<CommentAttachmentResponse> responses = new java.util.ArrayList<>();
 
         for (int index = 0; index < files.size(); index++) {
             MultipartFile file = files.get(index);
+            if (file == null || file.isEmpty()) {
+                log.info("댓글 첨부파일 업로드 생략 - 빈 파일, commentId={}, index={}", commentId, index);
+                continue;
+            }
             Integer fileOrder = (fileOrders != null && fileOrders.size() > index)
                     ? fileOrders.get(index)
                     : index;
@@ -65,6 +74,11 @@ public class CommentAttachmentService {
             String storedName = UUID.randomUUID() + extension;
             String fileType = contentType.startsWith("image/") ? "IMAGE" : "FILE";
             saveFile(file, storedName);
+            log.debug("댓글 첨부파일 물리 파일 저장 완료 - commentId={}, storedName={}, size={}, contentType={}",
+                    commentId,
+                    storedName,
+                    file.getSize(),
+                    contentType);
             String fileUrl = "/uploads/comments/" + storedName;
 
             CommentAttachment attachment = CommentAttachment.create(
@@ -79,6 +93,12 @@ public class CommentAttachmentService {
             );
 
             CommentAttachment savedAttachment = commentAttachmentRepository.save(attachment);
+            log.info("댓글 첨부파일 DB 저장 완료 - commentId={}, attachmentId={}, storedName={}, fileType={}, fileOrder={}",
+                    commentId,
+                    savedAttachment.getId(),
+                    savedAttachment.getStoredName(),
+                    savedAttachment.getFileType(),
+                    savedAttachment.getFileOrder());
 
             responses.add(new CommentAttachmentResponse(
                     savedAttachment.getId(),
@@ -93,7 +113,7 @@ public class CommentAttachmentService {
                     savedAttachment.getCreatedAt()
             ));
         }
-
+        log.info("댓글 첨부파일 업로드 완료 - commentId={}, savedCount={}", commentId, responses.size());
         return new CommentAttachmentListResponse(responses);
     }
 
@@ -113,6 +133,7 @@ public class CommentAttachmentService {
             Path targetPath = COMMENT_UPLOAD_DIR.resolve(storedName);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
+            log.error("댓글 첨부파일 저장 실패 - storedName={}, uploadDir={}", storedName, COMMENT_UPLOAD_DIR, e);
             throw new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_500_SAVE_FAILED);
         }
     }
@@ -120,13 +141,17 @@ public class CommentAttachmentService {
     private void deleteFileIfExists(String storedName) {
         try {
             Path targetPath = COMMENT_UPLOAD_DIR.resolve(storedName);
-            Files.deleteIfExists(targetPath);
+            log.debug("댓글 첨부파일 물리 파일 삭제 시도 - storedName={}, path={}", storedName, targetPath);
+            boolean deleted = Files.deleteIfExists(targetPath);
+            log.info("댓글 첨부파일 물리 파일 삭제 결과 - storedName={}, deleted={}", storedName, deleted);
         } catch (IOException e) {
+            log.error("댓글 첨부파일 삭제 실패 - storedName={}, uploadDir={}", storedName, COMMENT_UPLOAD_DIR, e);
             throw new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_500_DELETE_FAILED);
         }
     }
 
     public CommentAttachmentListResponse getAttachments(Long commentId) {
+        log.info("댓글 첨부파일 목록 조회 시작 - commentId={}", commentId);
         commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
@@ -145,20 +170,26 @@ public class CommentAttachmentService {
                         attachment.getCreatedAt()
                 ))
                 .toList();
-
+        log.info("댓글 첨부파일 목록 조회 완료 - commentId={}, count={}", commentId, responses.size());
         return new CommentAttachmentListResponse(responses);
     }
 
     @Transactional
     public CommentAttachmentDeleteResponse deleteAttachment(Long commentId, Long attachmentId) {
+        log.info("댓글 첨부파일 삭제 시작 - commentId={}, attachmentId={}", commentId, attachmentId);
         commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
         CommentAttachment attachment = commentAttachmentRepository.findByIdAndCommentId(attachmentId, commentId)
                 .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_NOT_FOUND));
+        log.debug("댓글 첨부파일 삭제 대상 조회 완료 - commentId={}, attachmentId={}, storedName={}",
+                commentId,
+                attachmentId,
+                attachment.getStoredName());
 
         deleteFileIfExists(attachment.getStoredName());
         commentAttachmentRepository.delete(attachment);
+        log.info("댓글 첨부파일 삭제 완료 - commentId={}, attachmentId={}", commentId, attachmentId);
         return new CommentAttachmentDeleteResponse(attachmentId, "댓글 첨부파일 삭제 성공");
     }
 }
