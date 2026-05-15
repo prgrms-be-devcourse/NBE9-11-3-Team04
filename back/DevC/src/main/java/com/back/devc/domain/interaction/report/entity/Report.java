@@ -21,6 +21,16 @@ import java.time.LocalDateTime;
                         name = "unique_report_per_target",
                         columnNames = {"reporter_user_id", "target_type", "target_id"}
                 )
+        },
+        indexes = {
+                @Index(
+                        name = "idx_reports_status_created_target",
+                        columnList = "status, created_at, target_type, target_id"
+                ),
+                @Index(
+                        name = "idx_reports_status_target_created",
+                        columnList = "status, target_type, target_id, created_at"
+                )
         }
 )
 @Getter

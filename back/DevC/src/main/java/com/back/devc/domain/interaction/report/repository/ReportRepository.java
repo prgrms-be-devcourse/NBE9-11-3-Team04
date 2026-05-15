@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ReportRepository extends JpaRepository<Report, Long> {
@@ -25,16 +26,25 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
                MAX(r.createdAt) as latestCreatedAt
         FROM Report r
         WHERE (:status IS NULL OR r.status = :status)
+          AND r.createdAt >= :from
+          AND r.createdAt < :to
         GROUP BY r.targetType, r.targetId
-        ORDER BY latestCreatedAt DESC
+        ORDER BY latestCreatedAt DESC, r.targetType ASC, r.targetId DESC
     """,
             countQuery = """
         SELECT COUNT(DISTINCT CONCAT(r.targetType, '-', r.targetId))
         FROM Report r
         WHERE (:status IS NULL OR r.status = :status)
+          AND r.createdAt >= :from
+          AND r.createdAt < :to
     """
     )
-    Page<Object[]> findGroupedReports(@Param("status") ReportStatus status, Pageable pageable);
+    Page<Object[]> findGroupedReports(
+            @Param("status") ReportStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable
+    );
 
     List<Report> findAllByTargetTypeAndTargetIdAndStatus(TargetType targetType, Long targetId, ReportStatus reportStatus);
 
