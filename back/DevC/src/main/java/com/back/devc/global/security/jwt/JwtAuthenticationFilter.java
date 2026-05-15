@@ -24,7 +24,6 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     public static final String TOKEN_VALIDATION_STATUS_ATTRIBUTE = "tokenValidationStatus";
-
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
