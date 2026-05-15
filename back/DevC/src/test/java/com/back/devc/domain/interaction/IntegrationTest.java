@@ -8,7 +8,6 @@ import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,14 +26,17 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class IntegrationTest {
 
@@ -187,20 +189,29 @@ class IntegrationTest {
     }
 
     @Test
-    @Disabled("마이페이지 게시글 응답 구조가 목록에서 페이징 객체로 변경되어 CI 통과를 위해 임시 비활성화")
     @DisplayName("마이페이지 게시글 조회 성공")
     void mypage_posts_success() throws Exception {
         setAuthentication(loginMember);
         Post post = createPost(loginMember, "테스트 제목");
 
-        mvc.perform(get("/api/mypage/posts"))
+        mvc.perform(
+                        get("/api/mypage/posts")
+                                .param("page", "0")
+                                .param("size", "10")
+                )
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("MYPAGE_200_POSTS_FETCH"))
                 .andExpect(jsonPath("$.message").value("내 게시글 목록을 조회했습니다."))
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].postId").value(post.getPostId()))
-                .andExpect(jsonPath("$.data[0].title").value("테스트 제목"));
+                .andExpect(jsonPath("$.data.content", hasSize(1)))
+                .andExpect(jsonPath("$.data.content[0].postId").value(post.getPostId()))
+                .andExpect(jsonPath("$.data.content[0].title").value("테스트 제목"))
+                .andExpect(jsonPath("$.data.content[0].liked").value(false))
+                .andExpect(jsonPath("$.data.content[0].bookmarked").value(false))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(10))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1));
     }
 
     @Test
@@ -213,18 +224,27 @@ class IntegrationTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/api/users/me/likes"))
+        mvc.perform(
+                        get("/api/mypage/likes")
+                                .param("page", "0")
+                                .param("size", "10")
+                )
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("LIKED_POSTS_FETCHED"))
-                .andExpect(jsonPath("$.message").value("좋아요한 게시글 목록을 조회했습니다."))
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].postId").value(post.getPostId()))
-                .andExpect(jsonPath("$.data[0].title").value("테스트 제목"));
+                .andExpect(jsonPath("$.code").value("MYPAGE_200_LIKES_FETCH"))
+                .andExpect(jsonPath("$.message").value("내 좋아요 게시글 목록을 조회했습니다."))
+                .andExpect(jsonPath("$.data.content", hasSize(1)))
+                .andExpect(jsonPath("$.data.content[0].postId").value(post.getPostId()))
+                .andExpect(jsonPath("$.data.content[0].title").value("테스트 제목"))
+                .andExpect(jsonPath("$.data.content[0].liked").value(true))
+                .andExpect(jsonPath("$.data.content[0].bookmarked").value(false))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(10))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1));
     }
 
     @Test
-    @Disabled("마이페이지 북마크 응답 구조가 목록에서 페이징 객체로 변경되어 CI 통과를 위해 임시 비활성화")
     @DisplayName("마이페이지 북마크 목록 조회 성공")
     void mypage_bookmarks_success() throws Exception {
         setAuthentication(loginMember);
@@ -234,11 +254,24 @@ class IntegrationTest {
                 .andDo(print())
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/api/mypage/bookmarks"))
+        mvc.perform(
+                        get("/api/mypage/bookmarks")
+                                .param("page", "0")
+                                .param("size", "10")
+                )
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].postId").value(post.getPostId()));
+                .andExpect(jsonPath("$.code").value("MYPAGE_200_BOOKMARKS_FETCH"))
+                .andExpect(jsonPath("$.message").value("내 북마크 게시글 목록을 조회했습니다."))
+                .andExpect(jsonPath("$.data.content", hasSize(1)))
+                .andExpect(jsonPath("$.data.content[0].postId").value(post.getPostId()))
+                .andExpect(jsonPath("$.data.content[0].title").value("테스트 제목"))
+                .andExpect(jsonPath("$.data.content[0].liked").value(false))
+                .andExpect(jsonPath("$.data.content[0].bookmarked").value(true))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(10))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1));
     }
 
     @Test
