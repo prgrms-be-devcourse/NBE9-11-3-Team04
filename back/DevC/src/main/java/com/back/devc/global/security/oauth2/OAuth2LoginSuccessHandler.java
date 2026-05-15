@@ -60,7 +60,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         try {
             OAuthPendingSignup pending = oAuth2MemberService.buildPendingSignup(provider, oauth2User);
 
-            Optional<Member> existing = oAuth2MemberService.findMemberByProviderUserId(provider, pending.providerUserId());
+            Optional<Member> existing = oAuth2MemberService.findMemberByProviderUserId(provider, pending.getProviderUserId());
             if (existing.isPresent()) {
                 Member member = existing.get();
 
