@@ -541,7 +541,7 @@ class AuthIntegrationTest {
         Member savedMember = memberRepository.saveAndFlush(member);
 
         String validToken = jwtProvider.createAccessToken(savedMember);
-        String tamperedToken = validToken.substring(0, validToken.length() - 1) + "x";
+        String tamperedToken = tamperLastCharacter(validToken);
 
         // when & then
         mvc.perform(
@@ -644,6 +644,12 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.data.email").value(email))
                 .andExpect(jsonPath("$.data.nickname").value(nickname))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+    }
+
+    private String tamperLastCharacter(String token) {
+        char lastCharacter = token.charAt(token.length() - 1);
+        char replacementCharacter = lastCharacter == 'x' ? 'y' : 'x';
+        return token.substring(0, token.length() - 1) + replacementCharacter;
     }
 
     private String createExpiredAccessToken(Member member) {
