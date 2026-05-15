@@ -49,8 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
 
         if (!tokenResolveResult.status().isValid()) {
-            //SecurityContextHolder.clearContext();
-            //MockMvc 요청을 통과하기 위해 일단 주석 처리 시켜 테스트를 통과시켰습니다.
+            SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
             return;
         }
