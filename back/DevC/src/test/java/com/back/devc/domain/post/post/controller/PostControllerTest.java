@@ -7,7 +7,7 @@ import com.back.devc.domain.post.category.repository.CategoryRepository;
 import com.back.devc.domain.post.post.dto.PostCreateRequest;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import com.back.devc.global.security.jwt.JwtPrincipal;
+import com.back.devc.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,18 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -50,6 +43,9 @@ class PostControllerTest{
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private JwtProvider jwtProvider;
+
     private Member member;
     private Category category;
 
@@ -71,22 +67,8 @@ class PostControllerTest{
         category = categoryRepository.save(category);
     }
 
-    private void setAuthentication() {
-        JwtPrincipal principal = new JwtPrincipal(
-                member.getUserId(),
-                member.getEmail(),
-                "USER"
-        );
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-                principal,
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(auth);
-        SecurityContextHolder.setContext(context);
+    private String getAccessToken() {
+        return jwtProvider.createAccessToken(member);
     }
 
     // =========================
@@ -96,7 +78,6 @@ class PostControllerTest{
     @DisplayName("게시글 생성")
     void t1() throws Exception {
 
-        setAuthentication();
         PostCreateRequest request = new PostCreateRequest(
                 "테스트글",
                 "테스트내용입니다.",
@@ -105,6 +86,7 @@ class PostControllerTest{
 
         mvc.perform(
                         post("/api/posts")
+                                .header("Authorization", "Bearer " + getAccessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -138,14 +120,13 @@ class PostControllerTest{
     @DisplayName("게시글 수정")
     void t3() throws Exception {
 
-        setAuthentication();
-
         Post post = postRepository.save(
                 new Post(member, category, "수정 전 제목", "수정 전 내용")
         );
 
         mvc.perform(
                         put("/api/posts/" + post.getPostId())
+                                .header("Authorization", "Bearer " + getAccessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                     {
@@ -166,13 +147,12 @@ class PostControllerTest{
     @DisplayName("게시글 삭제")
     void t4() throws Exception {
 
-        setAuthentication();
-
         Post post = postRepository.save(
                 new Post(member, category, "title", "content")
         );
 
-        mvc.perform(delete("/api/posts/" + post.getPostId()))
+        mvc.perform(delete("/api/posts/" + post.getPostId())
+                        .header("Authorization", "Bearer " + getAccessToken()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("게시글 삭제 성공"));
