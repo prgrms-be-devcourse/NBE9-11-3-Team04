@@ -54,16 +54,17 @@ class PostControllerTest{
     // =========================
     @BeforeEach
     void setUp() {
+        String unique = String.valueOf(System.nanoTime());
 
         member = memberRepository.save(
                 Member.createLocalMember(
-                        "test@test.com",
+                        "post-controller-" + unique + "@test.com",
                         "password123!",
-                        "testUser"
+                        "postControllerUser" + unique
                 )
         );
 
-        category = new Category("테스트 자유");
+        category = new Category("테스트 자유 " + unique);
         category = categoryRepository.save(category);
     }
 
