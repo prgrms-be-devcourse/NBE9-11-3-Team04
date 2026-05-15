@@ -7,7 +7,6 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.security.jwt.JwtProvider;
@@ -125,11 +124,11 @@ public class OAuth2MemberService {
 
     @Transactional
     public Member completeSignup(OAuthPendingSignup pending, String nickname) {
-        if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
+        if (pending == null || pending.getProviderUserId() == null || pending.getProviderUserId().isBlank()) {
             throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        AuthProvider provider = toAuthProvider(pending.provider());
+        AuthProvider provider = toAuthProvider(pending.getProvider());
         ProviderSpec spec = providerSpec(provider);
 
         return completeSignupByProvider(
@@ -163,12 +162,12 @@ public class OAuth2MemberService {
             String fallbackEmailDomain,
             String localPrefix
     ) {
-        if (pending == null || pending.providerUserId() == null || pending.providerUserId().isBlank()) {
+        if (pending == null || pending.getProviderUserId() == null || pending.getProviderUserId().isBlank()) {
             throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
         Optional<Member> existing = memberRepository.findByProviderAndProviderUserId(
-                provider, pending.providerUserId()
+                provider, pending.getProviderUserId()
         );
         if (existing.isPresent()) {
             Member member = existing.get();
@@ -190,8 +189,8 @@ public class OAuth2MemberService {
         }
 
         String resolvedEmail = resolveUniqueEmail(
-                pending.emailFromProvider(),
-                pending.providerUserId(),
+                pending.getEmailFromProvider(),
+                pending.getProviderUserId(),
                 fallbackEmailDomain,
                 localPrefix
         );
@@ -199,7 +198,7 @@ public class OAuth2MemberService {
 
         Member newMember = Member.createOAuthMember(
                 provider,
-                pending.providerUserId(),
+                pending.getProviderUserId(),
                 resolvedEmail,
                 encodedPassword,
                 normalizedNickname

@@ -1,22 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="10 seconds">
 
-    <!-- 공통 properties -->
+    <!-- ========================= -->
+    <!-- 공통 로그 설정 -->
+    <!-- ========================= -->
     <property name="LOG_PATH" value="./log"/>
     <property name="LOG_FILE_NAME" value="app"/>
 
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %magenta(%-4relative) --- [%thread] %cyan(%logger{36}) : %msg%n"/>
+
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %-4relative --- [%thread] %logger{40} : %msg%n"/>
+
     <!-- ========================= -->
-    <!-- DEV PROFILE 개발용 로그 설정 -->
+    <!-- LOCAL / DEFAULT PROFILE -->
+    <!-- ========================= -->
+    <springProfile name="local | default">
+
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/local-${LOG_FILE_NAME}.log</file>
+            <encoder>
+                <pattern>${FILE_PATTERN}</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/local/%d{yyyy-MM, aux}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <logger name="com.back.devc" level="DEBUG"/>
+        <logger name="org.springframework" level="INFO"/>
+        <logger name="org.springframework.web" level="INFO"/>
+        <logger name="org.springframework.security" level="INFO"/>
+        <logger name="org.hibernate" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.orm.jdbc.bind" level="TRACE"/>
+        <logger name="com.zaxxer.hikari" level="WARN"/>
+        <logger name="org.h2.server.web" level="WARN"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- ========================= -->
+    <!-- DEV PROFILE 개발 서버 로그 설정 -->
     <!-- ========================= -->
     <springProfile name="dev">
-
-        <property name="LOG_LEVEL" value="INFO"/>
-
-        <property name="CONSOLE_PATTERN"
-                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %magenta(%-4relative) --- [ %thread{10} ] %cyan(%logger{30}) : %msg%n"/>
-
-        <property name="FILE_PATTERN"
-                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %-4relative --- [ %thread{10} ] %logger{40} - %msg%n"/>
 
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
@@ -26,11 +65,9 @@
 
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${LOG_PATH}/dev-${LOG_FILE_NAME}.log</file>
-
             <encoder>
                 <pattern>${FILE_PATTERN}</pattern>
             </encoder>
-
             <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                 <fileNamePattern>${LOG_PATH}/dev/%d{yyyy-MM, aux}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
                 <maxHistory>30</maxHistory>
@@ -39,32 +76,25 @@
         </appender>
 
         <logger name="com.back.devc" level="INFO"/>
-        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="WARN"/>
         <logger name="org.springframework" level="WARN"/>
+        <logger name="org.springframework.web" level="INFO"/>
+        <logger name="org.springframework.security" level="WARN"/>
         <logger name="org.hibernate" level="WARN"/>
-        <logger name="org.h2.server.web" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+        <logger name="org.hibernate.orm.jdbc.bind" level="WARN"/>
         <logger name="com.zaxxer.hikari" level="WARN"/>
+        <logger name="org.h2.server.web" level="WARN"/>
 
-        <root level="${LOG_LEVEL}">
+        <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
         </root>
-
     </springProfile>
 
     <!-- ========================= -->
-    <!-- PROD PROFILE 운영 배포용 로그 설정-->
+    <!-- TEST PROFILE 테스트 로그 설정 -->
     <!-- ========================= -->
-    <springProfile name="prod">
-
-        <property name="LOG_LEVEL" value="INFO"/>
-
-        <!-- 운영은 콘솔 컬러 필요없음 -->
-        <property name="CONSOLE_PATTERN"
-                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{30} : %msg%n"/>
-
-        <property name="FILE_PATTERN"
-                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{40} : %msg%n"/>
+    <springProfile name="test">
 
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
@@ -72,13 +102,42 @@
             </encoder>
         </appender>
 
+        <logger name="com.back.devc" level="INFO"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.springframework.test" level="WARN"/>
+        <logger name="org.springframework.security" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+        <logger name="org.hibernate.orm.jdbc.bind" level="WARN"/>
+        <logger name="com.zaxxer.hikari" level="WARN"/>
+
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- ========================= -->
+    <!-- PROD PROFILE 운영 배포용 로그 설정 -->
+    <!-- ========================= -->
+    <springProfile name="prod">
+
+        <property name="PROD_CONSOLE_PATTERN"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{36} : %msg%n"/>
+
+        <property name="PROD_FILE_PATTERN"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{40} : %msg%n"/>
+
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${PROD_CONSOLE_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${LOG_PATH}/prod-${LOG_FILE_NAME}.log</file>
-
             <encoder>
-                <pattern>${FILE_PATTERN}</pattern>
+                <pattern>${PROD_FILE_PATTERN}</pattern>
             </encoder>
-
             <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                 <fileNamePattern>${LOG_PATH}/prod/%d{yyyy-MM, aux}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
                 <maxHistory>90</maxHistory>
@@ -86,16 +145,19 @@
             </rollingPolicy>
         </appender>
 
-        <!-- 운영에서는 DEBUG 절대 금지 -->
-        <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="INFO"/>
-        <logger name="org.springframework" level="INFO"/>
+        <logger name="com.back.devc" level="INFO"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.springframework.web" level="WARN"/>
+        <logger name="org.springframework.security" level="WARN"/>
         <logger name="org.hibernate" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+        <logger name="org.hibernate.orm.jdbc.bind" level="WARN"/>
+        <logger name="com.zaxxer.hikari" level="WARN"/>
 
-        <root level="${LOG_LEVEL}">
+        <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
         </root>
-
     </springProfile>
 
 </configuration>

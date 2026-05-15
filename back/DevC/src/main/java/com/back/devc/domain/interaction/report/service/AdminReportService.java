@@ -20,6 +20,7 @@ import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -56,9 +58,17 @@ public class AdminReportService {
     @Transactional(readOnly = true)
     public Page<ReportResponseDTO> getReports(ReportStatus status, Pageable pageable) {
 
+        log.info("관리자 신고 단건 목록 조회 시작 - status={}, page={}, size={}", status, pageable.getPageNumber(), pageable.getPageSize());
+
         Page<Report> reports = (status == null)
                 ? reportRepository.findAll(pageable)
                 : reportRepository.findAllByStatus(status, pageable);
+
+        log.info("관리자 신고 단건 목록 조회 완료 - status={}, totalElements={}, totalPages={}, count={}",
+                status,
+                reports.getTotalElements(),
+                reports.getTotalPages(),
+                reports.getNumberOfElements());
 
         // 여기까지는 N+1 가능성 남아있음 (원하면 이것도 batch 방식으로 개선 가능)
         return reports.map(reportTargetHandler::toDtoWithTargetInfo);
@@ -73,7 +83,14 @@ public class AdminReportService {
         LocalDateTime to = LocalDateTime.now();
         LocalDateTime from = to.minusDays(DEFAULT_GROUP_LOOKBACK_DAYS);
 
+        log.info("관리자 신고 그룹 목록 조회 시작(no batch) - status={}, page={}, size={}", status, pageable.getPageNumber(), pageable.getPageSize());
         Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
+
+        log.info("관리자 신고 그룹 목록 조회 완료(no batch) - status={}, totalElements={}, totalPages={}, count={}",
+                status,
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.getNumberOfElements());
 
         return result.map(row -> {
 
@@ -127,10 +144,13 @@ public class AdminReportService {
 
         validateGroupedReportSearch(from, to, pageable);
 
+        log.info("관리자 신고 그룹 목록 조회 시작 - status={}, page={}, size={}", status, pageable.getPageNumber(), pageable.getPageSize());
         Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
 
         // 1) row에서 targetType/targetId 추출
         List<Object[]> rows = result.getContent();
+
+        log.debug("관리자 신고 그룹 조회 row 수 - status={}, rowCount={}", status, rows.size());
 
         List<Long> postIds = new ArrayList<>();
         List<Long> commentIds = new ArrayList<>();
@@ -142,6 +162,11 @@ public class AdminReportService {
             if (targetType == TargetType.POST) postIds.add(targetId);
             if (targetType == TargetType.COMMENT) commentIds.add(targetId);
         }
+
+        log.debug("관리자 신고 그룹 대상 ID 분리 완료 - status={}, postCount={}, commentCount={}",
+                status,
+                postIds.size(),
+                commentIds.size());
 
         // 2) Post, Comment 한번에 조회
         Map<Long, Post> postMap = postIds.isEmpty()
@@ -196,6 +221,12 @@ public class AdminReportService {
             );
         });
 
+        log.info("관리자 신고 그룹 목록 조회 완료 - status={}, totalElements={}, totalPages={}, count={}",
+                status,
+                dtoPage.getTotalElements(),
+                dtoPage.getTotalPages(),
+                dtoPage.getNumberOfElements());
+
         return dtoPage;
     }
 
@@ -223,7 +254,10 @@ public class AdminReportService {
 
     private Map<String, List<String>> loadReasonTypesBatch(List<Long> postIds, List<Long> commentIds) {
 
+        log.debug("신고 사유 타입 batch 조회 시작 - postCount={}, commentCount={}", postIds.size(), commentIds.size());
+
         if (postIds.isEmpty() && commentIds.isEmpty()) {
+            log.debug("신고 사유 타입 batch 조회 생략 - 조회 대상 없음");
             return Collections.emptyMap();
         }
 
@@ -246,6 +280,8 @@ public class AdminReportService {
             map.computeIfAbsent(key, k -> new ArrayList<>()).add(reasonType);
         }
 
+        log.debug("신고 사유 타입 batch 조회 완료 - reasonRowCount={}, keyCount={}", reasonRows.size(), map.size());
+
         return map;
     }
 
@@ -263,7 +299,10 @@ public class AdminReportService {
 
         if (targetType == TargetType.POST) {
             Post post = postMap.get(targetId);
-            if (post == null) return new ReportTargetHandler.TargetInfo(null, null, null);
+            if (post == null) {
+                log.warn("신고 대상 게시글 정보 조회 실패 - targetId={}", targetId);
+                return new ReportTargetHandler.TargetInfo(null, null, null);
+            }
 
             return new ReportTargetHandler.TargetInfo(
                     post.getMember().getNickname(),
@@ -274,7 +313,10 @@ public class AdminReportService {
 
         if (targetType == TargetType.COMMENT) {
             Comment comment = commentMap.get(targetId);
-            if (comment == null) return new ReportTargetHandler.TargetInfo(null, null, null);
+            if (comment == null) {
+                log.warn("신고 대상 댓글 정보 조회 실패 - targetId={}", targetId);
+                return new ReportTargetHandler.TargetInfo(null, null, null);
+            }
 
             Member member = memberMap.get(comment.getUserId());
 
@@ -292,6 +334,13 @@ public class AdminReportService {
      * 3. 단건 승인
      * ========================================================= */
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
+        log.info("관리자 신고 단건 승인 시작 - adminId={}, reportId={}, targetType={}, sanctionType={}, suspensionDays={}",
+                adminId,
+                dto.reportId(),
+                dto.targetType(),
+                dto.sanctionType(),
+                dto.suspensionDays());
+
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
@@ -309,12 +358,22 @@ public class AdminReportService {
                 dto.sanctionType(),
                 dto.suspensionDays()
         );
+
+        log.info("관리자 신고 단건 승인 완료 - adminId={}, reportId={}, targetType={}, targetId={}, sanctionType={}, suspensionDays={}",
+                adminId,
+                dto.reportId(),
+                report.getTargetType(),
+                report.getTargetId(),
+                dto.sanctionType(),
+                dto.suspensionDays());
     }
 
     /* =========================================================
      * 4. 단건 반려
      * ========================================================= */
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
+        log.info("관리자 신고 단건 반려 시작 - adminId={}, reportId={}, targetType={}", adminId, dto.reportId(), dto.targetType());
+
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
@@ -328,6 +387,12 @@ public class AdminReportService {
                 report.getTargetId(),
                 admin
         );
+
+        log.info("관리자 신고 단건 반려 완료 - adminId={}, reportId={}, targetType={}, targetId={}",
+                adminId,
+                dto.reportId(),
+                report.getTargetType(),
+                report.getTargetId());
     }
 
     /* =========================================================
@@ -335,6 +400,13 @@ public class AdminReportService {
      * ========================================================= */
     @Transactional // 반드시 트랜잭션 안에서 실행
     public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
+        log.info("관리자 신고 그룹 승인 시작 - adminId={}, targetType={}, targetId={}, sanctionType={}, suspensionDays={}",
+                adminId,
+                dto.targetType(),
+                dto.reportId(),
+                dto.sanctionType(),
+                dto.suspensionDays());
+
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
@@ -349,8 +421,18 @@ public class AdminReportService {
                 targetType, targetId, admin, ReportStatus.RESOLVED, ReportStatus.PENDING
         );
 
+        log.info("관리자 신고 그룹 상태 변경 결과 - adminId={}, targetType={}, targetId={}, updatedCount={}",
+                adminId,
+                targetType,
+                targetId,
+                updatedCount);
+
         // 수정된 행이 0개라면? 이미 다른 관리자가 처리한 상태
         if (updatedCount == 0) {
+            log.warn("관리자 신고 그룹 승인 실패 - 처리 가능한 PENDING 신고 없음, adminId={}, targetType={}, targetId={}",
+                    adminId,
+                    targetType,
+                    targetId);
             throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST);
 
         }
@@ -363,6 +445,14 @@ public class AdminReportService {
                 dto.sanctionType(),
                 dto.suspensionDays()
         );
+
+        log.info("관리자 신고 그룹 승인 완료 - adminId={}, targetType={}, targetId={}, updatedCount={}, sanctionType={}, suspensionDays={}",
+                adminId,
+                targetType,
+                targetId,
+                updatedCount,
+                dto.sanctionType(),
+                dto.suspensionDays());
     }
 
     /* =========================================================
@@ -370,6 +460,8 @@ public class AdminReportService {
      * ========================================================= */
     @Transactional
     public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
+        log.info("관리자 신고 그룹 반려 시작 - adminId={}, targetType={}, targetId={}", adminId, dto.targetType(), dto.reportId());
+
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
@@ -381,11 +473,27 @@ public class AdminReportService {
                 targetType, targetId, admin, ReportStatus.REJECTED, ReportStatus.PENDING
         );
 
+        log.info("관리자 신고 그룹 반려 상태 변경 결과 - adminId={}, targetType={}, targetId={}, updatedCount={}",
+                adminId,
+                targetType,
+                targetId,
+                updatedCount);
+
         if (updatedCount == 0) {
+            log.warn("관리자 신고 그룹 반려 실패 - 처리 가능한 PENDING 신고 없음, adminId={}, targetType={}, targetId={}",
+                    adminId,
+                    targetType,
+                    targetId);
             throw new ApiException(ReportErrorCode.REPORT_404_PENDING_LIST);
         }
 
         reportTargetHandler.handleRejected(targetType, targetId, admin);
+
+        log.info("관리자 신고 그룹 반려 완료 - adminId={}, targetType={}, targetId={}, updatedCount={}",
+                adminId,
+                targetType,
+                targetId,
+                updatedCount);
     }
 
     /* =========================================================
@@ -393,12 +501,14 @@ public class AdminReportService {
      * ========================================================= */
     private void validateAdminRole(Member member) {
         if (!member.isAdmin()) {
+            log.warn("관리자 권한 검증 실패 - userId={}", member.getUserId());
             throw new ApiException(ReportErrorCode.REPORT_403_UNAUTHORIZED_ADMIN);
         }
     }
 
     private void validateTargetExists(TargetType type, Long targetId) {
         if (!reportTargetHandler.exists(type, targetId)) {
+            log.warn("신고 대상 존재 검증 실패 - targetType={}, targetId={}", type, targetId);
             throw new ApiException(ReportErrorCode.REPORT_404_TARGET);
         }
     }
@@ -406,12 +516,14 @@ public class AdminReportService {
     private void validateSanctionDetails(AdminReportRequestDTO dto) {
         if (SanctionType.SUSPENDED.equals(dto.sanctionType()) &&
                 (dto.suspensionDays() == null || dto.suspensionDays() <= 0)) {
+            log.warn("신고 제재 파라미터 검증 실패 - sanctionType={}, suspensionDays={}", dto.sanctionType(), dto.suspensionDays());
             throw new ApiException(ReportErrorCode.REPORT_400_INVALID_SANCTION_PARAMETER);
         }
     }
 
     private void validatePendingStatus(Report report) {
         if (report.getStatus() != ReportStatus.PENDING) {
+            log.warn("신고 상태 검증 실패 - reportId={}, currentStatus={}", report.getReportId(), report.getStatus());
             throw new ApiException(ReportErrorCode.REPORT_409_ALREADY_REPORT);
         }
     }

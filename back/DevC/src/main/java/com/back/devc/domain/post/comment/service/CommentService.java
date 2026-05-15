@@ -1,6 +1,5 @@
 package com.back.devc.domain.post.comment.service;
 
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
@@ -42,7 +41,6 @@ public class CommentService {
     private final PostService postService;
     private final MemberRepository memberRepository;
     private final CommentAttachmentService commentAttachmentService;
-    private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -147,6 +145,7 @@ public class CommentService {
 
     @Transactional
     public CommentDeleteResponse deleteComment(Long commentId, Long loginUserId) {
+        log.info("댓글 삭제 시작 - commentId={}, loginUserId={}", commentId, loginUserId);
         Comment comment = findComment(commentId);
         validateOwner(comment, loginUserId);
 
@@ -154,6 +153,8 @@ public class CommentService {
             comment.softDelete();
             postService.decreaseCommentCount(comment.getPostId());
             log.info("댓글 삭제 완료 - commentId={}, postId={}, loginUserId={}", commentId, comment.getPostId(), loginUserId);
+        } else {
+            log.info("댓글 삭제 요청 생략 - 이미 삭제된 댓글, commentId={}, loginUserId={}", commentId, loginUserId);
         }
 
         return new CommentDeleteResponse(commentId, "댓글 삭제 성공");
@@ -176,6 +177,14 @@ public class CommentService {
 
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 20);
+        if (safePage != page || safeSize != size) {
+            log.info("댓글 목록 조회 요청값 보정 - postId={}, requestedPage={}, requestedSize={}, safePage={}, safeSize={}",
+                    postId,
+                    page,
+                    size,
+                    safePage,
+                    safeSize);
+        }
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
         Page<Comment> commentPage = commentRepository.findByPostIdAndParentCommentIdIsNullAndIsDeletedFalseOrderByCreatedAtAsc(
@@ -246,6 +255,8 @@ public class CommentService {
             response.attachments().addAll(
                     commentAttachmentService.getAttachments(comment.getId()).attachments()
             );
+        } else {
+            log.debug("삭제된 댓글 응답 변환 - 첨부파일 조회 생략, commentId={}", comment.getId());
         }
 
         return response;
