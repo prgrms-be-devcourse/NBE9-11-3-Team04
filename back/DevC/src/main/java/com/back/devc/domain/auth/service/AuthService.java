@@ -70,20 +70,20 @@ public class AuthService {
     // 이메일/닉네임 중복을 검사한 뒤 로컬 회원을 생성하고 회원가입 응답 DTO를 반환한다.
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
-        log.info("회원가입 시작 - email={}, nickname={}", request.email(), request.nickname());
+        log.info("회원가입 시작 - email={}, nickname={}", request.getEmail(), request.getNickname());
 
-        if (memberRepository.existsByEmail(request.email())) {
-            log.warn("회원가입 실패 - 이메일 중복, email={}", request.email());
+        if (memberRepository.existsByEmail(request.getEmail())) {
+            log.warn("회원가입 실패 - 이메일 중복, email={}", request.getEmail());
             throw new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        if (memberRepository.existsByNickname(request.nickname())) {
-            log.warn("회원가입 실패 - 닉네임 중복, nickname={}", request.nickname());
+        if (memberRepository.existsByNickname(request.getNickname())) {
+            log.warn("회원가입 실패 - 닉네임 중복, nickname={}", request.getNickname());
             throw new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
         }
 
-        String encodedPassword = passwordEncoder.encode(request.password());
-        Member member = Member.createLocalMember(request.email(), encodedPassword, request.nickname());
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        Member member = Member.createLocalMember(request.getEmail(), encodedPassword, request.getNickname());
 
         try {
             // unique 제약 조건 위반을 회원가입 메서드 안에서 바로 감지하기 위해 flush까지 수행
@@ -114,24 +114,24 @@ public class AuthService {
             String lowerMessage = message.toLowerCase();
 
             if (lowerMessage.contains("uk_users_email")) {
-                log.warn("회원가입 실패 - DB 이메일 unique 제약 조건 위반, email={}", request.email());
+                log.warn("회원가입 실패 - DB 이메일 unique 제약 조건 위반, email={}", request.getEmail());
                 return new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
             }
 
             if (lowerMessage.contains("uk_users_nickname")) {
-                log.warn("회원가입 실패 - DB 닉네임 unique 제약 조건 위반, nickname={}", request.nickname());
+                log.warn("회원가입 실패 - DB 닉네임 unique 제약 조건 위반, nickname={}", request.getNickname());
                 return new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
             }
         }
 
         // DB마다 제약 조건 위반 메시지가 다를 수 있으므로 실제 중복 여부를 한 번 더 확인
-        if (memberRepository.existsByEmail(request.email())) {
-            log.warn("회원가입 실패 - DB 저장 후 이메일 중복 확인, email={}", request.email());
+        if (memberRepository.existsByEmail(request.getEmail())) {
+            log.warn("회원가입 실패 - DB 저장 후 이메일 중복 확인, email={}", request.getEmail());
             return new ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        if (memberRepository.existsByNickname(request.nickname())) {
-            log.warn("회원가입 실패 - DB 저장 후 닉네임 중복 확인, nickname={}", request.nickname());
+        if (memberRepository.existsByNickname(request.getNickname())) {
+            log.warn("회원가입 실패 - DB 저장 후 닉네임 중복 확인, nickname={}", request.getNickname());
             return new ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS);
         }
 
