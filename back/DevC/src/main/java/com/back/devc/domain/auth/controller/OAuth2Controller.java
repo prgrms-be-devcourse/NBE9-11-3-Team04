@@ -91,7 +91,7 @@ public class OAuth2Controller {
             HttpServletResponse response
     ) {
         LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.code());
-        authCookieService.setAccessTokenCookie(response, body.accessToken());
+        authCookieService.setAccessTokenCookie(response, body.getAccessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_EXCHANGE_SUCCESS;
         return ResponseEntity
@@ -118,7 +118,7 @@ public class OAuth2Controller {
 
         LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
-        authCookieService.setAccessTokenCookie(response, body.accessToken());
+        authCookieService.setAccessTokenCookie(response, body.getAccessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_201_SIGNUP_COMPLETE_SUCCESS;
         return ResponseEntity

@@ -37,20 +37,20 @@ public class AuthService {
     // 사용자 인증 정보를 검증하고 JWT를 발급해 로그인 응답 DTO를 반환한다.
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        log.info("로그인 시작 - email={}", request.email());
-        Member member = memberRepository.findByEmail(request.email())
+        log.info("로그인 시작 - email={}", request.getEmail());
+        Member member = memberRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> {
-                    log.warn("로그인 실패 - 이메일 없음, email={}", request.email());
+                    log.warn("로그인 실패 - 이메일 없음, email={}", request.getEmail());
                     return new ApiException(AuthErrorCode.EMAIL_NOT_FOUND);
                 });
 
-        if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
-            log.warn("로그인 실패 - 비밀번호 불일치, email={}, userId={}", request.email(), member.getUserId());
+        if (!passwordEncoder.matches(request.getPassword(), member.getPasswordHash())) {
+            log.warn("로그인 실패 - 비밀번호 불일치, email={}, userId={}", request.getEmail(), member.getUserId());
             throw new ApiException(AuthErrorCode.PASSWORD_MISMATCH);
         }
 
         if (member.getStatus() == MemberStatus.BLACKLISTED) {
-            log.warn("로그인 실패 - 블랙리스트 회원, email={}, userId={}", request.email(), member.getUserId());
+            log.warn("로그인 실패 - 블랙리스트 회원, email={}, userId={}", request.getEmail(), member.getUserId());
             throw new ApiException(AuthErrorCode.MEMBER_BLACKLISTED);
         }
 
