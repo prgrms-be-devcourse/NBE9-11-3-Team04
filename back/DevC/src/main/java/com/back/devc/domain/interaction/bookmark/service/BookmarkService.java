@@ -12,7 +12,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.util.MemberDisplayUtil;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import com.back.devc.global.exception.errorcode.BookmarkErrorCode;
+import com.back.devc.global.exception.errorCode.BookmarkErrorCode;
 import com.back.devc.global.response.PageResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
