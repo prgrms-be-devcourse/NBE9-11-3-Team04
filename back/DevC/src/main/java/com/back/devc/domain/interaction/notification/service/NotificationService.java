@@ -68,6 +68,7 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleCommentCreatedEvent(CommentCreatedEvent event) {
+        log.info("댓글 생성 이벤트 수신 - postId={}, actorUserId={}, commentId={}", event.postId(), event.actorUserId(), event.commentId());
         try {
             createCommentNotification(event.postId(), event.actorUserId(), event.commentId());
         } catch (Exception e) {
@@ -83,6 +84,7 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleReplyCreatedEvent(ReplyCreatedEvent event) {
+        log.info("대댓글 생성 이벤트 수신 - parentCommentId={}, actorUserId={}, replyCommentId={}", event.parentCommentId(), event.actorUserId(), event.replyCommentId());
         try {
             createReplyNotification(event.parentCommentId(), event.actorUserId(), event.replyCommentId());
         } catch (Exception e) {
@@ -101,9 +103,11 @@ public class NotificationService {
      */
     @Transactional
     public void createCommentNotification(Long postId, Long actorUserId, Long commentId) {
+        log.info("댓글 알림 생성 시작 - postId={}, actorUserId={}, commentId={}", postId, actorUserId, commentId);
         Long postOwnerId = findPostOwnerId(postId);
 
         if (postOwnerId.equals(actorUserId)) {
+            log.info("댓글 알림 생성 생략 - 본인 게시글 댓글, postId={}, actorUserId={}", postId, actorUserId);
             return;
         }
 
@@ -117,6 +121,12 @@ public class NotificationService {
                 "COMMENT",
                 actorNickname + "님이 게시글에 댓글을 남겼습니다."
         );
+
+        log.info("댓글 알림 생성 완료 - receiverUserId={}, actorUserId={}, postId={}, commentId={}",
+                postOwnerId,
+                actorUserId,
+                postId,
+                commentId);
     }
 
     /**
@@ -131,15 +141,18 @@ public class NotificationService {
      */
     @Transactional
     public void createReplyNotification(Long parentCommentId, Long actorUserId, Long replyCommentId) {
+        log.info("대댓글 알림 생성 시작 - parentCommentId={}, actorUserId={}, replyCommentId={}", parentCommentId, actorUserId, replyCommentId);
         Comment parentComment = findCommentOrThrow(parentCommentId);
 
         if (parentComment.isDeleted()) {
+            log.info("대댓글 알림 생성 생략 - 삭제된 부모 댓글, parentCommentId={}, actorUserId={}", parentCommentId, actorUserId);
             return;
         }
 
         Long receiverUserId = parentComment.getUserId();
 
         if (receiverUserId.equals(actorUserId)) {
+            log.info("대댓글 알림 생성 생략 - 본인 댓글 답글, parentCommentId={}, actorUserId={}", parentCommentId, actorUserId);
             return;
         }
 
@@ -153,6 +166,12 @@ public class NotificationService {
                 "REPLY",
                 actorNickname + "님이 회원님의 댓글에 답글을 남겼습니다."
         );
+
+        log.info("대댓글 알림 생성 완료 - receiverUserId={}, actorUserId={}, postId={}, replyCommentId={}",
+                receiverUserId,
+                actorUserId,
+                parentComment.getPostId(),
+                replyCommentId);
     }
 
     /**
@@ -165,9 +184,11 @@ public class NotificationService {
      */
     @Transactional
     public void createPostLikeNotification(Long postId, Long actorUserId) {
+        log.info("좋아요 알림 생성 시작 - postId={}, actorUserId={}", postId, actorUserId);
         Long postOwnerId = findPostOwnerId(postId);
 
         if (postOwnerId.equals(actorUserId)) {
+            log.info("좋아요 알림 생성 생략 - 본인 게시글 좋아요, postId={}, actorUserId={}", postId, actorUserId);
             return;
         }
 
@@ -175,6 +196,7 @@ public class NotificationService {
                 .existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "LIKE");
 
         if (alreadyNotified) {
+            log.info("좋아요 알림 생성 생략 - 이미 생성된 알림, receiverUserId={}, actorUserId={}, postId={}", postOwnerId, actorUserId, postId);
             return;
         }
 
@@ -188,6 +210,8 @@ public class NotificationService {
                 "LIKE",
                 actorNickname + "님이 회원님의 게시글을 좋아합니다."
         );
+
+        log.info("좋아요 알림 생성 완료 - receiverUserId={}, actorUserId={}, postId={}", postOwnerId, actorUserId, postId);
     }
 
     /**
@@ -200,9 +224,11 @@ public class NotificationService {
      */
     @Transactional
     public void createBookmarkNotification(Long postId, Long actorUserId) {
+        log.info("북마크 알림 생성 시작 - postId={}, actorUserId={}", postId, actorUserId);
         Long postOwnerId = findPostOwnerId(postId);
 
         if (postOwnerId.equals(actorUserId)) {
+            log.info("북마크 알림 생성 생략 - 본인 게시글 북마크, postId={}, actorUserId={}", postId, actorUserId);
             return;
         }
 
@@ -210,6 +236,7 @@ public class NotificationService {
                 .existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "BOOKMARK");
 
         if (alreadyNotified) {
+            log.info("북마크 알림 생성 생략 - 이미 생성된 알림, receiverUserId={}, actorUserId={}, postId={}", postOwnerId, actorUserId, postId);
             return;
         }
 
@@ -223,6 +250,8 @@ public class NotificationService {
                 "BOOKMARK",
                 actorNickname + "님이 회원님의 게시글을 북마크했습니다."
         );
+
+        log.info("북마크 알림 생성 완료 - receiverUserId={}, actorUserId={}, postId={}", postOwnerId, actorUserId, postId);
     }
 
     /**
@@ -235,9 +264,11 @@ public class NotificationService {
      */
     @Transactional
     public void createPostReportNotification(Long postId, Long adminUserId) {
+        log.info("게시글 신고 알림 생성 시작 - postId={}, adminUserId={}", postId, adminUserId);
         Long postOwnerId = findPostOwnerId(postId);
 
         if (postOwnerId.equals(adminUserId)) {
+            log.info("게시글 신고 알림 생성 생략 - 관리자와 게시글 작성자가 동일, postId={}, adminUserId={}", postId, adminUserId);
             return;
         }
 
@@ -249,6 +280,8 @@ public class NotificationService {
                 "REPORT",
                 "회원님의 게시글이 신고 접수되어 관리자에 의해 처리되었습니다."
         );
+
+        log.info("게시글 신고 알림 생성 완료 - receiverUserId={}, adminUserId={}, postId={}", postOwnerId, adminUserId, postId);
     }
 
     /**
@@ -261,9 +294,11 @@ public class NotificationService {
      */
     @Transactional
     public void createCommentReportNotification(Long commentId, Long adminUserId) {
+        log.info("댓글 신고 알림 생성 시작 - commentId={}, adminUserId={}", commentId, adminUserId);
         Long commentOwnerId = findCommentOwnerId(commentId);
 
         if (commentOwnerId.equals(adminUserId)) {
+            log.info("댓글 신고 알림 생성 생략 - 관리자와 댓글 작성자가 동일, commentId={}, adminUserId={}", commentId, adminUserId);
             return;
         }
 
@@ -275,6 +310,8 @@ public class NotificationService {
                 "REPORT",
                 "회원님의 댓글이 신고 접수되어 관리자에 의해 처리되었습니다."
         );
+
+        log.info("댓글 신고 알림 생성 완료 - receiverUserId={}, adminUserId={}, commentId={}", commentOwnerId, adminUserId, commentId);
     }
 
     /**
@@ -285,7 +322,9 @@ public class NotificationService {
      */
     @Transactional
     public void createReportNotification(Long targetId, Long actorUserId, Long receiverUserId, String message) {
+        log.info("공통 신고 알림 생성 시작 - targetId={}, actorUserId={}, receiverUserId={}", targetId, actorUserId, receiverUserId);
         if (receiverUserId.equals(actorUserId)) {
+            log.info("공통 신고 알림 생성 생략 - 수신자와 발생자가 동일, targetId={}, actorUserId={}", targetId, actorUserId);
             return;
         }
 
@@ -297,6 +336,8 @@ public class NotificationService {
                 "REPORT",
                 message
         );
+
+        log.info("공통 신고 알림 생성 완료 - targetId={}, actorUserId={}, receiverUserId={}", targetId, actorUserId, receiverUserId);
     }
 
     /**
@@ -308,11 +349,21 @@ public class NotificationService {
      * - likes    : 좋아요 알림
      */
     public NotificationListResponse getMyNotifications(Long loginUserId, int page, int size, String tab) {
+        log.info("알림 목록 조회 시작 - loginUserId={}, page={}, size={}, tab={}", loginUserId, page, size, tab);
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 50);
+        if (safePage != page || safeSize != size) {
+            log.info("알림 목록 조회 요청값 보정 - loginUserId={}, requestedPage={}, requestedSize={}, safePage={}, safeSize={}",
+                    loginUserId,
+                    page,
+                    size,
+                    safePage,
+                    safeSize);
+        }
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
         List<String> types = resolveNotificationTypes(tab);
+        log.debug("알림 목록 조회 타입 결정 - loginUserId={}, tab={}, types={}", loginUserId, tab, types);
 
         Page<Notification> notificationPage = types.isEmpty()
                 ? notificationRepository.findAvailableByUserIdOrderByCreatedAtDesc(loginUserId, pageable)
@@ -326,6 +377,14 @@ public class NotificationService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+
+        log.info("알림 목록 조회 완료 - loginUserId={}, tab={}, count={}, totalElements={}, totalPages={}, hasNext={}",
+                loginUserId,
+                tab,
+                notifications.size(),
+                notificationPage.getTotalElements(),
+                notificationPage.getTotalPages(),
+                notificationPage.hasNext());
 
         return new NotificationListResponse(
                 notifications,
@@ -345,19 +404,29 @@ public class NotificationService {
      */
     @Transactional
     public NotificationResponse readNotification(Long notificationId, Long loginUserId) {
+        log.info("알림 읽음 처리 시작 - notificationId={}, loginUserId={}", notificationId, loginUserId);
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_NOT_FOUND));
 
         if (!notification.getUserId().equals(loginUserId)) {
+            log.warn("알림 읽음 처리 거부 - 소유자 불일치, notificationId={}, loginUserId={}, ownerUserId={}",
+                    notificationId,
+                    loginUserId,
+                    notification.getUserId());
             throw new ApiException(NotificationErrorCode.NOTIFICATION_403_FORBIDDEN);
         }
 
         // 삭제된 게시글과 연결된 알림은 읽음/클릭 처리되지 않도록 차단
         if (!isNotificationTargetAvailable(notification)) {
+            log.warn("알림 읽음 처리 거부 - 대상 게시글 사용 불가, notificationId={}, loginUserId={}, postId={}",
+                    notificationId,
+                    loginUserId,
+                    notification.getPostId());
             throw new ApiException(NotificationErrorCode.NOTIFICATION_404_POST_NOT_FOUND);
         }
 
         notification.markAsRead();
+        log.info("알림 읽음 처리 완료 - notificationId={}, loginUserId={}", notificationId, loginUserId);
         return toResponse(notification);
     }
 
@@ -406,6 +475,12 @@ public class NotificationService {
         );
 
         notificationRepository.save(notification);
+        log.debug("알림 저장 완료 - receiverUserId={}, actorUserId={}, postId={}, commentId={}, type={}",
+                receiverUserId,
+                actorUserId,
+                postId,
+                commentId,
+                type);
     }
 
     // actorUserId로 회원 닉네임을 조회하는 공통 메서드
@@ -441,9 +516,15 @@ public class NotificationService {
             return true;
         }
 
-        return postRepository.findById(postId)
+        boolean available = postRepository.findById(postId)
                 .map(post -> !post.isDeleted())
                 .orElse(false);
+
+        if (!available) {
+            log.warn("알림 대상 게시글 사용 불가 - notificationId={}, postId={}", notification.getId(), postId);
+        }
+
+        return available;
     }
 
     // Entity -> Response DTO 변환 메서드
