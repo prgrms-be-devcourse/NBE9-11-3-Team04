@@ -4,6 +4,8 @@ plugins {
     java
     id("org.springframework.boot") version "4.0.5"
     id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm")
+    kotlin("plugin.spring") version "2.3.0"
 }
 
 group = "com.back"
@@ -48,6 +50,7 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testAnnotationProcessor("org.projectlombok:lombok")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.withType<Test> {
