@@ -12,7 +12,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import com.back.devc.global.exception.errorcode.BookmarkErrorCode;
+import com.back.devc.global.exception.errorCode.BookmarkErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

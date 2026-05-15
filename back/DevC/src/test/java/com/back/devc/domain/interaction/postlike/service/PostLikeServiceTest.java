@@ -13,7 +13,7 @@ import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import com.back.devc.global.exception.errorcode.PostLikeErrorCode;
+import com.back.devc.global.exception.errorCode.PostLikeErrorCode;
 import com.back.devc.global.response.successCode.PostLikeSuccessCode;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;

@@ -1,4 +1,4 @@
-package com.back.devc.global.exception.errorcode;
+package com.back.devc.global.exception.errorCode;
 
 import org.springframework.http.HttpStatus;
 

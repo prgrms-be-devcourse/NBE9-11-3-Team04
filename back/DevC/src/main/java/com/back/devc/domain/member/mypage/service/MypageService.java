@@ -15,7 +15,7 @@ import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
-import com.back.devc.global.exception.errorcode.MypageErrorCode;
+import com.back.devc.global.exception.errorCode.MypageErrorCode;
 import com.back.devc.global.response.PageResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
