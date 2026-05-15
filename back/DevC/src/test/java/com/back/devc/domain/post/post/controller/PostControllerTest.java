@@ -20,10 +20,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -32,15 +35,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+
 
 @SpringBootTest
 @ActiveProfiles("test")
-@AutoConfigureMockMvc
+//@AutoConfigureMockMvc
 @Transactional
 class PostControllerTest{
 
-    @Autowired
+
     private MockMvc mvc;
+
+    @Autowired
+    private WebApplicationContext context;
+
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
@@ -59,6 +68,11 @@ class PostControllerTest{
     @BeforeEach
     void setUp() {
 
+        mvc = MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(SecurityMockMvcConfigurers.springSecurity())
+                .build();
+
         member = memberRepository.save(
                 Member.createLocalMember(
                         "test@test.com",
@@ -71,22 +85,17 @@ class PostControllerTest{
         category = categoryRepository.save(category);
     }
 
-    private void setAuthentication() {
+    private Authentication getAuthentication() {
         JwtPrincipal principal = new JwtPrincipal(
                 member.getUserId(),
                 member.getEmail(),
                 "USER"
         );
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
+        return new UsernamePasswordAuthenticationToken(
                 principal,
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(auth);
-        SecurityContextHolder.setContext(context);
     }
 
     // =========================
@@ -96,7 +105,6 @@ class PostControllerTest{
     @DisplayName("게시글 생성")
     void t1() throws Exception {
 
-        setAuthentication();
         PostCreateRequest request = new PostCreateRequest(
                 "테스트글",
                 "테스트내용입니다.",
@@ -105,6 +113,7 @@ class PostControllerTest{
 
         mvc.perform(
                         post("/api/posts")
+                                .with(authentication(getAuthentication()))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -138,7 +147,7 @@ class PostControllerTest{
     @DisplayName("게시글 수정")
     void t3() throws Exception {
 
-        setAuthentication();
+
 
         Post post = postRepository.save(
                 new Post(member, category, "수정 전 제목", "수정 전 내용")
@@ -146,6 +155,7 @@ class PostControllerTest{
 
         mvc.perform(
                         put("/api/posts/" + post.getPostId())
+                                .with(authentication(getAuthentication()))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                     {
@@ -155,6 +165,7 @@ class PostControllerTest{
                                     }
                                     """.formatted(category.getCategoryId()))
                 )
+
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.title").value("수정 후 제목"));
@@ -166,13 +177,14 @@ class PostControllerTest{
     @DisplayName("게시글 삭제")
     void t4() throws Exception {
 
-        setAuthentication();
 
         Post post = postRepository.save(
                 new Post(member, category, "title", "content")
         );
 
-        mvc.perform(delete("/api/posts/" + post.getPostId()))
+        mvc.perform(delete("/api/posts/" + post.getPostId())
+                        .with(authentication(getAuthentication())))
+
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("게시글 삭제 성공"));
