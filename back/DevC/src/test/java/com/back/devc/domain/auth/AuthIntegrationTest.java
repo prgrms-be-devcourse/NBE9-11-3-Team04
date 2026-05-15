@@ -5,11 +5,15 @@ import com.back.devc.domain.member.member.controller.MemberController;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.global.security.jwt.JwtProvider;
 import com.jayway.jsonpath.JsonPath;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +22,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -44,6 +53,12 @@ class AuthIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private JwtProvider jwtProvider;
+
+    @Value("${custom.jwt.secret-key}")
+    private String jwtSecretKey;
 
     @Test
     @DisplayName("회원가입 후 로그인하고 내 정보를 조회한 뒤 로그아웃한다")
@@ -489,5 +504,164 @@ class AuthIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_INVALID"))
                 .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("만료된 JWT로 내 정보를 조회할 수 없다")
+    void me_fail_whenAccessTokenExpired() throws Exception {
+        // given
+        Member member = Member.createLocalMember(
+                "expired-token@test.com",
+                passwordEncoder.encode("password123!"),
+                "expiredTokenUser"
+        );
+        Member savedMember = memberRepository.saveAndFlush(member);
+
+        String expiredToken = createExpiredAccessToken(savedMember);
+
+        // when & then
+        mvc.perform(
+                        get("/api/users/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken)
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_EXPIRED"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("변조된 JWT로 내 정보를 조회할 수 없다")
+    void me_fail_whenAccessTokenTampered() throws Exception {
+        // given
+        Member member = Member.createLocalMember(
+                "tampered-token@test.com",
+                passwordEncoder.encode("password123!"),
+                "tamperedTokenUser"
+        );
+        Member savedMember = memberRepository.saveAndFlush(member);
+
+        String validToken = jwtProvider.createAccessToken(savedMember);
+        String tamperedToken = validToken.substring(0, validToken.length() - 1) + "x";
+
+        // when & then
+        mvc.perform(
+                        get("/api/users/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamperedToken)
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_INVALID"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("Authorization 헤더 형식이 잘못되면 내 정보를 조회할 수 없다")
+    void me_fail_whenAuthorizationHeaderInvalid() throws Exception {
+        mvc.perform(
+                        get("/api/users/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer ")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_MISSING"))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        mvc.perform(
+                        get("/api/users/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Token invalid-token")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_INVALID"))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        mvc.perform(
+                        get("/api/users/me")
+                                .header(HttpHeaders.AUTHORIZATION, "invalid-token")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_401_TOKEN_INVALID"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("로그아웃하면 access_token 쿠키가 정확히 만료된다")
+    void logout_expiresAccessTokenCookieStrictly() throws Exception {
+        // when & then
+        mvc.perform(
+                        post("/api/auth/logout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("AUTH_200_LOGOUT_SUCCESS"))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("access_token=")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Path=/")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("SameSite=")));
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 후 기존 이메일과 닉네임으로 다시 가입할 수 있다")
+    void signUp_success_afterWithdrawWithSameEmailAndNickname() throws Exception {
+        // given
+        String email = "resignup-after-withdraw@test.com";
+        String password = "password123!";
+        String nickname = "resignupAfterWithdrawUser";
+
+        Member member = Member.createLocalMember(
+                email,
+                passwordEncoder.encode(password),
+                nickname
+        );
+        Member savedMember = memberRepository.saveAndFlush(member);
+
+        String accessToken = jwtProvider.createAccessToken(savedMember);
+
+        mvc.perform(
+                        delete("/api/users/me")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userId").value(savedMember.getUserId()));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when & then
+        mvc.perform(
+                        post("/api/auth/signup")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "email": "%s",
+                                          "password": "%s",
+                                          "nickname": "%s"
+                                        }
+                                        """.formatted(email, password, nickname))
+                )
+                .andExpect(handler().handlerType(AuthController.class))
+                .andExpect(handler().methodName("signUp"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("AUTH_201_SIGNUP_SUCCESS"))
+                .andExpect(jsonPath("$.data.email").value(email))
+                .andExpect(jsonPath("$.data.nickname").value(nickname))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+    }
+
+    private String createExpiredAccessToken(Member member) {
+        Instant issuedAt = Instant.now().minusSeconds(7200);
+        Instant expiredAt = Instant.now().minusSeconds(3600);
+
+        SecretKey secretKey = Keys.hmacShaKeyFor(
+                jwtSecretKey.getBytes(StandardCharsets.UTF_8)
+        );
+
+        return Jwts.builder()
+                .subject(String.valueOf(member.getUserId()))
+                .claim("tokenType", "ACCESS")
+                .claim("email", member.getEmail())
+                .claim("role", member.getRole().name())
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(expiredAt))
+                .signWith(secretKey)
+                .compact();
     }
 }
