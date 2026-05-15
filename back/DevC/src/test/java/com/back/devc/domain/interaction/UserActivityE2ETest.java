@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -44,12 +45,14 @@ class UserActivityE2ETest {
     private Long userId;
     private Long postOwnerId;
     private Long postId;
+    private Long categoryId;
 
     @BeforeEach
     void setUp() {
         userId = 1L;
         postOwnerId = 2L;
         postId = 1L;
+        categoryId = 1L;
 
         jdbcTemplate.update("DELETE FROM NOTIFICATIONS");
         jdbcTemplate.update("DELETE FROM COMMENT_ATTACHMENTS");
@@ -59,7 +62,18 @@ class UserActivityE2ETest {
         jdbcTemplate.update("DELETE FROM REPORTS");
         jdbcTemplate.update("DELETE FROM SEARCH_LOGS");
         jdbcTemplate.update("DELETE FROM POST");
+        jdbcTemplate.update("DELETE FROM CATEGORY");
         jdbcTemplate.update("DELETE FROM USERS");
+
+        jdbcTemplate.update("""
+                INSERT INTO CATEGORY (
+                    CATEGORY_ID,
+                    NAME
+                ) VALUES (?, ?)
+                """,
+                categoryId,
+                "테스트 카테고리"
+        );
 
         jdbcTemplate.update("""
                 INSERT INTO USERS (
@@ -137,7 +151,7 @@ class UserActivityE2ETest {
                 0,
                 "E2E 테스트 게시글",
                 0,
-                1L,
+                categoryId,
                 postOwnerId
         );
     }
@@ -294,6 +308,7 @@ class UserActivityE2ETest {
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("MYPAGE_200_LIKES_FETCH"))
                 .andReturn();
 
         assertPostNotExists(likedPostsResult, postId);
@@ -304,6 +319,7 @@ class UserActivityE2ETest {
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("MYPAGE_200_BOOKMARKS_FETCH"))
                 .andReturn();
 
         assertPostNotExists(bookmarkedPostsResult, postId);
@@ -356,7 +372,7 @@ class UserActivityE2ETest {
         List<Map<String, Object>> posts = extractContentList(result);
 
         return posts.stream()
-                .filter(post -> postId.equals(extractPostId(post)))
+                .filter(post -> Objects.equals(postId, toLong(post.get("postId"))))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("마이페이지 목록에서 postId=" + postId + " 게시글을 찾을 수 없습니다."));
     }
@@ -365,7 +381,7 @@ class UserActivityE2ETest {
         List<Map<String, Object>> posts = extractContentList(result);
 
         boolean exists = posts.stream()
-                .anyMatch(post -> postId.equals(extractPostId(post)));
+                .anyMatch(post -> Objects.equals(postId, toLong(post.get("postId"))));
 
         assertThat(exists).isFalse();
     }
@@ -379,42 +395,18 @@ class UserActivityE2ETest {
 
         Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
 
-        if (data.containsKey("content")) {
-            return (List<Map<String, Object>>) data.get("content");
+        if (!data.containsKey("content")) {
+            throw new AssertionError("PageResponse 응답에서 content 필드를 찾을 수 없습니다. data=" + data);
         }
 
-        if (data.containsKey("items")) {
-            return (List<Map<String, Object>>) data.get("items");
-        }
-
-        if (data.containsKey("posts")) {
-            return (List<Map<String, Object>>) data.get("posts");
-        }
-
-        if (data.containsKey("likedPosts")) {
-            return (List<Map<String, Object>>) data.get("likedPosts");
-        }
-
-        if (data.containsKey("bookmarkedPosts")) {
-            return (List<Map<String, Object>>) data.get("bookmarkedPosts");
-        }
-
-        throw new AssertionError("마이페이지 응답에서 게시글 목록 필드를 찾을 수 없습니다. data=" + data);
-    }
-
-    private Long extractPostId(Map<String, Object> post) {
-        if (post.containsKey("postId")) {
-            return toLong(post.get("postId"));
-        }
-
-        if (post.containsKey("id")) {
-            return toLong(post.get("id"));
-        }
-
-        throw new AssertionError("게시글 응답에서 postId 필드를 찾을 수 없습니다. post=" + post);
+        return (List<Map<String, Object>>) data.get("content");
     }
 
     private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+
         if (value instanceof Number number) {
             return number.longValue();
         }
