@@ -83,10 +83,8 @@ public class AdminReportService {
         LocalDateTime to = LocalDateTime.now();
         LocalDateTime from = to.minusDays(DEFAULT_GROUP_LOOKBACK_DAYS);
 
-        Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
         log.info("관리자 신고 그룹 목록 조회 시작(no batch) - status={}, page={}, size={}", status, pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<Object[]> result = reportRepository.findGroupedReports(status, pageable);
+        Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
 
         log.info("관리자 신고 그룹 목록 조회 완료(no batch) - status={}, totalElements={}, totalPages={}, count={}",
                 status,
@@ -146,10 +144,8 @@ public class AdminReportService {
 
         validateGroupedReportSearch(from, to, pageable);
 
-        Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
         log.info("관리자 신고 그룹 목록 조회 시작 - status={}, page={}, size={}", status, pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<Object[]> result = reportRepository.findGroupedReports(status, pageable);
+        Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
 
         // 1) row에서 targetType/targetId 추출
         List<Object[]> rows = result.getContent();
