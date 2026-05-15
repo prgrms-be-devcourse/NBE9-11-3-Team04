@@ -49,10 +49,10 @@ public class OAuth2Controller {
             if (raw instanceof OAuthPendingSignup pending) {
                 Map<String, Object> attributes = new LinkedHashMap<>();
                 attributes.put("pendingSignup", true);
-                attributes.put("provider", pending.provider());
-                attributes.put("providerUserId", pending.providerUserId());
-                attributes.put("email", pending.emailFromProvider());
-                attributes.put("login", pending.loginFromProvider());
+                attributes.put("provider", pending.getProvider());
+                attributes.put("providerUserId", pending.getProviderUserId());
+                attributes.put("email", pending.getEmailFromProvider());
+                attributes.put("login", pending.getLoginFromProvider());
 
                 body = new OAuth2MeResponse(false, null, List.of(), attributes);
                 AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS;
@@ -90,8 +90,8 @@ public class OAuth2Controller {
             @Valid @RequestBody OAuthExchangeRequest request,
             HttpServletResponse response
     ) {
-        LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.code());
-        authCookieService.setAccessTokenCookie(response, body.accessToken());
+        LoginResponse body = oAuth2MemberService.exchangeLoginCode(request.getCode());
+        authCookieService.setAccessTokenCookie(response, body.getAccessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_200_EXCHANGE_SUCCESS;
         return ResponseEntity
@@ -116,9 +116,9 @@ public class OAuth2Controller {
             throw new ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED);
         }
 
-        LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname());
+        LoginResponse body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.getNickname());
         session.removeAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY);
-        authCookieService.setAccessTokenCookie(response, body.accessToken());
+        authCookieService.setAccessTokenCookie(response, body.getAccessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.OAUTH_201_SIGNUP_COMPLETE_SUCCESS;
         return ResponseEntity

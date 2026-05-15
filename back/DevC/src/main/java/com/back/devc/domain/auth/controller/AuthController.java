@@ -45,7 +45,7 @@ public class AuthController {
             HttpServletResponse response
     ) {
         LoginResponse body = authService.login(request);
-        authCookieService.setAccessTokenCookie(response, body.accessToken());
+        authCookieService.setAccessTokenCookie(response, body.getAccessToken());
 
         AuthSuccessCode successCode = AuthSuccessCode.AUTH_200_LOGIN_SUCCESS;
         return ResponseEntity
