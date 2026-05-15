@@ -25,6 +25,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -134,6 +135,51 @@ class AdminReportServiceTest {
             var result = adminReportService.getReports(ReportStatus.PENDING, pageable);
 
             assertThat(result.getContent()).hasSize(1);
+        }
+    }
+
+    @Nested
+    class GetGroupedReportsTest {
+
+        @Test
+        void groupedReports_usesProvidedDateRange() {
+            Pageable pageable = PageRequest.of(0, 10);
+            LocalDateTime from = LocalDateTime.of(2026, 1, 1, 0, 0);
+            LocalDateTime to = LocalDateTime.of(2026, 2, 1, 0, 0);
+
+            given(reportRepository.findGroupedReports(
+                    eq(ReportStatus.PENDING),
+                    eq(from),
+                    eq(to),
+                    eq(pageable)
+            )).willReturn(new PageImpl<>(List.of(), pageable, 0));
+
+            var result = adminReportService.getGroupedReports(ReportStatus.PENDING, from, to, pageable);
+
+            assertThat(result.getContent()).isEmpty();
+            verify(reportRepository).findGroupedReports(ReportStatus.PENDING, from, to, pageable);
+        }
+
+        @Test
+        void groupedReports_rejectsInvalidDateRange() {
+            Pageable pageable = PageRequest.of(0, 10);
+            LocalDateTime from = LocalDateTime.of(2026, 2, 1, 0, 0);
+            LocalDateTime to = LocalDateTime.of(2026, 1, 1, 0, 0);
+
+            assertThatThrownBy(() ->
+                    adminReportService.getGroupedReports(null, from, to, pageable)
+            ).isInstanceOf(ApiException.class);
+        }
+
+        @Test
+        void groupedReports_rejectsTooLargePageSize() {
+            Pageable pageable = PageRequest.of(0, 101);
+            LocalDateTime from = LocalDateTime.of(2026, 1, 1, 0, 0);
+            LocalDateTime to = LocalDateTime.of(2026, 1, 2, 0, 0);
+
+            assertThatThrownBy(() ->
+                    adminReportService.getGroupedReports(null, from, to, pageable)
+            ).isInstanceOf(ApiException.class);
         }
     }
 

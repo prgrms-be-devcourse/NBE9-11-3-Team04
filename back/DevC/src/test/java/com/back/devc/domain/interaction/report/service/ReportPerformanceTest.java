@@ -86,7 +86,7 @@ class ReportPerformanceTest {
 
         Page<Object[]> mockPage = new PageImpl<>(pageRows, pageable, totalData);
 
-        given(reportRepository.findGroupedReports(any(), any())).willReturn(mockPage);
+        given(reportRepository.findGroupedReports(any(), any(), any(), any())).willReturn(mockPage);
 
         // 2. Given: 엔티티 Mocking
         Member mockMember = mock(Member.class);
@@ -160,7 +160,7 @@ class ReportPerformanceTest {
 
         Page<Object[]> mockPage = new PageImpl<>(pageRows, pageable, totalData);
 
-        given(reportRepository.findGroupedReports(any(), any()))
+        given(reportRepository.findGroupedReports(any(), any(), any(), any()))
                 .willReturn(mockPage);
 
         // 2. target handler mock (NO batch 핵심)

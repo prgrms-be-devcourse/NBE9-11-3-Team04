@@ -15,10 +15,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/admin/reports")
@@ -53,6 +56,12 @@ public class AdminReportController {
     public ResponseEntity<SuccessResponse<Page<ReportGroupResponseDTO>>> getGrouped(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestParam(required = false) ReportStatus status,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime from,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime to,
             @PageableDefault(size = 20, sort = "latestCreatedAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
@@ -61,7 +70,9 @@ public class AdminReportController {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        Page<ReportGroupResponseDTO> groups = adminReportService.getGroupedReports(status, pageable);
+        Page<ReportGroupResponseDTO> groups = (from == null && to == null)
+                ? adminReportService.getGroupedReports(status, pageable)
+                : adminReportService.getGroupedReports(status, from, to, pageable);
 
         ReportSuccessCode successCode = ReportSuccessCode.REPORT_200_GROUP_LIST;
         return ResponseEntity

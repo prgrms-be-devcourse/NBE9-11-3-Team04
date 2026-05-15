@@ -16,11 +16,13 @@ import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
+import com.back.devc.global.exception.ErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
 import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class AdminReportService {
+
+    private static final int MAX_GROUP_PAGE_SIZE = 100;
+    private static final int DEFAULT_GROUP_LOOKBACK_DAYS = 30;
+    private static final int MAX_GROUP_RANGE_DAYS = 90;
+    private static final String GROUP_SORT_PROPERTY = "latestCreatedAt";
 
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
@@ -63,7 +70,10 @@ public class AdminReportService {
     @Transactional(readOnly = true)
     public Page<ReportGroupResponseDTO> getGroupedReportsNoBatch(ReportStatus status, Pageable pageable) {
 
-        Page<Object[]> result = reportRepository.findGroupedReports(status, pageable);
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minusDays(DEFAULT_GROUP_LOOKBACK_DAYS);
+
+        Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
 
         return result.map(row -> {
 
@@ -101,7 +111,23 @@ public class AdminReportService {
     @Transactional(readOnly = true)
     public Page<ReportGroupResponseDTO> getGroupedReports(ReportStatus status, Pageable pageable) {
 
-        Page<Object[]> result = reportRepository.findGroupedReports(status, pageable);
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minusDays(DEFAULT_GROUP_LOOKBACK_DAYS);
+
+        return getGroupedReports(status, from, to, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ReportGroupResponseDTO> getGroupedReports(
+            ReportStatus status,
+            LocalDateTime from,
+            LocalDateTime to,
+            Pageable pageable
+    ) {
+
+        validateGroupedReportSearch(from, to, pageable);
+
+        Page<Object[]> result = reportRepository.findGroupedReports(status, from, to, pageable);
 
         // 1) row에서 targetType/targetId 추출
         List<Object[]> rows = result.getContent();
@@ -171,6 +197,28 @@ public class AdminReportService {
         });
 
         return dtoPage;
+    }
+
+    private void validateGroupedReportSearch(LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        if (from == null || to == null || !from.isBefore(to)) {
+            throw new ApiException(ErrorCode.BAD_REQUEST);
+        }
+
+        if (from.plusDays(MAX_GROUP_RANGE_DAYS).isBefore(to)) {
+            throw new ApiException(ErrorCode.BAD_REQUEST);
+        }
+
+        if (pageable.getPageSize() > MAX_GROUP_PAGE_SIZE) {
+            throw new ApiException(ErrorCode.BAD_REQUEST);
+        }
+
+        boolean unsupportedSort = pageable.getSort().stream()
+                .anyMatch(order -> !GROUP_SORT_PROPERTY.equals(order.getProperty())
+                        || order.getDirection() != Sort.Direction.DESC);
+
+        if (unsupportedSort) {
+            throw new ApiException(ErrorCode.BAD_REQUEST);
+        }
     }
 
     private Map<String, List<String>> loadReasonTypesBatch(List<Long> postIds, List<Long> commentIds) {
