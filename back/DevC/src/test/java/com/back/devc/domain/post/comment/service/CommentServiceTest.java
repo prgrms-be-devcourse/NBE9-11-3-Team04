@@ -1,6 +1,5 @@
 package com.back.devc.domain.post.comment.service;
 
-import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse;
@@ -15,6 +14,7 @@ import com.back.devc.global.exception.ApiException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,8 +48,6 @@ class CommentServiceTest {
     @Mock
     private CommentAttachmentService commentAttachmentService;
 
-    @Mock
-    private NotificationService notificationService;
 
     @Mock
     private PostService postService;
@@ -61,7 +59,7 @@ class CommentServiceTest {
     private CommentService commentService;
 
     @Test
-    @DisplayName("댓글을 작성할 수 있다")
+    @DisplayName("댓글 작성 성공 시 댓글을 저장하고 댓글 수 증가 및 댓글 생성 이벤트를 발행한다")
     void createComment_success() {
         // given
         Long loginUserId = 2L;
@@ -96,42 +94,30 @@ class CommentServiceTest {
         assertThat(response.content()).isEqualTo("첫 댓글입니다.");
         // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
-        verify(eventPublisher).publishEvent(any(Object.class));
+
+        // 댓글 작성과 알림 생성을 분리했으므로 알림 서비스 직접 호출 대신 댓글 생성 이벤트 발행 여부를 검증
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getClass().getSimpleName()).isEqualTo("CommentCreatedEvent");
     }
 
+
     @Test
-    @DisplayName("내 게시글에 내가 댓글을 작성해도 서비스는 댓글 저장 후 알림 생성 메서드를 호출한다")
-    void createComment_callsNotificationMethod_evenWhenSelfComment() {
+    @DisplayName("존재하지 않는 게시글에 댓글 작성 시 댓글 생성 이벤트가 발행되지 않는다")
+    void createComment_fail_whenPostNotFound_doesNotPublishEvent() {
         // given
         Long loginUserId = 2L;
-        Long postId = 10L;
-        CommentCreateRequest requestDto = new CommentCreateRequest("내 글의 댓글입니다.");
+        Long postId = 999L;
+        CommentCreateRequest requestDto = new CommentCreateRequest("존재하지 않는 게시글 댓글");
 
-        Post post = mock(Post.class);
-        Member member = mock(Member.class);
+        when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.getTitle()).thenReturn("내 게시글");
-        when(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member));
-        when(member.getUserId()).thenReturn(loginUserId);
-        when(member.getNickname()).thenReturn("작성자A");
-        when(commentAttachmentService.getAttachments(2L)).thenReturn(new CommentAttachmentListResponse(List.of()));
-
-        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
-            Comment saved = invocation.getArgument(0);
-            ReflectionTestUtils.setField(saved, "id", 2L);
-            return saved;
-        });
-
-        // when
-        CommentResponse response = commentService.createComment(postId, loginUserId, requestDto);
-
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.commentId()).isEqualTo(2L);
-        // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
-        verify(postService).increaseCommentCount(postId);
-        verify(eventPublisher).publishEvent(any(Object.class));
+        // when & then
+        assertThrows(ApiException.class,
+                () -> commentService.createComment(postId, loginUserId, requestDto));
+        verify(commentRepository, never()).save(any(Comment.class));
+        verify(postService, never()).increaseCommentCount(any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test
@@ -173,8 +159,13 @@ class CommentServiceTest {
         assertThat(response.content()).isEqualTo("대댓글입니다.");
         // 대댓글 작성 성공 시 부모 댓글이 속한 게시글의 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
-        verify(eventPublisher).publishEvent(any(Object.class));
+
+        // 대댓글 작성과 알림 생성을 분리했으므로 알림 서비스 직접 호출 대신 대댓글 생성 이벤트 발행 여부를 검증
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getClass().getSimpleName()).isEqualTo("ReplyCreatedEvent");
     }
+
 
     @Test
     @DisplayName("삭제된 댓글에는 답글을 작성할 수 없다")
@@ -191,6 +182,8 @@ class CommentServiceTest {
         assertThrows(ApiException.class,
                 () -> commentService.createReply(parentCommentId, 2L, new CommentCreateRequest("대댓글")));
         verify(eventPublisher, never()).publishEvent(any(Object.class));
+        verify(commentRepository, never()).save(any(Comment.class));
+        verify(postService, never()).increaseCommentCount(any());
     }
 
     @Test

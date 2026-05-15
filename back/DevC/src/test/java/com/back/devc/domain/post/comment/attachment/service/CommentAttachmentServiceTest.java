@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +78,26 @@ class CommentAttachmentServiceTest {
     }
 
     @Test
+    @DisplayName("댓글은 존재하지만 첨부가 없으면 빈 첨부 목록을 반환한다")
+    void getAttachments_success_whenAttachmentEmpty() {
+        // given
+        Long commentId = 1L;
+        given(commentRepository.findById(commentId)).willReturn(Optional.of(mock(Comment.class)));
+        given(commentAttachmentRepository.findByCommentIdOrderByFileOrderAscIdAsc(commentId))
+                .willReturn(List.of());
+
+        // when
+        CommentAttachmentListResponse response = commentAttachmentService.getAttachments(commentId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.attachments()).isEmpty();
+
+        verify(commentRepository).findById(commentId);
+        verify(commentAttachmentRepository).findByCommentIdOrderByFileOrderAscIdAsc(commentId);
+    }
+
+    @Test
     @DisplayName("존재하지 않는 댓글이면 첨부 목록 조회 시 예외 발생")
     void getAttachments_fail_whenCommentNotFound() {
         given(commentRepository.findById(999L)).willReturn(Optional.empty());
@@ -85,6 +106,9 @@ class CommentAttachmentServiceTest {
                 // 현재 서비스는 존재하지 않는 댓글 조회 시 공통 예외 ApiException을 발생시킴
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("댓글을 찾을 수 없습니다.");
+
+        verify(commentRepository).findById(999L);
+        verify(commentAttachmentRepository, never()).findByCommentIdOrderByFileOrderAscIdAsc(999L);
     }
 
 }

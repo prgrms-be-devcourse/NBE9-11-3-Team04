@@ -247,6 +247,28 @@ class NotificationServiceTest {
     }
 
     @Test
+    @DisplayName("내 댓글에 내가 답글을 작성하면 답글 알림은 생성되지 않는다")
+    void createReplyNotification_noNotification_whenSelfReply() {
+        // given
+        Long parentCommentId = 10L;
+        Long actorUserId = 1L;
+        Long replyCommentId = 20L;
+
+        Comment parentComment = mock(Comment.class);
+
+        when(commentRepository.findById(parentCommentId)).thenReturn(Optional.of(parentComment));
+        when(parentComment.isDeleted()).thenReturn(false);
+        when(parentComment.getUserId()).thenReturn(actorUserId);
+
+        // when
+        notificationService.createReplyNotification(parentCommentId, actorUserId, replyCommentId);
+
+        // then
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(memberRepository, never()).findById(actorUserId);
+    }
+
+    @Test
     @DisplayName("삭제된 부모 댓글에는 답글 알림이 생성되지 않는다")
     void createReplyNotification_noNotification_whenParentCommentDeleted() {
         // given
