@@ -541,7 +541,7 @@ class AuthIntegrationTest {
         Member savedMember = memberRepository.saveAndFlush(member);
 
         String validToken = jwtProvider.createAccessToken(savedMember);
-        String tamperedToken = tamperLastCharacter(validToken);
+        String tamperedToken = tamperSignature(validToken);
 
         // when & then
         mvc.perform(
@@ -646,10 +646,19 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
     }
 
-    private String tamperLastCharacter(String token) {
-        char lastCharacter = token.charAt(token.length() - 1);
-        char replacementCharacter = lastCharacter == 'x' ? 'y' : 'x';
-        return token.substring(0, token.length() - 1) + replacementCharacter;
+    private String tamperSignature(String token) {
+        int lastDotIndex = token.lastIndexOf('.');
+        if (lastDotIndex < 0 || lastDotIndex == token.length() - 1) {
+            throw new IllegalArgumentException("Invalid JWT format");
+        }
+
+        int signatureStartIndex = lastDotIndex + 1;
+        char originalCharacter = token.charAt(signatureStartIndex);
+        char replacementCharacter = originalCharacter == 'x' ? 'y' : 'x';
+
+        return token.substring(0, signatureStartIndex)
+                + replacementCharacter
+                + token.substring(signatureStartIndex + 1);
     }
 
     private String createExpiredAccessToken(Member member) {
