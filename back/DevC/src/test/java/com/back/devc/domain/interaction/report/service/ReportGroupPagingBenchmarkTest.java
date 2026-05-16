@@ -33,7 +33,7 @@ class ReportGroupPagingBenchmarkTest {
     private EntityManager entityManager;
 
     @Test
-    void benchmarkMeasuresFirstMiddleAndLastOffsetPages() {
+    void benchmarkMeasuresOffsetCheckpointsWithWarmupAndRepeatedRuns() {
         Member reporter = memberRepository.save(Member.createLocalMember(
                 "benchmark-reporter@test.com",
                 "password123!",
@@ -44,21 +44,78 @@ class ReportGroupPagingBenchmarkTest {
             reportRepository.save(report(reporter, targetId));
         }
 
+        ReportGroupPagingBenchmark.BenchmarkOptions options =
+                new ReportGroupPagingBenchmark.BenchmarkOptions(
+                        10,
+                        2,
+                        3,
+                        List.of(0, 10, 20)
+                );
+
         List<ReportGroupPagingBenchmark.PageMeasurement> measurements =
                 ReportGroupPagingBenchmark.measureOffsetPages(
                         reportRepository,
                         ReportStatus.PENDING,
                         LocalDateTime.now().minusDays(1),
                         LocalDateTime.now().plusDays(1),
-                        10
+                        options
                 );
 
-        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::label)
-                .containsExactly("first", "middle", "last");
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::mode)
+                .containsOnly(ReportGroupPagingBenchmark.MeasurementMode.PAGE_WITH_COUNT);
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::offsetRows)
+                .containsExactly(0, 10, 20);
         assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::pageNumber)
                 .containsExactly(0, 1, 2);
         assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::totalElements)
                 .containsOnly(25L);
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::contentSize)
+                .containsExactly(10, 10, 5);
+        assertThat(measurements).allSatisfy(measurement -> {
+            assertThat(measurement.warmupRuns()).isEqualTo(2);
+            assertThat(measurement.measurementRuns()).isEqualTo(3);
+            assertThat(measurement.minElapsedNanos()).isLessThanOrEqualTo(measurement.avgElapsedNanos());
+            assertThat(measurement.avgElapsedNanos()).isLessThanOrEqualTo(measurement.maxElapsedNanos());
+        });
+    }
+
+    @Test
+    void benchmarkMeasuresContentOnlyWithoutPageCount() {
+        Member reporter = memberRepository.save(Member.createLocalMember(
+                "content-only-reporter@test.com",
+                "password123!",
+                "contentOnlyReporter"
+        ));
+
+        for (long targetId = 1; targetId <= 25; targetId++) {
+            reportRepository.save(report(reporter, targetId));
+        }
+
+        ReportGroupPagingBenchmark.BenchmarkOptions options =
+                new ReportGroupPagingBenchmark.BenchmarkOptions(
+                        10,
+                        1,
+                        2,
+                        List.of(0, 10, 20)
+                );
+
+        List<ReportGroupPagingBenchmark.PageMeasurement> measurements =
+                ReportGroupPagingBenchmark.measureContentOnlyOffsetPages(
+                        entityManager,
+                        ReportStatus.PENDING,
+                        LocalDateTime.now().minusDays(1),
+                        LocalDateTime.now().plusDays(1),
+                        options
+                );
+
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::mode)
+                .containsOnly(ReportGroupPagingBenchmark.MeasurementMode.CONTENT_ONLY);
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::offsetRows)
+                .containsExactly(0, 10, 20);
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::totalElements)
+                .containsOnly(-1L);
+        assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::totalPages)
+                .containsOnly(-1);
         assertThat(measurements).extracting(ReportGroupPagingBenchmark.PageMeasurement::contentSize)
                 .containsExactly(10, 10, 5);
     }
@@ -79,29 +136,59 @@ class ReportGroupPagingBenchmarkTest {
         int groupCount = Integer.getInteger("report.benchmark.groups", 10_000);
         int reportsPerGroup = Integer.getInteger("report.benchmark.reportsPerGroup", 2);
         int pageSize = Integer.getInteger("report.benchmark.pageSize", 20);
+        ReportGroupPagingBenchmark.BenchmarkOptions options =
+                ReportGroupPagingBenchmark.BenchmarkOptions.defaultOffsetCheckpoints(pageSize);
 
         List<Member> reporters = createReporters(reportsPerGroup);
         seedReports(groupCount, reporters);
 
-        List<ReportGroupPagingBenchmark.PageMeasurement> measurements =
+        List<ReportGroupPagingBenchmark.PageMeasurement> pageMeasurements =
                 ReportGroupPagingBenchmark.measureOffsetPages(
                         reportRepository,
                         ReportStatus.PENDING,
                         LocalDateTime.now().minusDays(1),
                         LocalDateTime.now().plusDays(1),
-                        pageSize
+                        options
                 );
 
-        measurements.forEach(measurement -> System.out.printf(
-                "%s page=%d size=%d content=%d totalElements=%d totalPages=%d elapsedMillis=%d%n",
-                measurement.label(),
+        List<ReportGroupPagingBenchmark.PageMeasurement> contentOnlyMeasurements =
+                ReportGroupPagingBenchmark.measureContentOnlyOffsetPages(
+                        entityManager,
+                        ReportStatus.PENDING,
+                        LocalDateTime.now().minusDays(1),
+                        LocalDateTime.now().plusDays(1),
+                        options
+                );
+
+        pageMeasurements.forEach(this::printMeasurement);
+        contentOnlyMeasurements.forEach(this::printMeasurement);
+
+        ReportGroupPagingBenchmark.explainGroupedContentQuery(
+                entityManager,
+                ReportStatus.PENDING,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().plusDays(1),
+                50_000,
+                pageSize
+        ).forEach(System.out::println);
+    }
+
+    private void printMeasurement(ReportGroupPagingBenchmark.PageMeasurement measurement) {
+        System.out.printf(
+                "%s offset=%d page=%d size=%d content=%d totalElements=%d totalPages=%d warmups=%d runs=%d avgMillis=%d minMillis=%d maxMillis=%d%n",
+                measurement.mode(),
+                measurement.offsetRows(),
                 measurement.pageNumber(),
                 measurement.pageSize(),
                 measurement.contentSize(),
                 measurement.totalElements(),
                 measurement.totalPages(),
-                measurement.elapsedMillis()
-        ));
+                measurement.warmupRuns(),
+                measurement.measurementRuns(),
+                measurement.avgElapsedMillis(),
+                measurement.minElapsedMillis(),
+                measurement.maxElapsedMillis()
+        );
     }
 
     private List<Member> createReporters(int reportsPerGroup) {
