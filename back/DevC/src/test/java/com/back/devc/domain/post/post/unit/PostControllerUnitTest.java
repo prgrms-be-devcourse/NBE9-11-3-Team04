@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class PostControllerUnitTest{
+public class PostControllerUnitTest{
 
     @Autowired
     private MockMvc mvc;
@@ -73,7 +73,7 @@ class PostControllerUnitTest{
 
     @Test
     @DisplayName("게시글 생성")
-    void t1() throws Exception {
+    void createPost_Success() throws Exception {
 
         PostCreateRequest request = new PostCreateRequest(
                 "테스트글",
@@ -91,12 +91,11 @@ class PostControllerUnitTest{
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.postId").exists())
                 .andExpect(jsonPath("$.message").value("게시글 작성 성공"));
-
     }
 
     @Test
     @DisplayName("게시글 수정")
-    void t2() throws Exception {
+    void updatePost_Success() throws Exception {
 
         Post post = postRepository.save(
                 new Post(member, category, "수정 전 제목", "수정 전 내용")
@@ -107,12 +106,12 @@ class PostControllerUnitTest{
                                 .header("Authorization", "Bearer " + getAccessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                    {
-                                      "title": "수정 후 제목",
-                                      "content": "수정 후 내용",
-                                      "categoryId": %d
-                                    }
-                                    """.formatted(category.getCategoryId()))
+                                {
+                                  "title": "수정 후 제목",
+                                  "content": "수정 후 내용",
+                                  "categoryId": %d
+                                }
+                                """.formatted(category.getCategoryId()))
                 )
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -121,7 +120,7 @@ class PostControllerUnitTest{
 
     @Test
     @DisplayName("게시글 삭제")
-    void t3() throws Exception {
+    void deletePost_Success() throws Exception {
 
         Post post = postRepository.save(
                 new Post(member, category, "title", "content")
@@ -136,7 +135,6 @@ class PostControllerUnitTest{
         Post deleted = postRepository.findById(post.getPostId()).orElseThrow();
 
         assertThat(deleted.isDeleted()).isTrue();
-        //삭제 후 isDeleted의 값이 true로 변경됨을 보여줌
     }
 
 }
