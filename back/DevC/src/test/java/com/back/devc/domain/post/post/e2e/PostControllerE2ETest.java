@@ -1,4 +1,4 @@
-package com.back.devc.domain.post.post.E2E;
+package com.back.devc.domain.post.post.e2e;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
