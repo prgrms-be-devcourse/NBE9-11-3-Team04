@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.BDDMockito.given;
@@ -60,7 +61,7 @@ class NotificationControllerTest {
                 "COMMENT",
                 "작성자B님이 게시글에 댓글을 남겼습니다.",
                 false,
-                null
+                LocalDateTime.now()
         );
         NotificationListResponse response = new NotificationListResponse(
                 List.of(notification),
@@ -104,7 +105,7 @@ class NotificationControllerTest {
                 "COMMENT",
                 "작성자B님이 게시글에 댓글을 남겼습니다.",
                 true,
-                null
+                LocalDateTime.now()
         );
 
         given(notificationService.readNotification(1L, 1L)).willReturn(response);
