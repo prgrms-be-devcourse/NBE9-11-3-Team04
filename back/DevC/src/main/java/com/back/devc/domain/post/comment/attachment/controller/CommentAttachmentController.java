@@ -10,14 +10,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
 
 import com.back.devc.global.response.SuccessResponse;
 import com.back.devc.global.response.successCode.CommentAttachmentSuccessCode;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/comments/{commentId}/attachments")

@@ -150,13 +150,13 @@ class CommentNotificationIntegrationTest {
 
         NotificationResponse createdNotification = notificationListResponse.notifications().stream()
                 .filter(notification -> "COMMENT".equals(notification.type()))
-                .filter(notification -> commentResponse.commentId().equals(notification.commentId()))
+                .filter(notification -> notification.commentId().equals(commentResponse.getCommentId()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("댓글 작성 후 생성된 댓글 알림을 찾을 수 없습니다."));
 
         assertThat(createdNotification.actorUserId()).isEqualTo(commentWriterId);
         assertThat(createdNotification.postId()).isEqualTo(postId);
-        assertThat(createdNotification.commentId()).isEqualTo(commentResponse.commentId());
+        assertThat(createdNotification.commentId()).isEqualTo(commentResponse.getCommentId());
         assertThat(createdNotification.isRead()).isFalse();
 
         NotificationResponse readNotification = notificationService.readNotification(

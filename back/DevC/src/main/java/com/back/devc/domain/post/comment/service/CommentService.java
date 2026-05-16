@@ -68,7 +68,7 @@ public class CommentService {
                 postId,
                 member.getUserId(),
                 null,
-                request.content()
+                request.getContent()
         );
         Comment savedComment = commentRepository.save(comment);
         postService.increaseCommentCount(postId);
@@ -116,7 +116,7 @@ public class CommentService {
                 parentComment.getPostId(),
                 member.getUserId(),
                 parentComment.getId(),
-                request.content()
+                request.getContent()
         );
         Comment savedReply = commentRepository.save(reply);
         postService.increaseCommentCount(parentComment.getPostId());
@@ -134,7 +134,7 @@ public class CommentService {
         Comment comment = findComment(commentId);
         validateOwner(comment, loginUserId);
 
-        comment.updateContent(request.content());
+        comment.updateContent(request.getContent());
         log.info("댓글 수정 완료 - commentId={}, loginUserId={}", commentId, loginUserId);
 
         String postTitle = findPostTitle(comment.getPostId());
@@ -220,16 +220,16 @@ public class CommentService {
         List<CommentResponse> parentComments = new ArrayList<>();
 
         for (CommentResponse commentResponse : allComments) {
-            commentMap.put(commentResponse.commentId(), commentResponse);
+            commentMap.put(commentResponse.getCommentId(), commentResponse);
         }
 
         for (CommentResponse commentResponse : allComments) {
-            if (commentResponse.parentCommentId() == null) {
+            if (commentResponse.getParentCommentId() == null) {
                 parentComments.add(commentResponse);
             } else {
-                CommentResponse parent = commentMap.get(commentResponse.parentCommentId());
+                CommentResponse parent = commentMap.get(commentResponse.getParentCommentId());
                 if (parent != null) {
-                    parent.replies().add(commentResponse);
+                    parent.getReplies().add(commentResponse);
                 }
             }
         }
@@ -252,8 +252,8 @@ public class CommentService {
         );
 
         if (!comment.isDeleted()) {
-            response.attachments().addAll(
-                    commentAttachmentService.getAttachments(comment.getId()).attachments()
+            response.getAttachments().addAll(
+                    commentAttachmentService.getAttachments(comment.getId()).getAttachments()
             );
         } else {
             log.debug("삭제된 댓글 응답 변환 - 첨부파일 조회 생략, commentId={}", comment.getId());

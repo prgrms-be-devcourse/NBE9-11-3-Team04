@@ -12,7 +12,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,6 +52,8 @@ class CommentAttachmentServiceTest {
                 123L,
                 1
         );
+        ReflectionTestUtils.setField(attachment1, "id", 1L);
+        ReflectionTestUtils.setField(attachment1, "createdAt", LocalDateTime.now());
 
         CommentAttachment attachment2 = CommentAttachment.create(
                 1L,
@@ -61,6 +65,8 @@ class CommentAttachmentServiceTest {
                 456L,
                 2
         );
+        ReflectionTestUtils.setField(attachment2, "id", 2L);
+        ReflectionTestUtils.setField(attachment2, "createdAt", LocalDateTime.now());
 
         given(commentAttachmentRepository.findByCommentIdOrderByFileOrderAscIdAsc(1L))
                 .willReturn(List.of(attachment1, attachment2));
@@ -68,10 +74,10 @@ class CommentAttachmentServiceTest {
         CommentAttachmentListResponse response = commentAttachmentService.getAttachments(1L);
 
         assertThat(response).isNotNull();
-        assertThat(response.attachments()).hasSize(2);
-        assertThat(response.attachments().get(0).commentId()).isEqualTo(1L);
-        assertThat(response.attachments().get(0).fileName()).isEqualTo("test1.jpg");
-        assertThat(response.attachments().get(1).fileName()).isEqualTo("test2.pdf");
+        assertThat(response.getAttachments()).hasSize(2);
+        assertThat(response.getAttachments().get(0).getCommentId()).isEqualTo(1L);
+        assertThat(response.getAttachments().get(0).getFileName()).isEqualTo("test1.jpg");
+        assertThat(response.getAttachments().get(1).getFileName()).isEqualTo("test2.pdf");
 
         verify(commentRepository).findById(1L);
         verify(commentAttachmentRepository).findByCommentIdOrderByFileOrderAscIdAsc(1L);
@@ -91,7 +97,7 @@ class CommentAttachmentServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.attachments()).isEmpty();
+        assertThat(response.getAttachments()).isEmpty();
 
         verify(commentRepository).findById(commentId);
         verify(commentAttachmentRepository).findByCommentIdOrderByFileOrderAscIdAsc(commentId);
