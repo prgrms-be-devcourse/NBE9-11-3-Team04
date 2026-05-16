@@ -81,12 +81,12 @@ final class ReportGroupPagingBenchmark {
                                COUNT(*) AS report_count,
                                MAX(created_at) AS latest_created_at
                 FROM reports
-                WHERE (? IS NULL OR status = ?)
-                  AND created_at >= ?
-                  AND created_at < ?
+                WHERE (?1 IS NULL OR status = ?2)
+                  AND created_at >= ?3
+                  AND created_at < ?4
                 GROUP BY target_type, target_id
                 ORDER BY latest_created_at DESC, target_type ASC, target_id DESC
-                LIMIT ? OFFSET ?
+                LIMIT ?5 OFFSET ?6
                 """);
         String statusName = status == null ? null : status.name();
         query.setParameter(1, statusName);
