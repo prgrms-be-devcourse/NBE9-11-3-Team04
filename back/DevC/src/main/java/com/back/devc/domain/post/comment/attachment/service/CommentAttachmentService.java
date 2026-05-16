@@ -42,8 +42,8 @@ public class CommentAttachmentService {
         commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_COMMENT_NOT_FOUND));
 
-        List<MultipartFile> files = request.files();
-        List<Integer> fileOrders = request.fileOrders();
+        List<MultipartFile> files = request.getFiles();
+        List<Integer> fileOrders = request.getFileOrders();
 
         if (files == null || files.isEmpty()) {
             log.info("댓글 첨부파일 업로드 생략 - 첨부파일 없음, commentId={}", commentId);

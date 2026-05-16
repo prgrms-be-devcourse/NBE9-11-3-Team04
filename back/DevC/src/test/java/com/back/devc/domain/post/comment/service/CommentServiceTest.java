@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,6 +80,8 @@ class CommentServiceTest {
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
             Comment saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", 1L);
+            ReflectionTestUtils.setField(saved, "createdAt", LocalDateTime.now());
+            ReflectionTestUtils.setField(saved, "updatedAt", LocalDateTime.now());
             return saved;
         });
 
@@ -87,11 +90,11 @@ class CommentServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.commentId()).isEqualTo(1L);
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.userId()).isEqualTo(loginUserId);
-        assertThat(response.parentCommentId()).isNull();
-        assertThat(response.content()).isEqualTo("첫 댓글입니다.");
+        assertThat(response.getCommentId()).isEqualTo(1L);
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getUserId()).isEqualTo(loginUserId);
+        assertThat(response.getParentCommentId()).isNull();
+        assertThat(response.getContent()).isEqualTo("첫 댓글입니다.");
         // 댓글 작성 성공 시 게시글 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
 
@@ -131,6 +134,8 @@ class CommentServiceTest {
 
         Comment parentComment = new Comment(postId, 1L, null, "부모 댓글");
         ReflectionTestUtils.setField(parentComment, "id", parentCommentId);
+        ReflectionTestUtils.setField(parentComment, "createdAt", LocalDateTime.now());
+        ReflectionTestUtils.setField(parentComment, "updatedAt", LocalDateTime.now());
 
         Post post = mock(Post.class);
         Member member = mock(Member.class);
@@ -146,6 +151,8 @@ class CommentServiceTest {
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
             Comment saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", 200L);
+            ReflectionTestUtils.setField(saved, "createdAt", LocalDateTime.now());
+            ReflectionTestUtils.setField(saved, "updatedAt", LocalDateTime.now());
             return saved;
         });
 
@@ -154,9 +161,9 @@ class CommentServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.commentId()).isEqualTo(200L);
-        assertThat(response.parentCommentId()).isEqualTo(parentCommentId);
-        assertThat(response.content()).isEqualTo("대댓글입니다.");
+        assertThat(response.getCommentId()).isEqualTo(200L);
+        assertThat(response.getParentCommentId()).isEqualTo(parentCommentId);
+        assertThat(response.getContent()).isEqualTo("대댓글입니다.");
         // 대댓글 작성 성공 시 부모 댓글이 속한 게시글의 댓글 수 증가 로직이 호출되는지 확인
         verify(postService).increaseCommentCount(postId);
 
@@ -174,6 +181,9 @@ class CommentServiceTest {
         Long parentCommentId = 100L;
         Comment deletedParentComment = new Comment(10L, 1L, null, "삭제 전 댓글");
         deletedParentComment.softDelete();
+        ReflectionTestUtils.setField(deletedParentComment, "id", parentCommentId);
+        ReflectionTestUtils.setField(deletedParentComment, "createdAt", LocalDateTime.now());
+        ReflectionTestUtils.setField(deletedParentComment, "updatedAt", LocalDateTime.now());
 
         when(commentRepository.findById(parentCommentId)).thenReturn(Optional.of(deletedParentComment));
 
@@ -197,6 +207,8 @@ class CommentServiceTest {
 
         Comment comment = new Comment(postId, loginUserId, null, "기존 댓글");
         ReflectionTestUtils.setField(comment, "id", commentId);
+        ReflectionTestUtils.setField(comment, "createdAt", LocalDateTime.now());
+        ReflectionTestUtils.setField(comment, "updatedAt", LocalDateTime.now());
 
         Post post = mock(Post.class);
         Member member = mock(Member.class);
@@ -213,8 +225,8 @@ class CommentServiceTest {
 
         // then
         assertThat(comment.getContent()).isEqualTo("수정된 댓글");
-        assertThat(response.content()).isEqualTo("수정된 댓글");
-        assertThat(response.commentId()).isEqualTo(commentId);
+        assertThat(response.getContent()).isEqualTo("수정된 댓글");
+        assertThat(response.getCommentId()).isEqualTo(commentId);
     }
 
     @Test
@@ -226,6 +238,8 @@ class CommentServiceTest {
 
         Comment comment = new Comment(10L, loginUserId, null, "삭제할 댓글");
         ReflectionTestUtils.setField(comment, "id", commentId);
+        ReflectionTestUtils.setField(comment, "createdAt", LocalDateTime.now());
+        ReflectionTestUtils.setField(comment, "updatedAt", LocalDateTime.now());
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
         // when
@@ -234,8 +248,8 @@ class CommentServiceTest {
         // then
         assertThat(comment.isDeleted()).isTrue();
         assertThat(comment.getContent()).isEqualTo("삭제된 댓글입니다.");
-        assertThat(response.commentId()).isEqualTo(commentId);
-        assertThat(response.message()).isEqualTo("댓글 삭제 성공");
+        assertThat(response.getCommentId()).isEqualTo(commentId);
+        assertThat(response.getMessage()).isEqualTo("댓글 삭제 성공");
         // 댓글 삭제 성공 시 게시글 댓글 수 감소 로직이 호출되는지 확인
         verify(postService).decreaseCommentCount(comment.getPostId());
     }
@@ -251,6 +265,8 @@ class CommentServiceTest {
 
         Comment parent = new Comment(postId, 1L, null, "부모 댓글");
         ReflectionTestUtils.setField(parent, "id", 1L);
+        ReflectionTestUtils.setField(parent, "createdAt", LocalDateTime.now());
+        ReflectionTestUtils.setField(parent, "updatedAt", LocalDateTime.now());
 
         Member parentWriter = mock(Member.class);
         when(memberRepository.findById(1L)).thenReturn(Optional.of(parentWriter));
@@ -265,13 +281,13 @@ class CommentServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.comments()).hasSize(1);
-        assertThat(response.page()).isEqualTo(0);
-        assertThat(response.size()).isEqualTo(20);
-        assertThat(response.totalElements()).isEqualTo(1);
-        assertThat(response.totalPages()).isEqualTo(1);
-        assertThat(response.hasNext()).isFalse();
-        assertThat(response.comments().get(0).commentId()).isEqualTo(1L);
-        assertThat(response.comments().get(0).replies()).isEmpty();
+        assertThat(response.getComments()).hasSize(1);
+        assertThat(response.getPage()).isEqualTo(0);
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(1);
+        assertThat(response.getTotalPages()).isEqualTo(1);
+        assertThat(response.getHasNext()).isFalse();
+        assertThat(response.getComments().get(0).getCommentId()).isEqualTo(1L);
+        assertThat(response.getComments().get(0).getReplies()).isEmpty();
     }
 }
