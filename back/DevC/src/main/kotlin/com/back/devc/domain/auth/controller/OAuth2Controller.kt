@@ -16,14 +16,9 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.core.user.OAuth2User
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/auth/oauth2")
@@ -50,9 +45,14 @@ class OAuth2Controller(
                     "login" to raw.loginFromProvider
                 )
 
-                val body = OAuth2MeResponse(false, null, emptyList(), attributes)
-                val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
+                val body = OAuth2MeResponse(
+                    authenticated = false,
+                    name = null,
+                    authorities = emptyList(),
+                    attributes = attributes
+                )
 
+                val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
                 return ResponseEntity
                     .status(successCode.status)
                     .body(SuccessResponse.of(successCode, body))
@@ -60,23 +60,34 @@ class OAuth2Controller(
         }
 
         if (oauth2User == null) {
-            val body = OAuth2MeResponse(false, null, emptyList(), mapOf("pendingSignup" to false))
-            val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
+            val body = OAuth2MeResponse(
+                authenticated = false,
+                name = null,
+                authorities = emptyList(),
+                attributes = mapOf("pendingSignup" to false)
+            )
 
+            val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
             return ResponseEntity
                 .status(successCode.status)
                 .body(SuccessResponse.of(successCode, body))
         }
 
         val authorities = oauth2User.authorities
-            .map(GrantedAuthority::getAuthority)
+            .mapNotNull { it.authority }
 
-        val attributes = LinkedHashMap<String, Any>(oauth2User.attributes)
+        val attributes = LinkedHashMap<String, Any>()
+        attributes.putAll(oauth2User.attributes)
         attributes["pendingSignup"] = false
 
-        val body = OAuth2MeResponse(true, oauth2User.name, authorities, attributes)
-        val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
+        val body = OAuth2MeResponse(
+            authenticated = true,
+            name = oauth2User.name,
+            authorities = authorities,
+            attributes = attributes
+        )
 
+        val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
         return ResponseEntity
             .status(successCode.status)
             .body(SuccessResponse.of(successCode, body))
@@ -105,8 +116,7 @@ class OAuth2Controller(
         val session = httpServletRequest.getSession(false)
             ?: throw ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_EXPIRED)
 
-        val pending = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY)
-                as? OAuthPendingSignup
+        val pending = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY) as? OAuthPendingSignup
             ?: throw ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED)
 
         val body = oAuth2MemberService.completeSignupAndIssueToken(pending, request.nickname)
