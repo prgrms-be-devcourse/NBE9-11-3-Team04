@@ -1,4 +1,4 @@
-package com.back.devc.domain.post.post.controller;
+package com.back.devc.domain.post.post.Unit.controller;
 
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
