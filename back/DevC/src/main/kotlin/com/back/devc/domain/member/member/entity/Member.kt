@@ -158,7 +158,7 @@ class Member protected constructor() {
     }
 
     fun withdraw() {
-        if (status == MemberStatus.WITHDRAWN) {
+        if (::status.isInitialized && status == MemberStatus.WITHDRAWN) {
             throw IllegalStateException("이미 탈퇴한 회원입니다.")
         }
 
@@ -186,7 +186,9 @@ class Member protected constructor() {
         }
 
         if (!::providerUserId.isInitialized || providerUserId.isBlank()) {
-            providerUserId = email
+            if (::email.isInitialized) {
+                providerUserId = email
+            }
         }
 
         createdAt = now
@@ -194,7 +196,7 @@ class Member protected constructor() {
     }
 
     fun isAdmin(): Boolean {
-        return role == MemberRole.ADMIN
+        return ::role.isInitialized && role == MemberRole.ADMIN
     }
 
     @PreUpdate
