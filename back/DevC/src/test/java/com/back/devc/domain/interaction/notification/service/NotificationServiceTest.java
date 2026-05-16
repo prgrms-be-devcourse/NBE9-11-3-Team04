@@ -86,12 +86,12 @@ class NotificationServiceTest {
 
         // then
         assertNotNull(response);
-        assertThat(response.notifications()).hasSize(1);
-        assertThat(response.page()).isEqualTo(0);
-        assertThat(response.size()).isEqualTo(20);
-        assertThat(response.totalElements()).isEqualTo(1);
-        assertThat(response.totalPages()).isEqualTo(1);
-        assertThat(response.hasNext()).isFalse();
+        assertThat(response.getNotifications()).hasSize(1);
+        assertThat(response.getPage()).isEqualTo(0);
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(1);
+        assertThat(response.getTotalPages()).isEqualTo(1);
+        assertThat(response.getHasNext()).isFalse();
         verify(notificationRepository).findAvailableByUserIdOrderByCreatedAtDesc(eq(loginUserId), any(Pageable.class));
         verify(memberRepository).findById(actorUserId);
     }
