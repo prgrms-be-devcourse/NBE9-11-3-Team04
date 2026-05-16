@@ -6,6 +6,7 @@ import com.back.devc.domain.member.member.entity.MemberStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import java.util.*
 
 interface MemberRepository : JpaRepository<Member, Long> {
 
@@ -13,12 +14,12 @@ interface MemberRepository : JpaRepository<Member, Long> {
 
     fun existsByNickname(nickname: String): Boolean
 
-    fun findByEmail(email: String): Member?
+    fun findByEmail(email: String): Optional<Member>
 
     fun findByProviderAndProviderUserId(
         provider: AuthProvider,
         providerUserId: String
-    ): Member?
+    ): Optional<Member>
 
     fun findByNicknameContainingIgnoreCase(
         nickname: String,
@@ -43,6 +44,4 @@ interface MemberRepository : JpaRepository<Member, Long> {
         email: String,
         pageable: Pageable
     ): Page<Member>
-
-    fun findAllByUserIdIn(userIds: List<Long>): List<Member>
 }
