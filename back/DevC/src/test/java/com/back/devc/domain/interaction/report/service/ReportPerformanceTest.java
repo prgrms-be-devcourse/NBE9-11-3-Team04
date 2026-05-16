@@ -108,7 +108,7 @@ class ReportPerformanceTest {
 
         // 3. Given: 기타 설정 (NPE 방지)
         lenient().when(commentRepository.findAllByIdIn(any())).thenReturn(List.of());
-        lenient().when(memberRepository.findAllByUserIdIn(any())).thenReturn(List.of());
+        lenient().when(memberRepository.findAllById(any())).thenReturn(List.of());
 
         // 4. When: 실행
         StopWatch sw = new StopWatch();
