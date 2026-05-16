@@ -28,11 +28,9 @@ class MemberController(
     fun me(
         @AuthenticationPrincipal principal: JwtPrincipal?
     ): ResponseEntity<SuccessResponse<MyInfoResponse>> {
-        if (principal == null) {
-            throw ApiException(ErrorCode.UNAUTHORIZED)
-        }
+        val userId = principal?.userId ?: throw ApiException(ErrorCode.UNAUTHORIZED)
 
-        val body = memberService.getMyInfo(principal.userId())
+        val body = memberService.getMyInfo(userId)
         val successCode = MemberSuccessCode.MEMBER_200_ME_SUCCESS
 
         return ResponseEntity
@@ -59,11 +57,9 @@ class MemberController(
         @AuthenticationPrincipal principal: JwtPrincipal?,
         response: HttpServletResponse
     ): ResponseEntity<SuccessResponse<MemberWithdrawResponse>> {
-        if (principal == null) {
-            throw ApiException(ErrorCode.UNAUTHORIZED)
-        }
+        val userId = principal?.userId ?: throw ApiException(ErrorCode.UNAUTHORIZED)
 
-        val body = memberService.withdraw(principal.userId())
+        val body = memberService.withdraw(userId)
         SecurityContextHolder.clearContext()
         authCookieService.expireAccessTokenCookie(response)
 
