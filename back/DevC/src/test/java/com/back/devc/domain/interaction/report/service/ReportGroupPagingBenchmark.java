@@ -96,8 +96,8 @@ final class ReportGroupPagingBenchmark {
         query.setParameter(5, pageSize);
         query.setParameter(6, offsetRows);
 
-        return ((List<Object>) query.getResultList()).stream()
-                .map(String::valueOf)
+        return ((List<Object[]>) query.getResultList()).stream()
+                .map(java.util.Arrays::toString)
                 .toList();
     }
 
