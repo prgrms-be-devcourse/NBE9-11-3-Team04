@@ -1,10 +1,9 @@
-package com.back.devc.domain.post.post.controller;
+package com.back.devc.domain.post.post.integration;
 
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.category.repository.CategoryRepository;
-import com.back.devc.domain.post.post.dto.PostCreateRequest;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.security.jwt.JwtProvider;
@@ -12,25 +11,24 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class PostControllerTest{
+class PostControllerIntegrationTest{
 
     @Autowired
     private MockMvc mvc;
@@ -73,37 +71,11 @@ class PostControllerTest{
     }
 
     // =========================
-    // CREATE
-    // =========================
-    @Test
-    @DisplayName("게시글 생성")
-    void t1() throws Exception {
-
-        PostCreateRequest request = new PostCreateRequest(
-                "테스트글",
-                "테스트내용입니다.",
-                category.getCategoryId()
-        );
-
-        mvc.perform(
-                        post("/api/posts")
-                                .header("Authorization", "Bearer " + getAccessToken())
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                )
-                .andDo(print())
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.postId").exists())
-                .andExpect(jsonPath("$.message").value("게시글 작성 성공"));
-
-    }
-
-    // =========================
     // DETAIL
     // =========================
     @Test
     @DisplayName("게시글 상세 조회")
-    void t2() throws Exception {
+    void t1() throws Exception {
 
         Post post = postRepository.save(
                 new Post(member, category, "테스트3", "테스트3내용")
@@ -115,63 +87,13 @@ class PostControllerTest{
                 .andExpect(jsonPath("$.data.title").value("테스트3"));
     }
     // =========================
-    // UPDATE
-    // =========================
-    @Test
-    @DisplayName("게시글 수정")
-    void t3() throws Exception {
-
-        Post post = postRepository.save(
-                new Post(member, category, "수정 전 제목", "수정 전 내용")
-        );
-
-        mvc.perform(
-                        put("/api/posts/" + post.getPostId())
-                                .header("Authorization", "Bearer " + getAccessToken())
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("""
-                                    {
-                                      "title": "수정 후 제목",
-                                      "content": "수정 후 내용",
-                                      "categoryId": %d
-                                    }
-                                    """.formatted(category.getCategoryId()))
-                )
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.title").value("수정 후 제목"));
-    }
-    // =========================
-    // DELETE
-    // =========================
-    @Test
-    @DisplayName("게시글 삭제")
-    void t4() throws Exception {
-
-        Post post = postRepository.save(
-                new Post(member, category, "title", "content")
-        );
-
-        mvc.perform(delete("/api/posts/" + post.getPostId())
-                        .header("Authorization", "Bearer " + getAccessToken()))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("게시글 삭제 성공"));
-
-        Post deleted = postRepository.findById(post.getPostId()).orElseThrow();
-
-        assertThat(deleted.isDeleted()).isTrue();
-        //삭제 후 isDeleted의 값이 true로 변경됨을 보여줌
-    }
-
-    // =========================
     // 최신순, 좋아요순, 조회수순
     // =========================
 
 
     @Test
     @DisplayName("게시글 최신순 조회")
-    void t5() throws Exception {
+    void t2() throws Exception {
 
         Post post1 = postRepository.save(
                 new Post(member, category, "첫번째", "내용1")
@@ -195,7 +117,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("게시글 좋아요순 조회, 만약 좋아요 개수가 같은경우 최신순으로 보여줌")
-    void t6() throws Exception {
+    void t3() throws Exception {
 
         // given
         Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
@@ -229,7 +151,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("게시글 조회수 순서 조회, 만약 조회수 개수가 같은경우 최신순으로 보여준다")
-    void t7() throws Exception {
+    void t4() throws Exception {
 
         // given
         Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
@@ -263,7 +185,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("게시글 카테고리별 조회")
-    void t8() throws Exception {
+    void t5() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("테스트 공지"));
@@ -290,7 +212,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("카테고리 + 최신순 조회")
-    void t9() throws Exception {
+    void t6() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -318,7 +240,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("카테고리 + 좋아요순 조회")
-    void t10() throws Exception {
+    void t7() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -352,7 +274,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("카테고리 + 조회수순 조회")
-    void t11() throws Exception {
+    void t8() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -390,7 +312,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("게시글 제목 검색")
-    void t12() throws Exception {
+    void t9() throws Exception {
 
         postRepository.save(new Post(member, category, "스프링 공부", "내용1"));
         postRepository.save(new Post(member, category, "자바 공부", "내용2"));
@@ -409,7 +331,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("게시글 내용 검색")
-    void t13() throws Exception {
+    void t10() throws Exception {
 
         postRepository.save(new Post(member, category, "글1", "스프링부트 강의"));
         postRepository.save(new Post(member, category, "글2", "자바 강의"));
@@ -427,7 +349,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("게시글 제목 + 내용 검색")
-    void t14() throws Exception {
+    void t11() throws Exception {
 
         postRepository.save(new Post(member, category, "스프링", "자바 내용"));
         postRepository.save(new Post(member, category, "자바", "스프링 내용"));
@@ -445,7 +367,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("제목 검색 + 최신순")
-    void t15() throws Exception {
+    void t12() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Thread.sleep(10);
@@ -464,7 +386,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("제목 검색 + 좋아요순")
-    void t16() throws Exception {
+    void t13() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
@@ -486,7 +408,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("제목 검색 + 조회수순")
-    void t17() throws Exception {
+    void t14() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
@@ -510,7 +432,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("내용 검색 + 최신순")
-    void t18() throws Exception {
+    void t15() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Thread.sleep(10);
@@ -529,7 +451,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("내용 검색 + 좋아요순")
-    void t19() throws Exception {
+    void t16() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
@@ -550,7 +472,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("내용 검색 + 조회수순")
-    void t20() throws Exception {
+    void t17() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
@@ -573,7 +495,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("제목+내용 검색 + 최신순")
-    void t21() throws Exception {
+    void t18() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Thread.sleep(10);
@@ -592,7 +514,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("제목+내용 검색 + 좋아요순")
-    void t22() throws Exception {
+    void t19() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
@@ -613,7 +535,7 @@ class PostControllerTest{
 
     @Test
     @DisplayName("제목+내용 검색 + 조회수순")
-    void t23() throws Exception {
+    void t20() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
