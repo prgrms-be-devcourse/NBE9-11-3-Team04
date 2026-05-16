@@ -75,7 +75,7 @@ class PostControllerIntegrationTest{
     // =========================
     @Test
     @DisplayName("게시글 상세 조회")
-    void t1() throws Exception {
+    void getPostDetail() throws Exception {
 
         Post post = postRepository.save(
                 new Post(member, category, "테스트3", "테스트3내용")
@@ -93,7 +93,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 최신순 조회")
-    void t2() throws Exception {
+    void getPostsByLatest() throws Exception {
 
         Post post1 = postRepository.save(
                 new Post(member, category, "첫번째", "내용1")
@@ -117,7 +117,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 좋아요순 조회, 만약 좋아요 개수가 같은경우 최신순으로 보여줌")
-    void t3() throws Exception {
+    void getPostsByLikesOrder_whenSameLikesThenLatest() throws Exception {
 
         // given
         Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
@@ -151,7 +151,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 조회수 순서 조회, 만약 조회수 개수가 같은경우 최신순으로 보여준다")
-    void t4() throws Exception {
+    void getPostsByViewsOrder_whenSameViewsThenLatest() throws Exception {
 
         // given
         Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
@@ -185,7 +185,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 카테고리별 조회")
-    void t5() throws Exception {
+    void getPostsByCategory() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("테스트 공지"));
@@ -212,7 +212,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("카테고리 + 최신순 조회")
-    void t6() throws Exception {
+    void getPostsByCategoryAndLatest() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -240,7 +240,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("카테고리 + 좋아요순 조회")
-    void t7() throws Exception {
+    void getPostsByCategoryAndLikes() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -274,7 +274,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("카테고리 + 조회수순 조회")
-    void t8() throws Exception {
+    void getPostsByCategoryAndViews() throws Exception {
 
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
@@ -312,7 +312,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 제목 검색")
-    void t9() throws Exception {
+    void searchPostsByTitle() throws Exception {
 
         postRepository.save(new Post(member, category, "스프링 공부", "내용1"));
         postRepository.save(new Post(member, category, "자바 공부", "내용2"));
@@ -331,7 +331,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 내용 검색")
-    void t10() throws Exception {
+    void searchPostsByContent() throws Exception {
 
         postRepository.save(new Post(member, category, "글1", "스프링부트 강의"));
         postRepository.save(new Post(member, category, "글2", "자바 강의"));
@@ -349,7 +349,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("게시글 제목 + 내용 검색")
-    void t11() throws Exception {
+    void searchPostsByTitleOrContent() throws Exception {
 
         postRepository.save(new Post(member, category, "스프링", "자바 내용"));
         postRepository.save(new Post(member, category, "자바", "스프링 내용"));
@@ -367,7 +367,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("제목 검색 + 최신순")
-    void t12() throws Exception {
+    void searchPostsByTitleAndLatest() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Thread.sleep(10);
@@ -386,7 +386,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("제목 검색 + 좋아요순")
-    void t13() throws Exception {
+    void searchPostsByTitleAndLikes() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
@@ -408,7 +408,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("제목 검색 + 조회수순")
-    void t14() throws Exception {
+    void searchPostsByTitleAndViews() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
         Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
@@ -432,7 +432,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("내용 검색 + 최신순")
-    void t15() throws Exception {
+    void searchPostsByContentAndLatest() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Thread.sleep(10);
@@ -451,7 +451,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("내용 검색 + 좋아요순")
-    void t16() throws Exception {
+    void searchPostsByContentAndLikes() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
@@ -472,7 +472,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("내용 검색 + 조회수순")
-    void t17() throws Exception {
+    void searchPostsByContentAndViews() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
@@ -495,7 +495,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("제목+내용 검색 + 최신순")
-    void t18() throws Exception {
+    void searchPostsByTitleOrContentAndLatest() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Thread.sleep(10);
@@ -514,7 +514,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("제목+내용 검색 + 좋아요순")
-    void t19() throws Exception {
+    void searchPostsByTitleOrContentAndLikes() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
@@ -535,7 +535,7 @@ class PostControllerIntegrationTest{
 
     @Test
     @DisplayName("제목+내용 검색 + 조회수순")
-    void t20() throws Exception {
+    void searchPostsByTitleOrContentAndViews() throws Exception {
 
         Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
         Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
