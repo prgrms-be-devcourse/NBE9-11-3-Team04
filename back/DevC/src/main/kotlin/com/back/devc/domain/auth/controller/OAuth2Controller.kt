@@ -76,8 +76,7 @@ class OAuth2Controller(
         val authorities = oauth2User.authorities
             .mapNotNull { it.authority }
 
-        val attributes = LinkedHashMap<String, Any>()
-        attributes.putAll(oauth2User.attributes)
+        val attributes = LinkedHashMap(oauth2User.attributes)
         attributes["pendingSignup"] = false
 
         val body = OAuth2MeResponse(
