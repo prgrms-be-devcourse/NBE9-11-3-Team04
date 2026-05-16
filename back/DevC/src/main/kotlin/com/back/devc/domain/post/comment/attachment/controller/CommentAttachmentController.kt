@@ -7,7 +7,7 @@ import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentSer
 import com.back.devc.global.response.SuccessResponse
 import com.back.devc.global.response.successCode.CommentAttachmentSuccessCode
 import com.back.devc.global.security.jwt.JwtPrincipal
-import com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId
+import com.back.devc.global.security.jwt.JwtPrincipalHelper
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -37,7 +37,7 @@ class CommentAttachmentController(
         @PathVariable commentId: Long,
         @ModelAttribute request: CommentAttachmentUploadRequest,
     ): ResponseEntity<SuccessResponse<CommentAttachmentListResponse>> {
-        getAuthenticatedUserId(principal)
+        JwtPrincipalHelper.getAuthenticatedUserId(principal)
 
         val response = commentAttachmentService.uploadAttachments(commentId, request)
         val successCode = CommentAttachmentSuccessCode.COMMENT_ATTACHMENT_201_UPLOAD
@@ -70,7 +70,7 @@ class CommentAttachmentController(
         @PathVariable commentId: Long,
         @PathVariable attachmentId: Long,
     ): ResponseEntity<SuccessResponse<CommentAttachmentDeleteResponse>> {
-        getAuthenticatedUserId(principal)
+        JwtPrincipalHelper.getAuthenticatedUserId(principal)
 
         val response = commentAttachmentService.deleteAttachment(commentId, attachmentId)
         val successCode = CommentAttachmentSuccessCode.COMMENT_ATTACHMENT_200_DELETE
