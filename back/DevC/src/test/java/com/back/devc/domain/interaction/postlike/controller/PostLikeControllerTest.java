@@ -1,11 +1,16 @@
 package com.back.devc.domain.interaction.postlike.controller;
 
+import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
+import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.postLike.controller.PostLikeController;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostsQuery;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeCommand;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse;
+import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
+import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.response.successCode.PostLikeSuccessCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import com.back.devc.global.security.jwt.JwtPrincipalHelper;
@@ -29,9 +34,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,7 +45,13 @@ class PostLikeControllerTest {
 
     @BeforeEach
     void setUp() {
-        PostLikeService postLikeService = new PostLikeService(null, null, null, null, null) {
+        PostLikeService postLikeService = new PostLikeService(
+                mock(PostLikeRepository.class),
+                mock(BookmarkRepository.class),
+                mock(MemberRepository.class),
+                mock(PostRepository.class),
+                mock(NotificationService.class)
+        ) {
 
             @Override
             public PostLikeResponse createLike(PostLikeCommand command) {
