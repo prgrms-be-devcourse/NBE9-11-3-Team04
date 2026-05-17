@@ -84,9 +84,9 @@ class MypageServiceTest {
         MyProfileResponse response = mypageService.getMyProfile(userId);
 
         // then
-        assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.email()).isEqualTo("test@test.com");
-        assertThat(response.nickname()).isEqualTo("기존닉네임");
+        assertThat(response.getUserId()).isEqualTo(userId);
+        assertThat(response.getEmail()).isEqualTo("test@test.com");
+        assertThat(response.getNickname()).isEqualTo("기존닉네임");
 
         then(memberRepository).should().findById(userId);
     }
@@ -140,14 +140,14 @@ class MypageServiceTest {
 
         MyPostResponse myPost = response.content().get(0);
 
-        assertThat(myPost.postId()).isEqualTo(postId);
-        assertThat(myPost.title()).isEqualTo("내 게시글");
-        assertThat(myPost.likeCount()).isEqualTo(5);
-        assertThat(myPost.commentCount()).isEqualTo(2);
-        assertThat(myPost.viewCount()).isEqualTo(100);
-        assertThat(myPost.createdAt()).isEqualTo(createdAt);
-        assertThat(myPost.liked()).isTrue();
-        assertThat(myPost.bookmarked()).isFalse();
+        assertThat(myPost.getPostId()).isEqualTo(postId);
+        assertThat(myPost.getTitle()).isEqualTo("내 게시글");
+        assertThat(myPost.getLikeCount()).isEqualTo(5L);
+        assertThat(myPost.getCommentCount()).isEqualTo(2L);
+        assertThat(myPost.getViewCount()).isEqualTo(100L);
+        assertThat(myPost.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(myPost.getLiked()).isTrue();
+        assertThat(myPost.getBookmarked()).isFalse();
 
         then(postRepository).should()
                 .findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member, pageable);
@@ -186,11 +186,11 @@ class MypageServiceTest {
 
         MyCommentResponse myComment = response.content().get(0);
 
-        assertThat(myComment.commentId()).isEqualTo(100L);
-        assertThat(myComment.postId()).isEqualTo(postId);
-        assertThat(myComment.postTitle()).isEqualTo("게시글 제목");
-        assertThat(myComment.content()).isEqualTo("댓글 내용");
-        assertThat(myComment.createdAt()).isEqualTo(createdAt);
+        assertThat(myComment.getCommentId()).isEqualTo(100L);
+        assertThat(myComment.getPostId()).isEqualTo(postId);
+        assertThat(myComment.getPostTitle()).isEqualTo("게시글 제목");
+        assertThat(myComment.getContent()).isEqualTo("댓글 내용");
+        assertThat(myComment.getCreatedAt()).isEqualTo(createdAt);
 
         then(commentRepository).should().findMyComments(userId, pageable);
     }
@@ -289,9 +289,9 @@ class MypageServiceTest {
         MyProfileResponse response = mypageService.updateMyProfile(userId, request);
 
         // then
-        assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.email()).isEqualTo("test@test.com");
-        assertThat(response.nickname()).isEqualTo("변경닉네임");
+        assertThat(response.getUserId()).isEqualTo(userId);
+        assertThat(response.getEmail()).isEqualTo("test@test.com");
+        assertThat(response.getNickname()).isEqualTo("변경닉네임");
         assertThat(member.getNickname()).isEqualTo("변경닉네임");
 
         then(memberRepository).should().existsByNickname("변경닉네임");
@@ -313,7 +313,7 @@ class MypageServiceTest {
         MyProfileResponse response = mypageService.updateMyProfile(userId, request);
 
         // then
-        assertThat(response.nickname()).isEqualTo("변경닉네임");
+        assertThat(response.getNickname()).isEqualTo("변경닉네임");
         assertThat(member.getNickname()).isEqualTo("변경닉네임");
     }
 
@@ -331,7 +331,7 @@ class MypageServiceTest {
         MyProfileResponse response = mypageService.updateMyProfile(userId, request);
 
         // then
-        assertThat(response.nickname()).isEqualTo("기존닉네임");
+        assertThat(response.getNickname()).isEqualTo("기존닉네임");
 
         then(memberRepository).should(never()).existsByNickname(any(String.class));
     }
