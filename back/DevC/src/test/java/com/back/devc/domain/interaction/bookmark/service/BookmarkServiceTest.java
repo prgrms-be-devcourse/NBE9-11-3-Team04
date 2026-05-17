@@ -75,8 +75,8 @@ class BookmarkServiceTest {
         BookmarkResponse response = bookmarkService.createBookmark(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.bookmarked()).isTrue();
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getBookmarked()).isTrue();
 
         then(memberRepository).should().existsById(userId);
         then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
@@ -100,8 +100,8 @@ class BookmarkServiceTest {
         BookmarkResponse response = bookmarkService.createBookmark(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.bookmarked()).isTrue();
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getBookmarked()).isTrue();
 
         then(bookmarkRepository).should().insertIgnore(userId, postId);
     }
@@ -158,8 +158,8 @@ class BookmarkServiceTest {
         BookmarkResponse response = bookmarkService.cancelBookmark(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.bookmarked()).isFalse();
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getBookmarked()).isFalse();
 
         then(memberRepository).should().existsById(userId);
         then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
@@ -183,8 +183,8 @@ class BookmarkServiceTest {
         BookmarkResponse response = bookmarkService.cancelBookmark(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.bookmarked()).isFalse();
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getBookmarked()).isFalse();
 
         then(bookmarkRepository).should().deleteByUserIdAndPostId(userId, postId);
     }
@@ -262,16 +262,16 @@ class BookmarkServiceTest {
 
         BookmarkedPostResponse response = responses.get(0);
 
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.title()).isEqualTo("테스트 제목");
-        assertThat(response.authorNickname()).isEqualTo("작성자");
-        assertThat(response.categoryId()).isEqualTo(100L);
-        assertThat(response.likeCount()).isEqualTo(7);
-        assertThat(response.commentCount()).isEqualTo(2);
-        assertThat(response.viewCount()).isEqualTo(100);
-        assertThat(response.createdAt()).isEqualTo(createdAt);
-        assertThat(response.liked()).isTrue();
-        assertThat(response.bookmarked()).isTrue();
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getTitle()).isEqualTo("테스트 제목");
+        assertThat(response.getAuthorNickname()).isEqualTo("작성자");
+        assertThat(response.getCategoryId()).isEqualTo(100L);
+        assertThat(response.getLikeCount()).isEqualTo(7L);
+        assertThat(response.getCommentCount()).isEqualTo(2L);
+        assertThat(response.getViewCount()).isEqualTo(100L);
+        assertThat(response.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(response.getLiked()).isTrue();
+        assertThat(response.getBookmarked()).isTrue();
 
         then(memberRepository).should().findById(userId);
         then(bookmarkRepository).should()

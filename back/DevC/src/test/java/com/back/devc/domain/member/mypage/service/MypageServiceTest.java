@@ -267,8 +267,8 @@ class MypageServiceTest {
 
         // then
         assertThat(response.content()).hasSize(1);
-        assertThat(response.content().get(0).postId()).isEqualTo(postId);
-        assertThat(response.content().get(0).bookmarked()).isTrue();
+        assertThat(response.content().get(0).getPostId()).isEqualTo(postId);
+        assertThat(response.content().get(0).getBookmarked()).isTrue();
 
         then(bookmarkService).should().getBookmarkedPosts(userId, pageable);
     }
