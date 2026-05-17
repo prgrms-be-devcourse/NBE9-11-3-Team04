@@ -25,9 +25,7 @@ class AdminPostController(
     @GetMapping
     fun getAllPosts(): ResponseEntity<List<AdminPostListResponse>> {
         val response = adminPostService.findAll()
-            .map { post ->
-                AdminPostListResponse.Companion.from(post)
-            }
+            .map(AdminPostListResponse::from)
 
         return ResponseEntity.ok(response)
     }

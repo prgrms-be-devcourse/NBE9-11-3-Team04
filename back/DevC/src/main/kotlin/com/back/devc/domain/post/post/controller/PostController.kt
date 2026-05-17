@@ -95,7 +95,7 @@ class PostController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<SuccessResponse<Page<PostListResponse>>> {
-        val loginUserId = principal?.let { JwtPrincipalHelper.getAuthenticatedUserId(it) }
+        val loginUserId = principal?.userId
 
         val response = postService.getPosts(
             loginUserId,
