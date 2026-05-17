@@ -271,7 +271,7 @@ public class CommentService {
     }
 
     private void validateOwner(Comment comment, Long loginUserId) {
-        if (!comment.getUserId().equals(loginUserId)) {
+        if (comment.getUserId() != loginUserId) {
             log.warn("댓글 권한 검증 실패 - commentId={}, ownerUserId={}, loginUserId={}", comment.getId(), comment.getUserId(), loginUserId);
             throw new ApiException(CommentErrorCode.COMMENT_403_FORBIDDEN);
         }

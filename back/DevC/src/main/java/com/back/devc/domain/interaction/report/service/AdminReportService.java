@@ -189,7 +189,7 @@ public class AdminReportService {
 
         Map<Long, Member> memberMap = commentWriterIds.isEmpty()
                 ? Collections.emptyMap()
-                : memberRepository.findAllByUserIdIn(commentWriterIds)
+                : memberRepository.findAllById(commentWriterIds)
                 .stream()
                 .collect(Collectors.toMap(Member::getUserId, Function.identity()));
 
