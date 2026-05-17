@@ -22,7 +22,6 @@ frontend/node_modules/
 
 # Log files
 log/
-back/DevC/log/
 *.log
 *.log.gz
 *.tmp
