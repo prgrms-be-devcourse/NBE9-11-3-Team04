@@ -33,7 +33,6 @@ import java.time.LocalDateTime;
                 )
         }
 )
-@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class) // 생성일 자동 기록을 위해 필요
 @ToString(exclude = {"reporter", "processedByAdmin"})
@@ -108,4 +107,45 @@ public class Report {
         this.status = ReportStatus.REJECTED;
         this.processedAt = LocalDateTime.now();
     }
+
+    public Long getReportId() {
+        return reportId;
+    }
+
+    public Member getReporter() {
+        return reporter;
+    }
+
+    public TargetType getTargetType() {
+        return targetType;
+    }
+
+    public Long getTargetId() {
+        return targetId;
+    }
+
+    public String getReasonType() {
+        return reasonType;
+    }
+
+    public String getReasonDetail() {
+        return reasonDetail;
+    }
+
+    public ReportStatus getStatus() {
+        return status;
+    }
+
+    public Member getProcessedByAdmin() {
+        return processedByAdmin;
+    }
+
+    public LocalDateTime getProcessedAt() {
+        return processedAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
 }

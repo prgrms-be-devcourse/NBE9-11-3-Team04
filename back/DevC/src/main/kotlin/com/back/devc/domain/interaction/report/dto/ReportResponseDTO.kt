@@ -53,25 +53,24 @@ data class ReportResponseDTO(
             targetTitle: String?,
             targetContent: String?
         ): ReportResponseDTO {
-            val reporter = call<Any>(report, "getReporter")
+            val reporter = report.getReporter()
 
             return ReportResponseDTO(
-                reportId = call(report, "getReportId"),
-                reporterEmail = call(reporter, "getEmail"),
-                reporterNickname = call(reporter, "getNickname"),
-                targetType = call(report, "getTargetType"),
-                targetId = call(report, "getTargetId"),
+                reportId = report.getReportId(),
+                reporterEmail = reporter.email,
+                reporterNickname = reporter.nickname,
+                targetType = report.getTargetType(),
+                targetId = report.getTargetId(),
                 targetNickname = targetNickname,
                 targetTitle = targetTitle,
                 targetContent = targetContent,
-                reasonType = call(report, "getReasonType"),
-                reasonDetail = call(report, "getReasonDetail"),
-                status = call(report, "getStatus"),
-                createdAt = call(report, "getCreatedAt"),
-                processedAt = call(report, "getProcessedAt")
+                reasonType = report.getReasonType(),
+                reasonDetail = report.getReasonDetail(),
+                status = report.getStatus(),
+                createdAt = report.getCreatedAt(),
+                processedAt = report.getProcessedAt()
             )
         }
-
         @Suppress("UNCHECKED_CAST")
         private fun <T> call(target: Any, methodName: String): T =
             target.javaClass.getMethod(methodName).invoke(target) as T
