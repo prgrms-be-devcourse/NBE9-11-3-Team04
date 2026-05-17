@@ -6,33 +6,47 @@ import com.back.devc.domain.interaction.report.entity.TargetType
 import java.time.LocalDateTime
 
 data class ReportResponseDTO(
+    @JvmField
     val reportId: Long,
 
+    @JvmField
     val reporterEmail: String,
 
+    @JvmField
     val reporterNickname: String,
 
+    @JvmField
     val targetType: TargetType,
 
+    @JvmField
     val targetId: Long,
 
+    @JvmField
     val targetNickname: String?,
 
+    @JvmField
     val targetTitle: String?,
 
+    @JvmField
     val targetContent: String?,
 
+    @JvmField
     val reasonType: String,
 
+    @JvmField
     val reasonDetail: String?,
 
+    @JvmField
     val status: ReportStatus,
 
-    val createdAt: LocalDateTime?,
+    @JvmField
+    val createdAt: LocalDateTime,
 
+    @JvmField
     val processedAt: LocalDateTime?
 ) {
     companion object {
+        @JvmStatic
         fun of(
             report: Report,
             targetNickname: String?,
