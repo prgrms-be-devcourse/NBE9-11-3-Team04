@@ -1,7 +1,6 @@
 package com.back.devc.domain.post.post.controller;
 
 import com.back.devc.domain.post.post.dto.*;
-import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.service.PostService;
 import com.back.devc.domain.post.post.type.PostSearchType;
 import com.back.devc.domain.post.post.type.PostSortType;
@@ -13,7 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import com.back.devc.global.response.SuccessCode;
 import com.back.devc.global.response.SuccessResponse;
 
 import static com.back.devc.global.security.jwt.JwtPrincipalHelper.getAuthenticatedUserId;
