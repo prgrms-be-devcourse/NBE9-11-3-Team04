@@ -78,9 +78,9 @@ public class MypageService {
             return new MyPostResponse(
                     postId,
                     post.getTitle(),
-                    post.getLikeCount(),
-                    post.getCommentCount(),
-                    post.getViewCount(),
+                    (long) post.getLikeCount(),
+                    (long) post.getCommentCount(),
+                    (long) post.getViewCount(),
                     post.getCreatedAt(),
                     liked,
                     bookmarked
@@ -114,7 +114,7 @@ public class MypageService {
     public MyProfileResponse updateMyProfile(Long userId, UpdateMyProfileRequest request) {
         Member member = getMember(userId);
 
-        String newNickname = request.nickname().trim();
+        String newNickname = request.getNickname().trim();
 
         if (!member.getNickname().equals(newNickname)
                 && memberRepository.existsByNickname(newNickname)) {
