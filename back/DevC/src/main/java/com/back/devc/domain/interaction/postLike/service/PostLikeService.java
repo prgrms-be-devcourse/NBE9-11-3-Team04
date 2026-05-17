@@ -46,8 +46,8 @@ public class PostLikeService {
      */
     @Transactional
     public PostLikeResponse createLike(PostLikeCommand command) {
-        Long userId = command.userId();
-        Long postId = command.postId();
+        Long userId = command.getUserId();
+        Long postId = command.getPostId();
 
         validateMemberExists(userId);
         validatePostExists(postId);
@@ -59,7 +59,7 @@ public class PostLikeService {
             notificationService.createPostLikeNotification(postId, userId);
         }
 
-        int likeCount = postRepository.findLikeCountByPostId(postId);
+        long likeCount = postRepository.findLikeCountByPostId(postId);
 
         PostLikeSuccessCode successCode = insertedCount > 0
                 ? PostLikeSuccessCode.POST_LIKE_CREATED
@@ -83,8 +83,8 @@ public class PostLikeService {
      */
     @Transactional
     public PostLikeResponse cancelLike(PostLikeCommand command) {
-        Long userId = command.userId();
-        Long postId = command.postId();
+        Long userId = command.getUserId();
+        Long postId = command.getPostId();
 
         validateMemberExists(userId);
         validatePostExists(postId);
@@ -95,7 +95,7 @@ public class PostLikeService {
             postRepository.decreaseLikeCount(postId);
         }
 
-        int likeCount = postRepository.findLikeCountByPostId(postId);
+        long likeCount = postRepository.findLikeCountByPostId(postId);
 
         PostLikeSuccessCode successCode = deletedCount > 0
                 ? PostLikeSuccessCode.POST_LIKE_CANCELED
@@ -113,12 +113,12 @@ public class PostLikeService {
      * 사용자가 좋아요한 게시글 목록 조회 - 기존 List 방식
      */
     public List<LikedPostResponse> getLikedPosts(LikedPostsQuery query) {
-        Member member = findMemberById(query.userId());
+        Member member = findMemberById(query.getUserId());
 
         List<PostLike> postLikes = postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member);
 
         return postLikes.stream()
-                .map(postLike -> toLikedPostResponse(postLike, query.userId()))
+                .map(postLike -> toLikedPostResponse(postLike, query.getUserId()))
                 .toList();
     }
 
@@ -167,9 +167,9 @@ public class PostLikeService {
                 postId,
                 post.getTitle(),
                 MemberDisplayUtil.getDisplayName(post.getMember()),
-                post.getLikeCount(),
-                post.getCommentCount(),
-                post.getViewCount(),
+                (long) post.getLikeCount(),
+                (long) post.getCommentCount(),
+                (long) post.getViewCount(),
                 post.getCreatedAt(),
                 liked,
                 bookmarked
