@@ -54,6 +54,7 @@ class ReportE2ETest {
     private Long postId;
     private Long commentId;
 
+
     @BeforeEach
     void setUp() {
         reporterId = 101L;
