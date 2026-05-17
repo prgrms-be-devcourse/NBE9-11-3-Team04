@@ -134,7 +134,7 @@ public class PostControllerUnitTest{
 
         Post deleted = postRepository.findById(post.getPostId()).orElseThrow();
 
-        assertThat(deleted.isDeleted()).isTrue();
+        assertThat(deleted.getIsDeleted()).isTrue();
     }
 
 }

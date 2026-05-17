@@ -517,7 +517,7 @@ public class NotificationService {
         }
 
         boolean available = postRepository.findById(postId)
-                .map(post -> !post.isDeleted())
+                .map(post -> !post.getIsDeleted())
                 .orElse(false);
 
         if (!available) {

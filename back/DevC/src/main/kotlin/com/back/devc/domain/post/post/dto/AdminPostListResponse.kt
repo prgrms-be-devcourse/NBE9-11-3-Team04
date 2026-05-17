@@ -16,6 +16,7 @@ data class AdminPostListResponse(
     val createdAt: LocalDateTime
 ) {
     companion object {
+        @JvmStatic
         fun from(post: Post): AdminPostListResponse {
             return AdminPostListResponse(
                 postId = post.postId,

@@ -6,6 +6,7 @@ data class PostCreateResponse(
     val postId: Long
 ) {
     companion object {
+        @JvmStatic
         fun from(post: Post): PostCreateResponse {
             return PostCreateResponse(
                 postId = post.postId

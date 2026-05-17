@@ -9,6 +9,7 @@ data class PostUpdateResponse(
     val categoryId: Long
 ) {
     companion object {
+        @JvmStatic
         fun from(post: Post): PostUpdateResponse {
             return PostUpdateResponse(
                 postId = post.postId,
