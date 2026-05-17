@@ -38,6 +38,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             Pageable pageable
     );
 
+
     List<Member> findAllByUserIdIn(List<Long> userIds);
 
 }
