@@ -126,7 +126,7 @@ class NotificationServiceTest {
 
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
         when(postRepository.findById(100L)).thenReturn(Optional.of(post));
-        when(post.isDeleted()).thenReturn(false);
+        when(post.getIsDeleted()).thenReturn(false);
         when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
 
         // when

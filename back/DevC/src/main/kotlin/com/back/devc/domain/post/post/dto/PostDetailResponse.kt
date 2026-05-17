@@ -21,6 +21,7 @@ data class PostDetailResponse(
     val updatedAt: LocalDateTime
 ) {
     companion object {
+        @JvmStatic
         fun from(
             post: Post,
             liked: Boolean = false,
