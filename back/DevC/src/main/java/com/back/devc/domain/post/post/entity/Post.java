@@ -89,6 +89,12 @@ public class Post {
         return createdAt;
     }
 
+    public Member getMember() { return member;}
+
+    public Category getCategory() { return category; }
+
+    public int getViewCount() { return viewCount;}
+
     public void increaseViewCount() {
         this.viewCount++;
     }
