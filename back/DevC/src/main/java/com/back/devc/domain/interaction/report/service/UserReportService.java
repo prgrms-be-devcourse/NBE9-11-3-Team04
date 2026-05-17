@@ -11,10 +11,8 @@ import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.ApiException;
-import com.back.devc.global.exception.ErrorCode;
-import com.back.devc.global.exception.errorCode.ReportErrorCode;
-import com.back.devc.global.exception.errorCode.AuthErrorCode;
 import com.back.devc.global.exception.errorCode.MemberErrorCode;
+import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,7 +83,7 @@ public class UserReportService {
             Comment comment = commentRepository.findById(targetId)
                     .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
-            if (comment.getUserId().equals(reporterId)) {
+            if (comment.getUserId() == reporterId) {
                 throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 

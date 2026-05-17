@@ -68,6 +68,27 @@ public class Post {
         this.isDeleted = false;
     }
 
+    // 임시 getter 추가
+    public Long getPostId() {
+        return postId;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public int getCommentCount() {
+        return commentCount;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     public void increaseViewCount() {
         this.viewCount++;
     }
