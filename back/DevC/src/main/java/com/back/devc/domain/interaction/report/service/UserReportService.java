@@ -45,15 +45,15 @@ public class UserReportService {
 
         Member reporter = findMemberOrThrow(reporterId);
 
-        validateTarget(reporterId, targetType, dto.targetId());
-        validateDuplicateReport(reporter, targetType, dto.targetId());
+        validateTarget(reporterId, targetType, dto.targetId);
+        validateDuplicateReport(reporter, targetType, dto.targetId);
 
         Report report = Report.builder()
                 .reporter(reporter)
                 .targetType(targetType)
-                .targetId(dto.targetId())
-                .reasonType(dto.reasonType())
-                .reasonDetail(dto.reasonDetail())
+                .targetId(dto.targetId)
+                .reasonType(dto.reasonType)
+                .reasonDetail(dto.reasonDetail)
                 .build();
 
         reportRepository.save(report);

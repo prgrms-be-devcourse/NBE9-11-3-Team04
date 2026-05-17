@@ -336,15 +336,15 @@ public class AdminReportService {
     public void approveReport(Long adminId, AdminReportRequestDTO dto) {
         log.info("관리자 신고 단건 승인 시작 - adminId={}, reportId={}, targetType={}, sanctionType={}, suspensionDays={}",
                 adminId,
-                dto.reportId(),
-                dto.targetType(),
-                dto.sanctionType(),
-                dto.suspensionDays());
+                dto.reportId,
+                dto.targetType,
+                dto.sanctionType,
+                dto.suspensionDays);
 
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
-        Report report = findReportOrThrow(dto.reportId());
+        Report report = findReportOrThrow(dto.reportId);
         validatePendingStatus(report);
         validateTargetExists(report.getTargetType(), report.getTargetId());
         validateSanctionDetails(dto);
@@ -355,29 +355,29 @@ public class AdminReportService {
                 report.getTargetType(),
                 report.getTargetId(),
                 admin,
-                dto.sanctionType(),
-                dto.suspensionDays()
+                dto.sanctionType,
+                dto.suspensionDays
         );
 
         log.info("관리자 신고 단건 승인 완료 - adminId={}, reportId={}, targetType={}, targetId={}, sanctionType={}, suspensionDays={}",
                 adminId,
-                dto.reportId(),
+                dto.reportId,
                 report.getTargetType(),
                 report.getTargetId(),
-                dto.sanctionType(),
-                dto.suspensionDays());
+                dto.sanctionType,
+                dto.suspensionDays);
     }
 
     /* =========================================================
      * 4. 단건 반려
      * ========================================================= */
     public void rejectReport(Long adminId, AdminReportRequestDTO dto) {
-        log.info("관리자 신고 단건 반려 시작 - adminId={}, reportId={}, targetType={}", adminId, dto.reportId(), dto.targetType());
+        log.info("관리자 신고 단건 반려 시작 - adminId={}, reportId={}, targetType={}", adminId, dto.reportId, dto.targetType);
 
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
-        Report report = findReportOrThrow(dto.reportId());
+        Report report = findReportOrThrow(dto.reportId);
         validatePendingStatus(report);
 
         report.rejectReport(admin);
@@ -390,7 +390,7 @@ public class AdminReportService {
 
         log.info("관리자 신고 단건 반려 완료 - adminId={}, reportId={}, targetType={}, targetId={}",
                 adminId,
-                dto.reportId(),
+                dto.reportId,
                 report.getTargetType(),
                 report.getTargetId());
     }
@@ -402,16 +402,16 @@ public class AdminReportService {
     public void approveReportGroup(Long adminId, AdminReportRequestDTO dto) {
         log.info("관리자 신고 그룹 승인 시작 - adminId={}, targetType={}, targetId={}, sanctionType={}, suspensionDays={}",
                 adminId,
-                dto.targetType(),
-                dto.reportId(),
-                dto.sanctionType(),
-                dto.suspensionDays());
+                dto.targetType,
+                dto.reportId,
+                dto.sanctionType,
+                dto.suspensionDays);
 
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
-        TargetType targetType = dto.targetType();
-        Long targetId = dto.reportId();
+        TargetType targetType = dto.targetType;
+        Long targetId = dto.reportId;
 
         validateTargetExists(targetType, targetId);
         validateSanctionDetails(dto);
@@ -442,8 +442,8 @@ public class AdminReportService {
                 targetType,
                 targetId,
                 admin,
-                dto.sanctionType(),
-                dto.suspensionDays()
+                dto.sanctionType,
+                dto.suspensionDays
         );
 
         log.info("관리자 신고 그룹 승인 완료 - adminId={}, targetType={}, targetId={}, updatedCount={}, sanctionType={}, suspensionDays={}",
@@ -451,8 +451,8 @@ public class AdminReportService {
                 targetType,
                 targetId,
                 updatedCount,
-                dto.sanctionType(),
-                dto.suspensionDays());
+                dto.sanctionType,
+                dto.suspensionDays);
     }
 
     /* =========================================================
@@ -460,13 +460,13 @@ public class AdminReportService {
      * ========================================================= */
     @Transactional
     public void rejectReportGroup(Long adminId, AdminReportRequestDTO dto) {
-        log.info("관리자 신고 그룹 반려 시작 - adminId={}, targetType={}, targetId={}", adminId, dto.targetType(), dto.reportId());
+        log.info("관리자 신고 그룹 반려 시작 - adminId={}, targetType={}, targetId={}", adminId, dto.targetType, dto.reportId);
 
         Member admin = findMemberOrThrow(adminId);
         validateAdminRole(admin);
 
-        TargetType targetType = dto.targetType();
-        Long targetId = dto.reportId();
+        TargetType targetType = dto.targetType;
+        Long targetId = dto.reportId;
 
         // 반려 역시 'PENDING' 상태인 것만 'REJECT'로 일괄 변경
         int updatedCount = reportRepository.updateStatusGroup(
@@ -514,9 +514,9 @@ public class AdminReportService {
     }
 
     private void validateSanctionDetails(AdminReportRequestDTO dto) {
-        if (SanctionType.SUSPENDED.equals(dto.sanctionType()) &&
-                (dto.suspensionDays() == null || dto.suspensionDays() <= 0)) {
-            log.warn("신고 제재 파라미터 검증 실패 - sanctionType={}, suspensionDays={}", dto.sanctionType(), dto.suspensionDays());
+        if (SanctionType.SUSPENDED.equals(dto.sanctionType) &&
+                (dto.suspensionDays == null || dto.suspensionDays <= 0)) {
+            log.warn("신고 제재 파라미터 검증 실패 - sanctionType={}, suspensionDays={}", dto.sanctionType, dto.suspensionDays);
             throw new ApiException(ReportErrorCode.REPORT_400_INVALID_SANCTION_PARAMETER);
         }
     }

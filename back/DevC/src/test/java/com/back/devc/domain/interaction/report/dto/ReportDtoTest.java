@@ -52,15 +52,15 @@ class ReportDtoTest {
 
         ReportResponseDTO dto = ReportResponseDTO.of(report, "target-writer", "target-title", "target-content");
 
-        assertThat(dto.reporterEmail()).isEqualTo("reporter@test.com");
-        assertThat(dto.reporterNickname()).isEqualTo("reporter");
-        assertThat(dto.targetType()).isEqualTo(TargetType.POST);
-        assertThat(dto.targetId()).isEqualTo(10L);
-        assertThat(dto.targetNickname()).isEqualTo("target-writer");
-        assertThat(dto.targetTitle()).isEqualTo("target-title");
-        assertThat(dto.targetContent()).isEqualTo("target-content");
-        assertThat(dto.reasonType()).isEqualTo("SPAM");
-        assertThat(dto.reasonDetail()).isEqualTo("Repeated promotion");
-        assertThat(dto.status()).isEqualTo(ReportStatus.PENDING);
+        assertThat(dto.reporterEmail).isEqualTo("reporter@test.com");
+        assertThat(dto.reporterNickname).isEqualTo("reporter");
+        assertThat(dto.targetType).isEqualTo(TargetType.POST);
+        assertThat(dto.targetId).isEqualTo(10L);
+        assertThat(dto.targetNickname).isEqualTo("target-writer");
+        assertThat(dto.targetTitle).isEqualTo("target-title");
+        assertThat(dto.targetContent).isEqualTo("target-content");
+        assertThat(dto.reasonType).isEqualTo("SPAM");
+        assertThat(dto.reasonDetail).isEqualTo("Repeated promotion");
+        assertThat(dto.status).isEqualTo(ReportStatus.PENDING);
     }
 }
