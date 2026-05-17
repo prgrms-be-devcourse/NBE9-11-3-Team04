@@ -43,7 +43,8 @@ class ReportE2ETest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private Long reporterId;
     private Long secondReporterId;
