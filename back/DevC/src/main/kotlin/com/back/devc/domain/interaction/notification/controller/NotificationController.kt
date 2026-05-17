@@ -4,10 +4,11 @@ import com.back.devc.domain.interaction.notification.dto.NotificationListRespons
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse
 import com.back.devc.domain.interaction.notification.service.NotificationService
 import com.back.devc.domain.member.member.repository.MemberRepository
+import com.back.devc.global.exception.ApiException
+import com.back.devc.global.exception.errorCode.AuthErrorCode
 import com.back.devc.global.response.SuccessResponse
 import com.back.devc.global.response.successCode.NotificationSuccessCode
 import com.back.devc.global.security.jwt.JwtPrincipal
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.core.user.OAuth2User
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 
 /**
  * 알림 조회/읽음 처리 API 컨트롤러
@@ -106,35 +106,25 @@ class NotificationController(
      * provider가 내려준 email로 우리 서비스의 Member를 다시 조회해서 userId를 얻음
      */
     private fun getAuthenticatedUserId(authentication: Authentication): Long {
-        if (authentication.principal == null) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.")
-        }
-        // 인증 주체(principal) 타입에 따라 현재 회원 식별 방식이 달라짐
         val principal = authentication.principal
-        // 일반 이메일 로그인/JWT 인증 사용자는 JwtPrincipal 안에 userId가 이미 들어 있음
-        if (principal is JwtPrincipal) {
-            return principal.userId
-        }
-        // OAuth 로그인 사용자는 email을 기준으로 우리 서비스의 Member를 다시 조회해 userId를 얻음
-        if (principal is OAuth2User) {
-            val email = principal.getAttribute<String?>("email")
+            ?: throw ApiException(AuthErrorCode.UNAUTHORIZED)
 
-            if (email == null || email.isBlank()) {
-                throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "OAuth 사용자 정보를 확인할 수 없습니다.")
-            }
+        return when (principal) {
+            is JwtPrincipal -> principal.userId
 
-            val member = memberRepository.findByEmail(email)
-                .orElseThrow {
-                    ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "회원을 찾을 수 없습니다.",
-                    )
+            is OAuth2User -> {
+                val email = principal.getAttribute<String>("email")
+                if (email.isNullOrBlank()) {
+                    throw ApiException(AuthErrorCode.UNAUTHORIZED)
                 }
 
-            return member.userId
-                ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "회원 식별자를 확인할 수 없습니다.")
-        }
+                val member = memberRepository.findByEmail(email)
+                    .orElseThrow { ApiException(AuthErrorCode.UNAUTHORIZED) }
 
-        throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.")
+                member.userId ?: throw ApiException(AuthErrorCode.UNAUTHORIZED)
+            }
+
+            else -> throw ApiException(AuthErrorCode.UNAUTHORIZED)
+        }
     }
 }
