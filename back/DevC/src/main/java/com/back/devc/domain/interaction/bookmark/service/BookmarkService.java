@@ -43,8 +43,8 @@ public class BookmarkService {
      */
     @Transactional
     public BookmarkResponse createBookmark(BookmarkCreateCommand command) {
-        Long userId = command.memberId();
-        Long postId = command.postId();
+        Long userId = command.getMemberId();
+        Long postId = command.getPostId();
 
         validateMemberExists(userId);
         validatePostExists(postId);
@@ -67,8 +67,8 @@ public class BookmarkService {
      */
     @Transactional
     public BookmarkResponse cancelBookmark(BookmarkDeleteCommand command) {
-        Long userId = command.memberId();
-        Long postId = command.postId();
+        Long userId = command.getMemberId();
+        Long postId = command.getPostId();
 
         validateMemberExists(userId);
         validatePostExists(postId);
