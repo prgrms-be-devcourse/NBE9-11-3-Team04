@@ -252,7 +252,7 @@ class UserReportServiceTest {
 
     private void givenExistingPostByAnotherMember(boolean deleted) {
         given(post.getMember()).willReturn(author);
-        given(post.isDeleted()).willReturn(deleted);
+        given(post.getIsDeleted()).willReturn(deleted);
         given(postRepository.findById(10L)).willReturn(Optional.of(post));
     }
 

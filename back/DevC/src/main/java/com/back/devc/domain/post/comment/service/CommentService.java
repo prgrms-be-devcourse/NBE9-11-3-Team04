@@ -53,7 +53,7 @@ public class CommentService {
                 });
 
         // 삭제된 게시글에는 댓글을 작성할 수 없도록 차단
-        if (post.isDeleted()) {
+        if (post.getIsDeleted()) {
             log.warn("댓글 작성 실패 - 삭제된 게시글, postId={}", postId);
             throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
         }
@@ -101,7 +101,7 @@ public class CommentService {
                 });
 
         // 삭제된 게시글에는 대댓글을 작성할 수 없도록 차단
-        if (post.isDeleted()) {
+        if (post.getIsDeleted()) {
             log.warn("대댓글 작성 실패 - 삭제된 게시글, postId={}", parentComment.getPostId());
             throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
         }
@@ -170,7 +170,7 @@ public class CommentService {
                 });
 
         // 삭제된 게시글의 댓글 목록은 조회되지 않도록 차단
-        if (post.isDeleted()) {
+        if (post.getIsDeleted()) {
             log.warn("댓글 목록 조회 실패 - 삭제된 게시글, postId={}", postId);
             throw new ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND);
         }

@@ -92,7 +92,7 @@ public class ReportTargetHandler {
         if (targetType == TargetType.POST) {
             postRepository.findById(targetId)
                     .ifPresentOrElse(post -> {
-                        if (!post.isDeleted()) {
+                        if (!post.getIsDeleted()) {
                             post.delete();
                             log.info("신고 대상 게시글 삭제 처리 완료 - postId={}", targetId);
                         } else {

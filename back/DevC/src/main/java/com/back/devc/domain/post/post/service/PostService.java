@@ -47,14 +47,14 @@ public class PostService {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(MemberErrorCode.MEMBER_NOT_FOUND));;
 
-        Category category = categoryRepository.findById(request.categoryId)
+        Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));
 
         Post post = Post.builder()
                 .member(member)
                 .category(category)
-                .title(request.title)
-                .content(request.content)
+                .title(request.getTitle())
+                .content(request.getContent())
                 .build();
 
         Post saved = postRepository.save(post);
@@ -200,16 +200,16 @@ public class PostService {
             throw new ApiException(PostErrorCode.POST_403_FORBIDDEN);
         }
 
-        if (post.isDeleted()) {
+        if (post.getIsDeleted()) {
             throw new ApiException(PostErrorCode.POST_401_1_ALREADY_DELETED);
         }
 
-        Category category = categoryRepository.findById(request.categoryId)
+        Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND));
 
         post.update(
-                request.title,
-                request.content,
+                request.getTitle(),
+                request.getContent(),
                 category
         );
 
@@ -225,7 +225,7 @@ public class PostService {
             throw new ApiException(PostErrorCode.POST_403_FORBIDDEN);
         }
 
-        if (post.isDeleted()) {
+        if (post.getIsDeleted()) {
             throw new ApiException(PostErrorCode.POST_401_1_ALREADY_DELETED);
         }
 

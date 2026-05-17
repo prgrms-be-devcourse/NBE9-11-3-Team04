@@ -221,7 +221,7 @@ class ReportIntegrationTest {
                 });
 
         Post deletedPost = postRepository.findById(post.getPostId()).orElseThrow();
-        assertThat(deletedPost.isDeleted()).isTrue();
+        assertThat(deletedPost.getIsDeleted()).isTrue();
 
         Member sanctionedAuthor = memberRepository.findById(author.getUserId()).orElseThrow();
         assertThat(sanctionedAuthor.getStatus()).isEqualTo(MemberStatus.WARNED);

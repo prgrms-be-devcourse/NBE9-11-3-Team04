@@ -25,7 +25,7 @@ public class AdminPostController {
         List<Post> result = adminPostService.findAll();
 
         List<AdminPostListResponse> postDtoList = result.stream()
-                .map(AdminPostListResponse::new)
+                .map(AdminPostListResponse::from)
                 .toList();
 
         return ResponseEntity.ok(postDtoList);

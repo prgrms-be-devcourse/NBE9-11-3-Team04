@@ -95,6 +95,14 @@ public class Post {
 
     public int getViewCount() { return viewCount;}
 
+    public String getContent() {return content;}
+
+    public LocalDateTime getUpdatedAt() {return updatedAt;}
+
+    public LocalDateTime getDeletedAt() {return deletedAt;}
+    public boolean getIsDeleted() {return isDeleted;}
+
+
     public void increaseViewCount() {
         this.viewCount++;
     }
@@ -104,17 +112,6 @@ public class Post {
     }
 
 
-    public Member getMember() {
-        return member;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public String getContent() {
-        return content;
-    }
 
     public void decreaseLikeCount() {
         if (this.likeCount > 0) {

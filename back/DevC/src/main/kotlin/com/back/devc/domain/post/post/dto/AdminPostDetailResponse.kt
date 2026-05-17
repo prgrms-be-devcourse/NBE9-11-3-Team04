@@ -19,6 +19,7 @@ data class AdminPostDetailResponse(
     val deletedAt: LocalDateTime?
 ) {
     companion object {
+        @JvmStatic
         fun from(post: Post): AdminPostDetailResponse {
             return AdminPostDetailResponse(
                 postId = post.postId,

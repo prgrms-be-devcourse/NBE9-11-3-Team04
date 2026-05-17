@@ -19,6 +19,7 @@ data class PostListResponse(
     val createdAt: LocalDateTime
 ) {
     companion object {
+        @JvmStatic
         fun from(post: Post, liked: Boolean, bookmarked: Boolean): PostListResponse {
             return PostListResponse(
                 postId = post.postId,
