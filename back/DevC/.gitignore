@@ -285,4 +285,11 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
+# Log files
+log/
+back/DevC/log/
+*.log
+*.log.gz
+*.tmp
+
 # End of https://www.toptal.com/developers/gitignore/api/intellij,java,gradle,react,windows,macos

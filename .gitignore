@@ -19,3 +19,10 @@ frontend/node_modules/
 
 # uploads
 /uploads/
+
+# Log files
+log/
+back/DevC/log/
+*.log
+*.log.gz
+*.tmp
