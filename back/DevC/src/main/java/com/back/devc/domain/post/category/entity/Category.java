@@ -28,6 +28,8 @@ public class Category {
         this.name = name;
     }
 
+    // Kotlin 마이그레이션 완료 후 Lombok 제거/Entity 전환 시 정리
+    public Long getCategoryId() { return categoryId;}
     // 이름 수정 (필요하면)
     public void update(String name) {
         this.name = name;
