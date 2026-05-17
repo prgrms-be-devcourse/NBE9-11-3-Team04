@@ -67,9 +67,9 @@ class MypageControllerTest {
                 MyPostResponse post = new MyPostResponse(
                         10L,
                         "내 게시글",
-                        5,
-                        2,
-                        100,
+                        5L,
+                        2L,
+                        100L,
                         LocalDateTime.of(2026, 5, 15, 10, 0),
                         true,
                         false
@@ -101,9 +101,9 @@ class MypageControllerTest {
                         10L,
                         "좋아요한 게시글",
                         "작성자",
-                        5,
-                        2,
-                        100,
+                        5L,
+                        2L,
+                        100L,
                         LocalDateTime.of(2026, 5, 15, 10, 0),
                         true,
                         false
@@ -124,9 +124,9 @@ class MypageControllerTest {
                         "북마크한 게시글",
                         "작성자",
                         100L,
-                        5,
-                        2,
-                        100,
+                        5L,
+                        2L,
+                        100L,
                         LocalDateTime.of(2026, 5, 15, 10, 0),
                         false,
                         true
@@ -145,7 +145,7 @@ class MypageControllerTest {
                 return new MyProfileResponse(
                         userId,
                         "test@test.com",
-                        request.nickname().trim()
+                        request.getNickname().trim()
                 );
             }
         };
