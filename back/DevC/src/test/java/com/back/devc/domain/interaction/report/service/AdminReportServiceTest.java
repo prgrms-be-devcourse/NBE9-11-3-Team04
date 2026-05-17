@@ -42,12 +42,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -207,10 +202,10 @@ class AdminReportServiceTest {
                     .willReturn(new PageImpl<>(rows, pageable, 1));
             given(postRepository.findAllByPostIdIn(List.of(99L))).willReturn(List.of());
             given(reportRepository.findReasonTypesBatch(
-                    TargetType.POST,
-                    List.of(99L),
-                    TargetType.COMMENT,
-                    List.of(-1L)
+                    eq(TargetType.POST),
+                    anyList(),
+                    eq(TargetType.COMMENT),
+                    anyList()
             )).willReturn(List.of());
 
             var result = adminReportService.getGroupedReports(null, from, to, pageable);
