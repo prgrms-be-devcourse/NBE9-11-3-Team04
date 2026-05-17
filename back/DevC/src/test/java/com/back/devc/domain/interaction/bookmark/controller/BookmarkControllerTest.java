@@ -3,7 +3,11 @@ package com.back.devc.domain.interaction.bookmark.controller;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkCreateCommand;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkDeleteCommand;
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkResponse;
+import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
 import com.back.devc.domain.interaction.bookmark.service.BookmarkService;
+import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
+import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.response.successCode.BookmarkSuccessCode;
 import com.back.devc.global.security.jwt.JwtPrincipal;
 import com.back.devc.global.security.jwt.JwtPrincipalHelper;
@@ -36,12 +40,17 @@ class BookmarkControllerTest {
 
     @BeforeEach
     void setUp() {
-        BookmarkService bookmarkService = new BookmarkService(null, null, null, null) {
+        BookmarkService bookmarkService = new BookmarkService(
+                mock(BookmarkRepository.class),
+                mock(PostLikeRepository.class),
+                mock(MemberRepository.class),
+                mock(PostRepository.class)
+        ) {
 
             @Override
             public BookmarkResponse createBookmark(BookmarkCreateCommand command) {
                 return new BookmarkResponse(
-                        command.postId(),
+                        command.getPostId(),
                         true
                 );
             }
@@ -49,7 +58,7 @@ class BookmarkControllerTest {
             @Override
             public BookmarkResponse cancelBookmark(BookmarkDeleteCommand command) {
                 return new BookmarkResponse(
-                        command.postId(),
+                        command.getPostId(),
                         false
                 );
             }
