@@ -112,11 +112,12 @@ class ReportE2ETest {
 
         assertThat(countReports("POST", postId)).isEqualTo(2);
 
+        LocalDateTime now = LocalDateTime.now();
         mockMvc.perform(get("/api/admin/reports/groups")
                         .header("Authorization", "Bearer " + adminToken)
                         .param("status", "PENDING")
-                        .param("from", LocalDateTime.now().minusDays(1).toString())
-                        .param("to", LocalDateTime.now().plusDays(1).toString())
+                        .param("from", now.minusDays(1).toString())
+                        .param("to", now.plusDays(1).toString())
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
