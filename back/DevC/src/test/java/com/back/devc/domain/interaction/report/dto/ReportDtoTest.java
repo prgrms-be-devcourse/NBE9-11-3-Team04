@@ -8,6 +8,9 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,13 +32,17 @@ class ReportDtoTest {
     @Test
     @DisplayName("ReportRequestDTO requires target id and reason type")
     void reportRequestDto_requiresTargetIdAndReasonType() {
-        ReportRequestDTO dto = new ReportRequestDTO(null, " ", null);
+        var targetIdViolations = validator.validateValue(ReportRequestDTO.class, "targetId", null);
+        ReportRequestDTO dto = new ReportRequestDTO(10L, " ", null);
 
-        var violations = validator.validate(dto);
+        var reasonTypeViolations = validator.validate(dto);
 
-        assertThat(violations)
+        assertThat(targetIdViolations)
                 .extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactlyInAnyOrder("targetId", "reasonType");
+                .containsExactly("targetId");
+        assertThat(reasonTypeViolations)
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .containsExactly("reasonType");
     }
 
     @Test
@@ -49,18 +56,23 @@ class ReportDtoTest {
                 .reasonType("SPAM")
                 .reasonDetail("Repeated promotion")
                 .build();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 10, 0);
+        ReflectionTestUtils.setField(report, "reportId", 1L);
+        ReflectionTestUtils.setField(report, "createdAt", createdAt);
 
         ReportResponseDTO dto = ReportResponseDTO.of(report, "target-writer", "target-title", "target-content");
 
-        assertThat(dto.reporterEmail()).isEqualTo("reporter@test.com");
-        assertThat(dto.reporterNickname()).isEqualTo("reporter");
-        assertThat(dto.targetType()).isEqualTo(TargetType.POST);
-        assertThat(dto.targetId()).isEqualTo(10L);
-        assertThat(dto.targetNickname()).isEqualTo("target-writer");
-        assertThat(dto.targetTitle()).isEqualTo("target-title");
-        assertThat(dto.targetContent()).isEqualTo("target-content");
-        assertThat(dto.reasonType()).isEqualTo("SPAM");
-        assertThat(dto.reasonDetail()).isEqualTo("Repeated promotion");
-        assertThat(dto.status()).isEqualTo(ReportStatus.PENDING);
+        assertThat(dto.reportId).isEqualTo(1L);
+        assertThat(dto.reporterEmail).isEqualTo("reporter@test.com");
+        assertThat(dto.reporterNickname).isEqualTo("reporter");
+        assertThat(dto.targetType).isEqualTo(TargetType.POST);
+        assertThat(dto.targetId).isEqualTo(10L);
+        assertThat(dto.targetNickname).isEqualTo("target-writer");
+        assertThat(dto.targetTitle).isEqualTo("target-title");
+        assertThat(dto.targetContent).isEqualTo("target-content");
+        assertThat(dto.reasonType).isEqualTo("SPAM");
+        assertThat(dto.reasonDetail).isEqualTo("Repeated promotion");
+        assertThat(dto.status).isEqualTo(ReportStatus.PENDING);
+        assertThat(dto.createdAt).isEqualTo(createdAt);
     }
 }

@@ -175,22 +175,22 @@ class AdminReportServiceTest {
 
             assertThat(result.getContent()).hasSize(2);
             ReportGroupResponseDTO postGroup = result.getContent().get(0);
-            assertThat(postGroup.targetType()).isEqualTo(TargetType.POST);
-            assertThat(postGroup.targetId()).isEqualTo(10L);
-            assertThat(postGroup.targetNickname()).isEqualTo("post-writer");
-            assertThat(postGroup.targetTitle()).isEqualTo("reported post");
-            assertThat(postGroup.targetContent()).isEqualTo("post content");
-            assertThat(postGroup.reportCount()).isEqualTo(2L);
-            assertThat(postGroup.reasonTypes()).containsExactly("SPAM");
+            assertThat(postGroup.targetType).isEqualTo(TargetType.POST);
+            assertThat(postGroup.targetId).isEqualTo(10L);
+            assertThat(postGroup.targetNickname).isEqualTo("post-writer");
+            assertThat(postGroup.targetTitle).isEqualTo("reported post");
+            assertThat(postGroup.targetContent).isEqualTo("post content");
+            assertThat(postGroup.reportCount).isEqualTo(2L);
+            assertThat(postGroup.reasonTypes).containsExactly("SPAM");
 
             ReportGroupResponseDTO commentGroup = result.getContent().get(1);
-            assertThat(commentGroup.targetType()).isEqualTo(TargetType.COMMENT);
-            assertThat(commentGroup.targetId()).isEqualTo(20L);
-            assertThat(commentGroup.targetNickname()).isEqualTo("comment-writer");
-            assertThat(commentGroup.targetTitle()).isNull();
-            assertThat(commentGroup.targetContent()).isEqualTo("comment content");
-            assertThat(commentGroup.reportCount()).isEqualTo(3L);
-            assertThat(commentGroup.reasonTypes()).containsExactly("ABUSE", "HATE");
+            assertThat(commentGroup.targetType).isEqualTo(TargetType.COMMENT);
+            assertThat(commentGroup.targetId).isEqualTo(20L);
+            assertThat(commentGroup.targetNickname).isEqualTo("comment-writer");
+            assertThat(commentGroup.targetTitle).isNull();
+            assertThat(commentGroup.targetContent).isEqualTo("comment content");
+            assertThat(commentGroup.reportCount).isEqualTo(3L);
+            assertThat(commentGroup.reasonTypes).containsExactly("ABUSE", "HATE");
         }
 
         @Test
