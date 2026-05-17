@@ -42,10 +42,10 @@ class Comment protected constructor() : BaseEntity() {
         protected set
 
     constructor(
-        postId: Long?,
+        postId: Long,
         userId: Long,
         parentCommentId: Long?,
-        content: String?,
+        content: String,
     ) : this() {
         this.postId = postId
         this.userId = userId
@@ -54,7 +54,7 @@ class Comment protected constructor() : BaseEntity() {
         this.isDeleted = false
     }
 
-    fun updateContent(content: String?) {
+    fun updateContent(content: String) {
         this.content = content
     }
 
@@ -75,10 +75,10 @@ class Comment protected constructor() : BaseEntity() {
     companion object {
         @JvmStatic
         fun create(
-            postId: Long?,
+            postId: Long,
             userId: Long,
             parentCommentId: Long?,
-            content: String?,
+            content: String,
         ): Comment {
             return Comment(
                 postId,

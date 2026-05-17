@@ -46,12 +46,12 @@ class Notification protected constructor() : BaseEntity() {
         protected set
 
     constructor(
-        userId: Long?,
-        actorUserId: Long?,
+        userId: Long,
+        actorUserId: Long,
         postId: Long?,
         commentId: Long?,
-        type: String?,
-        message: String?,
+        type: String,
+        message: String,
     ) : this() {
         this.userId = userId
         this.actorUserId = actorUserId
@@ -69,12 +69,12 @@ class Notification protected constructor() : BaseEntity() {
     companion object {
         @JvmStatic
         fun create(
-            userId: Long?,
-            actorUserId: Long?,
+            userId: Long,
+            actorUserId: Long,
             postId: Long?,
             commentId: Long?,
-            type: String?,
-            message: String?,
+            type: String,
+            message: String,
         ): Notification {
             return Notification(
                 userId,

@@ -50,13 +50,13 @@ class CommentAttachment protected constructor() : BaseEntity() {
         protected set
 
     constructor(
-        commentId: Long?,
-        fileName: String?,
-        storedName: String?,
-        fileUrl: String?,
-        fileType: String?,
-        mimeType: String?,
-        fileSize: Long?,
+        commentId: Long,
+        fileName: String,
+        storedName: String,
+        fileUrl: String,
+        fileType: String,
+        mimeType: String,
+        fileSize: Long,
         fileOrder: Int?,
     ) : this() {
         this.commentId = commentId
@@ -72,13 +72,13 @@ class CommentAttachment protected constructor() : BaseEntity() {
     companion object {
         @JvmStatic
         fun create(
-            commentId: Long?,
-            fileName: String?,
-            storedName: String?,
-            fileUrl: String?,
-            fileType: String?,
-            mimeType: String?,
-            fileSize: Long?,
+            commentId: Long,
+            fileName: String,
+            storedName: String,
+            fileUrl: String,
+            fileType: String,
+            mimeType: String,
+            fileSize: Long,
             fileOrder: Int?,
         ): CommentAttachment {
             return CommentAttachment(
