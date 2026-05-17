@@ -44,8 +44,4 @@ interface MemberRepository : JpaRepository<Member, Long> {
         email: String,
         pageable: Pageable
     ): Page<Member>
-
-    fun findAllByUserIdIn(
-        userIds: List<Long>
-    ): List<Member>
 }
