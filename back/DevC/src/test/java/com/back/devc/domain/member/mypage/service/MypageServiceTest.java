@@ -206,9 +206,9 @@ class MypageServiceTest {
                 postId,
                 "좋아요한 게시글",
                 "작성자",
-                5,
-                2,
-                100,
+                5L,
+                2L,
+                100L,
                 LocalDateTime.of(2026, 5, 15, 10, 0),
                 true,
                 false
@@ -227,8 +227,8 @@ class MypageServiceTest {
 
         // then
         assertThat(response.content()).hasSize(1);
-        assertThat(response.content().get(0).postId()).isEqualTo(postId);
-        assertThat(response.content().get(0).liked()).isTrue();
+        assertThat(response.content().get(0).getPostId()).isEqualTo(postId);
+        assertThat(response.content().get(0).getLiked()).isTrue();
 
         then(postLikeService).should().getLikedPosts(userId, pageable);
     }
@@ -245,9 +245,9 @@ class MypageServiceTest {
                 "북마크한 게시글",
                 "작성자",
                 100L,
-                5,
-                2,
-                100,
+                5L,
+                2L,
+                100L,
                 LocalDateTime.of(2026, 5, 15, 10, 0),
                 false,
                 true

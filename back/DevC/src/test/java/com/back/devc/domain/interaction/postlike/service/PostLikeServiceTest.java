@@ -80,10 +80,10 @@ class PostLikeServiceTest {
         PostLikeResponse response = postLikeService.createLike(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.liked()).isTrue();
-        assertThat(response.likeCount()).isEqualTo(5);
-        assertThat(response.message())
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getLiked()).isTrue();
+        assertThat(response.getLikeCount()).isEqualTo(5L);
+        assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_CREATED.getMessage());
 
         then(postRepository).should().increaseLikeCount(postId);
@@ -110,10 +110,10 @@ class PostLikeServiceTest {
         PostLikeResponse response = postLikeService.createLike(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.liked()).isTrue();
-        assertThat(response.likeCount()).isEqualTo(3);
-        assertThat(response.message())
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getLiked()).isTrue();
+        assertThat(response.getLikeCount()).isEqualTo(3L);
+        assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_ALREADY_EXISTS.getMessage());
 
         then(postRepository).should(never()).increaseLikeCount(anyLong());
@@ -179,10 +179,10 @@ class PostLikeServiceTest {
         PostLikeResponse response = postLikeService.cancelLike(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.liked()).isFalse();
-        assertThat(response.likeCount()).isEqualTo(2);
-        assertThat(response.message())
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getLiked()).isFalse();
+        assertThat(response.getLikeCount()).isEqualTo(2L);
+        assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_CANCELED.getMessage());
 
         then(postRepository).should().decreaseLikeCount(postId);
@@ -207,10 +207,10 @@ class PostLikeServiceTest {
         PostLikeResponse response = postLikeService.cancelLike(command);
 
         // then
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.liked()).isFalse();
-        assertThat(response.likeCount()).isEqualTo(2);
-        assertThat(response.message())
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getLiked()).isFalse();
+        assertThat(response.getLikeCount()).isEqualTo(2L);
+        assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_ALREADY_CANCELED.getMessage());
 
         then(postRepository).should(never()).decreaseLikeCount(anyLong());
@@ -289,15 +289,15 @@ class PostLikeServiceTest {
 
         LikedPostResponse response = responses.get(0);
 
-        assertThat(response.postId()).isEqualTo(postId);
-        assertThat(response.title()).isEqualTo("테스트 제목");
-        assertThat(response.authorNickname()).isEqualTo("작성자");
-        assertThat(response.likeCount()).isEqualTo(7);
-        assertThat(response.commentCount()).isEqualTo(2);
-        assertThat(response.viewCount()).isEqualTo(100);
-        assertThat(response.createdAt()).isEqualTo(createdAt);
-        assertThat(response.liked()).isTrue();
-        assertThat(response.bookmarked()).isTrue();
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getTitle()).isEqualTo("테스트 제목");
+        assertThat(response.getAuthorNickname()).isEqualTo("작성자");
+        assertThat(response.getLikeCount()).isEqualTo(7L);
+        assertThat(response.getCommentCount()).isEqualTo(2L);
+        assertThat(response.getViewCount()).isEqualTo(100L);
+        assertThat(response.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(response.getLiked()).isTrue();
+        assertThat(response.getBookmarked()).isTrue();
 
         then(memberRepository).should().findById(userId);
         then(postLikeRepository).should()

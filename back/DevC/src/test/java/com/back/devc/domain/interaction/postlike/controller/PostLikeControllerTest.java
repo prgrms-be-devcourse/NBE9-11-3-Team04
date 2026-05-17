@@ -29,7 +29,9 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,9 +47,9 @@ class PostLikeControllerTest {
             @Override
             public PostLikeResponse createLike(PostLikeCommand command) {
                 return new PostLikeResponse(
-                        command.postId(),
+                        command.getPostId(),
                         true,
-                        5,
+                        5L,
                         PostLikeSuccessCode.POST_LIKE_CREATED.getMessage()
                 );
             }
@@ -55,9 +57,9 @@ class PostLikeControllerTest {
             @Override
             public PostLikeResponse cancelLike(PostLikeCommand command) {
                 return new PostLikeResponse(
-                        command.postId(),
+                        command.getPostId(),
                         false,
-                        4,
+                        4L,
                         PostLikeSuccessCode.POST_LIKE_CANCELED.getMessage()
                 );
             }
@@ -69,9 +71,9 @@ class PostLikeControllerTest {
                                 10L,
                                 "테스트 게시글",
                                 "작성자",
-                                5,
-                                2,
-                                100,
+                                5L,
+                                2L,
+                                100L,
                                 LocalDateTime.of(2026, 5, 15, 10, 0),
                                 true,
                                 false
