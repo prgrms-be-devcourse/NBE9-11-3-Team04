@@ -103,15 +103,6 @@ public class Post {
         this.likeCount++;
     }
 
-
-    public Member getMember() {
-        return member;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
     public String getContent() {
         return content;
     }
