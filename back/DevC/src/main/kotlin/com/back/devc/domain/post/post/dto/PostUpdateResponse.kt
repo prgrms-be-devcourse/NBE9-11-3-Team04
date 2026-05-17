@@ -6,7 +6,7 @@ data class PostUpdateResponse(
     val postId: Long,
     val title: String,
     val content: String,
-    val categoryId: Long?
+    val categoryId: Long
 ) {
     companion object {
         fun from(post: Post): PostUpdateResponse {
@@ -14,7 +14,7 @@ data class PostUpdateResponse(
                 postId = post.postId,
                 title = post.title,
                 content = post.content,
-                categoryId = post.category?.categoryId
+                categoryId = post.category.categoryId
             )
         }
     }
