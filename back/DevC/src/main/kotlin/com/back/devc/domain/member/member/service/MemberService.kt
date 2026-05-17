@@ -10,6 +10,7 @@ import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.global.exception.ApiException
 import com.back.devc.global.exception.errorCode.MemberErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -19,7 +20,6 @@ class MemberService(
     private val postRepository: PostRepository
 ) {
 
-    // 자바에서는 slf4j의 LoggerFactory를 사용하여 로거를 생성 -> 코틀린에서도 동일한 방식으로 로거를 생성
     private val log = LoggerFactory.getLogger(MemberService::class.java)
 
     // 내 정보 조회
@@ -55,11 +55,11 @@ class MemberService(
             .findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member)
             .map { post ->
                 PublicProfilePostResponse(
-                    postId = post.getPostId(),
-                    title = post.getTitle(),
-                    likeCount = post.getLikeCount(),
-                    commentCount = post.getCommentCount(),
-                    createdAt = post.getCreatedAt()
+                    postId = post.postId,
+                    title = post.title,
+                    likeCount = post.likeCount,
+                    commentCount = post.commentCount,
+                    createdAt = post.createdAt
                 )
             }
 
@@ -87,11 +87,12 @@ class MemberService(
         return MemberWithdrawResponse(memberId)
     }
 
+    // 회원 조회 공통 처리
     private fun findMemberOrThrow(userId: Long): Member {
-        return memberRepository.findById(userId)
-            .orElseThrow {
+        return memberRepository.findByIdOrNull(userId)
+            ?: run {
                 log.warn("회원 조회 실패 - 회원 없음, userId={}", userId)
-                ApiException(MemberErrorCode.MEMBER_NOT_FOUND)
+                throw ApiException(MemberErrorCode.MEMBER_NOT_FOUND)
             }
     }
 }
