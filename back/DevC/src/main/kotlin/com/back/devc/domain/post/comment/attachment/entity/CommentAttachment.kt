@@ -14,40 +14,40 @@ class CommentAttachment protected constructor() : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "attachment_id")
-    final var id: Long? = null
-        private set
+    var id: Long? = null
+        protected set
 
     @Column(name = "comment_id", nullable = false)
-    final var commentId: Long? = null
-        private set
+    var commentId: Long? = null
+        protected set
 
     @Column(name = "file_name", nullable = false)
-    final var fileName: String? = null
-        private set
+    var fileName: String? = null
+        protected set
 
     @Column(name = "stored_name", nullable = false, unique = true)
-    final var storedName: String? = null
-        private set
+    var storedName: String? = null
+        protected set
 
     @Column(name = "file_url", nullable = false)
-    final var fileUrl: String? = null
-        private set
+    var fileUrl: String? = null
+        protected set
 
     @Column(name = "file_type", nullable = false, length = 20)
-    final var fileType: String? = null
-        private set
+    var fileType: String? = null
+        protected set
 
     @Column(name = "mime_type", nullable = false, length = 100)
-    final var mimeType: String? = null
-        private set
+    var mimeType: String? = null
+        protected set
 
     @Column(name = "file_size", nullable = false)
-    final var fileSize: Long? = null
-        private set
+    var fileSize: Long? = null
+        protected set
 
     @Column(name = "file_order")
-    final var fileOrder: Int? = null
-        private set
+    var fileOrder: Int? = null
+        protected set
 
     constructor(
         commentId: Long?,
