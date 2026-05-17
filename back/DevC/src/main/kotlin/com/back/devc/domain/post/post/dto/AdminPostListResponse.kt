@@ -15,15 +15,19 @@ data class AdminPostListResponse(
     val commentCount: Int,
     val createdAt: LocalDateTime
 ) {
-    constructor(post: Post) : this(
-        postId = post.postId,
-        title = post.title,
-        userId = post.member?.userId,
-        categoryId = post.category.categoryId,
-        isDeleted = post.isDeleted,
-        viewCount = post.viewCount,
-        likeCount = post.likeCount,
-        commentCount = post.commentCount,
-        createdAt = post.createdAt
-    )
+    companion object {
+        fun from(post: Post): AdminPostListResponse {
+            return AdminPostListResponse(
+                postId = post.postId,
+                title = post.title,
+                userId = post.member?.userId,
+                categoryId = post.category.categoryId,
+                isDeleted = post.isDeleted,
+                viewCount = post.viewCount,
+                likeCount = post.likeCount,
+                commentCount = post.commentCount,
+                createdAt = post.createdAt
+            )
+        }
+    }
 }

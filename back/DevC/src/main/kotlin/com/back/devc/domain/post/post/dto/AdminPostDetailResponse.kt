@@ -16,7 +16,7 @@ data class AdminPostDetailResponse(
     val isDeleted: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
-    val deleteAt: LocalDateTime?
+    val deletedAt: LocalDateTime?
 ) {
     companion object {
         fun from(post: Post): AdminPostDetailResponse {
@@ -33,7 +33,7 @@ data class AdminPostDetailResponse(
                 isDeleted = post.isDeleted,
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt,
-                deleteAt = post.deletedAt
+                deletedAt = post.deletedAt
             )
         }
     }
