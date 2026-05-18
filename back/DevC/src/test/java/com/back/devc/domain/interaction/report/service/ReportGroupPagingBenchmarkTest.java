@@ -121,13 +121,13 @@ class ReportGroupPagingBenchmarkTest {
     }
 
     private Report report(Member reporter, Long targetId) {
-        return Report.builder()
-                .reporter(reporter)
-                .targetType(TargetType.POST)
-                .targetId(targetId)
-                .reasonType("SPAM")
-                .reasonDetail("benchmark")
-                .build();
+        return Report.create(
+                reporter,
+                TargetType.POST,
+                targetId,
+                "SPAM",
+                "benchmark"
+        );
     }
 
     @Test
