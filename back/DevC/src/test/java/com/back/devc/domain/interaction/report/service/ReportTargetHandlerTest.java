@@ -63,7 +63,7 @@ class ReportTargetHandlerTest {
 
         Post post = mock(Post.class);
         // post.getMember() 호출이 실제 로직에서 발생하지 않는다면 writer 모킹은 필요 없습니다.
-        when(post.getIsDeleted()).thenReturn(false);
+        when(post.isDeleted()).thenReturn(false);
 
         when(postRepository.findById(10L))
                 .thenReturn(Optional.of(post));
@@ -130,7 +130,7 @@ class ReportTargetHandlerTest {
     void deleteTarget_post_alreadyDeleted() {
 
         Post post = mock(Post.class);
-        when(post.getIsDeleted()).thenReturn(true);
+        when(post.isDeleted()).thenReturn(true);
 
         when(postRepository.findById(10L))
                 .thenReturn(Optional.of(post));
@@ -174,7 +174,7 @@ class ReportTargetHandlerTest {
         Member writer = mock(Member.class);
 
         Post post = mock(Post.class);
-        when(post.member).thenReturn(writer);
+        when(post.getMember()).thenReturn(writer);
 
         when(postRepository.findById(10L))
                 .thenReturn(Optional.of(post));
@@ -281,16 +281,16 @@ class ReportTargetHandlerTest {
         when(writer.getNickname()).thenReturn("post-writer");
 
         Post post = mock(Post.class);
-        when(post.member).thenReturn(writer);
-        when(post.title).thenReturn("post title");
-        when(post.content).thenReturn("post content");
+        when(post.getMember()).thenReturn(writer);
+        when(post.getTitle()).thenReturn("post title");
+        when(post.getContent()).thenReturn("post content");
         when(postRepository.findById(10L)).thenReturn(Optional.of(post));
 
         var result = handler.getTargetInfo(TargetType.POST, 10L);
 
-        assertThat(result.nickname).isEqualTo("post-writer");
-        assertThat(result.title).isEqualTo("post title");
-        assertThat(result.content).isEqualTo("post content");
+        assertThat(result.getNickname()).isEqualTo("post-writer");
+        assertThat(result.getTitle()).isEqualTo("post title");
+        assertThat(result.getContent()).isEqualTo("post content");
     }
 
     @Test
@@ -306,9 +306,9 @@ class ReportTargetHandlerTest {
 
         var result = handler.getTargetInfo(TargetType.COMMENT, 20L);
 
-        assertThat(result.nickname).isEqualTo("comment-writer");
-        assertThat(result.title).isNull();
-        assertThat(result.content).isEqualTo("comment content");
+        assertThat(result.getNickname()).isEqualTo("comment-writer");
+        assertThat(result.getTitle()).isNull();
+        assertThat(result.getContent()).isEqualTo("comment content");
     }
 
     @Test
@@ -317,8 +317,8 @@ class ReportTargetHandlerTest {
 
         var result = handler.getTargetInfo(TargetType.POST, 10L);
 
-        assertThat(result.nickname).isNull();
-        assertThat(result.title).isNull();
-        assertThat(result.content).isNull();
+        assertThat(result.getNickname()).isNull();
+        assertThat(result.getTitle()).isNull();
+        assertThat(result.getContent()).isNull();
     }
 }
