@@ -104,8 +104,8 @@ class ReportPerformanceTest {
                 .map(id -> {
                     Post p = mock(Post.class);
                     given(p.getPostId()).willReturn(id);
-                    given(p.title).willReturn("제목 " + id);
-                    given(p.member).willReturn(mockMember);
+                    given(p.getTitle()).willReturn("제목 " + id);
+                    given(p.getMember()).willReturn(mockMember);
                     return p;
                 })
                 .toList();

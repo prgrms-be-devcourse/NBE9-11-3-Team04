@@ -7,7 +7,13 @@ import com.back.devc.domain.member.searchLog.dto.CreateSearchLogRequest
 import com.back.devc.domain.member.searchLog.service.SearchLogService
 import com.back.devc.domain.post.category.repository.CategoryRepository
 import com.back.devc.domain.post.comment.repository.CommentRepository
-import com.back.devc.domain.post.post.dto.*
+import com.back.devc.domain.post.post.dto.PostCreateRequest
+import com.back.devc.domain.post.post.dto.PostCreateResponse
+import com.back.devc.domain.post.post.dto.PostDeleteResponse
+import com.back.devc.domain.post.post.dto.PostDetailResponse
+import com.back.devc.domain.post.post.dto.PostListResponse
+import com.back.devc.domain.post.post.dto.PostUpdateRequest
+import com.back.devc.domain.post.post.dto.PostUpdateResponse
 import com.back.devc.domain.post.post.entity.Post
 import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.domain.post.post.type.PostSearchType
@@ -46,7 +52,7 @@ class PostService(
         val category = categoryRepository.findById(request.categoryId)
             .orElseThrow { ApiException(CategoryErrorCode.CATEGORY_404_NOT_FOUND) }
 
-        val post = Post.create(
+        val post = Post.Companion.create(
             member = member,
             category = category,
             title = request.title,
@@ -56,7 +62,7 @@ class PostService(
         val savedPost = postRepository.save(post)
 
 
-        return PostCreateResponse.from(savedPost)
+        return PostCreateResponse.Companion.from(savedPost)
     }
 
     @Transactional
@@ -80,7 +86,7 @@ class PostService(
 
         syncCommentCount(post)
 
-        return PostDetailResponse.from(
+        return PostDetailResponse.Companion.from(
             post,
             liked,
             bookmarked,
@@ -132,7 +138,7 @@ class PostService(
                 bookmarkRepository.existsByMember_UserIdAndPost_PostId(it, postId)
             } ?: false
 
-            PostListResponse.from(
+            PostListResponse.Companion.from(
                 post,
                 liked,
                 bookmarked,
@@ -159,7 +165,7 @@ class PostService(
             category,
         )
 
-        return PostUpdateResponse.from(post)
+        return PostUpdateResponse.Companion.from(post)
     }
 
     @Transactional
@@ -181,7 +187,7 @@ class PostService(
 
         post.delete()
 
-        return PostDeleteResponse.of(postId)
+        return PostDeleteResponse.Companion.of(postId)
     }
 
     @Transactional
