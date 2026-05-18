@@ -10,23 +10,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ReportTest {
 
     @Test
-    @DisplayName("builder creates a pending report")
-    void builder_createsPendingReport() {
-        Member reporter = Member.createLocalMember("reporter@test.com", "password", "reporter");
+    @DisplayName("create creates a pending report")
+    void create_createsPendingReport() {
+        Member reporter = Member.createLocalMember(
+                "reporter@test.com",
+                "password",
+                "reporter"
+        );
 
-        Report report = Report.builder()
-                .reporter(reporter)
-                .targetType(TargetType.POST)
-                .targetId(10L)
-                .reasonType("SPAM")
-                .reasonDetail("Repeated promotion")
-                .build();
+        Report report = Report.create(
+                reporter,
+                TargetType.POST,
+                10L,
+                "SPAM",
+                "Repeated promotion"
+        );
 
-        assertThat(report.reporter).isSameAs(reporter);
-        assertThat(report.targetType).isEqualTo(TargetType.POST);
-        assertThat(report.targetId).isEqualTo(10L);
-        assertThat(report.reasonType).isEqualTo("SPAM");
-        assertThat(report.reasonDetail).isEqualTo("Repeated promotion");
+        assertThat(report.getReporter()).isSameAs(reporter);
+        assertThat(report.getTargetType()).isEqualTo(TargetType.POST);
+        assertThat(report.getTargetId()).isEqualTo(10L);
+        assertThat(report.getReasonType()).isEqualTo("SPAM");
+        assertThat(report.getReasonDetail()).isEqualTo("Repeated promotion");
+
         assertThat(report.getStatus()).isEqualTo(ReportStatus.PENDING);
         assertThat(report.getProcessedByAdmin()).isNull();
         assertThat(report.getProcessedAt()).isNull();
@@ -36,7 +41,12 @@ class ReportTest {
     @DisplayName("processReport resolves the report and records admin")
     void processReport_resolvesReport() {
         Report report = pendingReport();
-        Member admin = Member.createLocalAdminMember("admin@test.com", "password", "admin");
+
+        Member admin = Member.createLocalAdminMember(
+                "admin@test.com",
+                "password",
+                "admin"
+        );
 
         report.processReport(admin);
 
@@ -49,7 +59,12 @@ class ReportTest {
     @DisplayName("rejectReport rejects the report and records admin")
     void rejectReport_rejectsReport() {
         Report report = pendingReport();
-        Member admin = Member.createLocalAdminMember("admin@test.com", "password", "admin");
+
+        Member admin = Member.createLocalAdminMember(
+                "admin@test.com",
+                "password",
+                "admin"
+        );
 
         report.rejectReport(admin);
 
@@ -59,12 +74,16 @@ class ReportTest {
     }
 
     private Report pendingReport() {
-        return Report.builder()
-                .reporter(Member.createLocalMember("reporter@test.com", "password", "reporter"))
-                .targetType(TargetType.COMMENT)
-                .targetId(20L)
-                .reasonType("ABUSE")
-                .reasonDetail("Insulting content")
-                .build();
+        return Report.create(
+                Member.createLocalMember(
+                        "reporter@test.com",
+                        "password",
+                        "reporter"
+                ),
+                TargetType.COMMENT,
+                20L,
+                "ABUSE",
+                "Insulting content"
+        );
     }
 }

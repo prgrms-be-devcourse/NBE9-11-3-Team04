@@ -56,7 +56,7 @@ data class ReportResponseDTO(
             val reporter = report.reporter
 
             return ReportResponseDTO(
-                reportId = report.getReportId(),
+                reportId = requireNotNull(report.reportId),
                 reporterEmail = reporter.email,
                 reporterNickname = reporter.nickname,
                 targetType = report.targetType,
@@ -66,9 +66,9 @@ data class ReportResponseDTO(
                 targetContent = targetContent,
                 reasonType = report.reasonType,
                 reasonDetail = report.reasonDetail,
-                status = report.getStatus(),
-                createdAt = report.getCreatedAt(),
-                processedAt = report.getProcessedAt()
+                status = report.status,
+                createdAt = requireNotNull(report.createdAt),
+                processedAt = report.processedAt
             )
         }
         @Suppress("UNCHECKED_CAST")
