@@ -141,9 +141,9 @@ class AdminReportServiceTest {
             given(postAuthor.getNickname()).willReturn("post-writer");
             Post post = mock(Post.class);
             given(post.getPostId()).willReturn(10L);
-            given(post.member).willReturn(postAuthor);
-            given(post.title).willReturn("reported post");
-            given(post.content).willReturn("post content");
+            given(post.getMember()).willReturn(postAuthor);
+            given(post.getTitle()).willReturn("reported post");
+            given(post.getContent()).willReturn("post content");
             given(postRepository.findAllByPostIdIn(List.of(10L))).willReturn(List.of(post));
 
             Comment comment = mock(Comment.class);
@@ -452,8 +452,8 @@ class AdminReportServiceTest {
     private Report report(ReportStatus status) {
         Report report = mock(Report.class);
         given(report.getStatus()).willReturn(status);
-        given(report.targetType).willReturn(TargetType.POST);
-        given(report.targetId).willReturn(10L);
+        given(report.getTargetType()).willReturn(TargetType.POST);
+        given(report.getTargetId()).willReturn(10L);
         return report;
     }
 
