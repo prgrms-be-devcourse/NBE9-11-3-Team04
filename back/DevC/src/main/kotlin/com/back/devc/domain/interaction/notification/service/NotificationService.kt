@@ -5,8 +5,8 @@ import com.back.devc.domain.interaction.notification.dto.NotificationResponse
 import com.back.devc.domain.interaction.notification.entity.Notification
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository
 import com.back.devc.domain.interaction.notification.type.NotificationType
-import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.member.member.entity.Member
+import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.comment.service.CommentService
@@ -635,7 +635,7 @@ class NotificationService(
             requireNotNull(notification.type),
             requireNotNull(notification.message),
             notification.isRead,
-            notification.getCreatedAt(),
+            requireNotNull(notification.createdAt)
         )
     }
 
