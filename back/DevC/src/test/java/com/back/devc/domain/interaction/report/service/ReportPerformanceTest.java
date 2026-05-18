@@ -21,6 +21,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.util.StopWatch;
 
 import java.time.LocalDateTime;
@@ -86,7 +87,12 @@ class ReportPerformanceTest {
 
         Page<Object[]> mockPage = new PageImpl<>(pageRows, pageable, totalData);
 
-        given(reportRepository.findGroupedReports(any(), any(), any(), any())).willReturn(mockPage);
+        given(reportRepository.findGroupedReports(
+                any(ReportStatus.class),
+                any(LocalDateTime.class),
+                any(LocalDateTime.class),
+                any(Pageable.class)
+        )).willReturn(mockPage);
 
         // 2. Given: 엔티티 Mocking
         Member mockMember = mock(Member.class);
@@ -160,8 +166,12 @@ class ReportPerformanceTest {
 
         Page<Object[]> mockPage = new PageImpl<>(pageRows, pageable, totalData);
 
-        given(reportRepository.findGroupedReports(any(), any(), any(), any()))
-                .willReturn(mockPage);
+        given(reportRepository.findGroupedReports(
+                any(ReportStatus.class),
+                any(LocalDateTime.class),
+                any(LocalDateTime.class),
+                any(Pageable.class)
+        )).willReturn(mockPage);
 
         // 2. target handler mock (NO batch 핵심)
         ReportTargetHandler.TargetInfo mockInfo =
@@ -172,8 +182,10 @@ class ReportPerformanceTest {
                 .willReturn(mockInfo);
 
         // reasonTypes도 row마다 호출됨
-        given(reportRepository.findReasonTypesByTargetId(any(), any()))
-                .willReturn(List.of("SPAM", "ABUSE"));
+        given(reportRepository.findReasonTypesByTargetId(
+                any(TargetType.class),
+                any(Long.class)
+        )).willReturn(List.of("SPAM", "ABUSE"));
 
         // 3. When
         StopWatch sw = new StopWatch();
