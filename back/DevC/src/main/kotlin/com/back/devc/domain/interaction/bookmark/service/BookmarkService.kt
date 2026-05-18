@@ -28,12 +28,9 @@ class BookmarkService(
     private val postRepository: PostRepository,
 ) {
 
-    /**
-     * 게시글 북마크 추가
-     */
+    // 게시글 북마크 추가
     @Transactional
     fun createBookmark(command: BookmarkCreateCommand): BookmarkResponse {
-
         val userId = command.memberId
         val postId = command.postId
 
@@ -48,12 +45,9 @@ class BookmarkService(
         )
     }
 
-    /**
-     * 게시글 북마크 취소
-     */
+    // 게시글 북마크 취소
     @Transactional
     fun cancelBookmark(command: BookmarkDeleteCommand): BookmarkResponse {
-
         val userId = command.memberId
         val postId = command.postId
 
@@ -68,36 +62,26 @@ class BookmarkService(
         )
     }
 
-    /**
-     * 북마크 목록 조회 - List
-     */
+    // 북마크 목록 조회 - List
     fun getBookmarkedPosts(userId: Long): List<BookmarkedPostResponse> {
-
         val member = findMemberById(userId)
-
-        val bookmarks =
-            bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member)
+        val bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(member)
 
         return bookmarks.map { bookmark ->
             toBookmarkedPostResponse(bookmark, userId)
         }
     }
 
-    /**
-     * 북마크 목록 조회 - Paging
-     */
+    // 북마크 목록 조회 - Paging
     fun getBookmarkedPosts(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<BookmarkedPostResponse> {
-
         val member = findMemberById(userId)
-
-        val bookmarks =
-            bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(
-                member,
-                pageable,
-            )
+        val bookmarks = bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(
+            member,
+            pageable,
+        )
 
         val responses = bookmarks.map { bookmark ->
             toBookmarkedPostResponse(bookmark, userId)
@@ -106,35 +90,26 @@ class BookmarkService(
         return PageResponse.from(responses)
     }
 
-    /**
-     * 현재 사용자의 북마크 여부 확인
-     */
+    // 현재 사용자의 북마크 여부 확인
     fun isBookmarkedByUser(
         userId: Long,
         postId: Long,
     ): Boolean {
-
-        return bookmarkRepository
-            .existsByMember_UserIdAndPost_PostId(userId, postId)
+        return bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId)
     }
 
     private fun toBookmarkedPostResponse(
         bookmark: Bookmark,
         userId: Long,
     ): BookmarkedPostResponse {
-
         val post: Post = bookmark.post
-
         val postId = post.postId
-            ?: throw ApiException(
-                BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND
-            )
+            ?: throw ApiException(BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND)
 
-        val liked =
-            postLikeRepository.existsByMember_UserIdAndPost_PostId(
-                userId,
-                postId,
-            )
+        val liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
+            userId,
+            postId,
+        )
 
         return BookmarkedPostResponse(
             postId = postId,
@@ -150,40 +125,22 @@ class BookmarkService(
         )
     }
 
-    /**
-     * Member 조회
-     */
     private fun findMemberById(userId: Long): Member {
-
         return memberRepository.findById(userId)
             .orElseThrow {
-                ApiException(
-                    BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND
-                )
+                ApiException(BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND)
             }
     }
 
-    /**
-     * 회원 존재 여부 검증
-     */
     private fun validateMemberExists(userId: Long) {
-
         if (!memberRepository.existsById(userId)) {
-            throw ApiException(
-                BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND
-            )
+            throw ApiException(BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND)
         }
     }
 
-    /**
-     * 게시글 존재 여부 검증
-     */
     private fun validatePostExists(postId: Long) {
-
         if (postRepository.findByPostIdAndIsDeletedFalse(postId).isEmpty) {
-            throw ApiException(
-                BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND
-            )
+            throw ApiException(BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND)
         }
     }
 }
