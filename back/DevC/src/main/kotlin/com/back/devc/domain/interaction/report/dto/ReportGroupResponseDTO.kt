@@ -27,7 +27,7 @@ data class ReportGroupResponseDTO(
     val reasonTypes: List<String>,
 
     @JvmField
-    val status: ReportStatus,
+    val status: ReportStatus?,
 
     @JvmField
     val latestCreatedAt: LocalDateTime

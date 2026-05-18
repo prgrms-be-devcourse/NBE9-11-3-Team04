@@ -42,13 +42,19 @@ class AdminReportController(
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<ReportResponseDTO>>> {
 
-        val reports = adminReportService.getReports(status, pageable)
-
-        val successCode = ReportSuccessCode.REPORT_200_LIST
+        val reports = adminReportService.getReports(
+            status,
+            pageable
+        )
 
         return ResponseEntity
-            .status(successCode.status)
-            .body(SuccessResponse.of(successCode, reports))
+            .status(ReportSuccessCode.REPORT_200_LIST.status)
+            .body(
+                SuccessResponse.of(
+                    ReportSuccessCode.REPORT_200_LIST,
+                    reports
+                )
+            )
     }
 
     @GetMapping("/groups")
@@ -77,23 +83,42 @@ class AdminReportController(
 
         getAuthenticatedUserId(principal)
 
-        val groups =
-            if (from == null && to == null) {
-                adminReportService.getGroupedReports(status, pageable)
-            } else {
-                adminReportService.getGroupedReports(status, from, to, pageable)
+        val groups = when {
+            from == null && to == null -> {
+                adminReportService.getGroupedReports(
+                    status,
+                    pageable
+                )
             }
 
-        val successCode = ReportSuccessCode.REPORT_200_GROUP_LIST
+            from != null && to != null -> {
+                adminReportService.getGroupedReports(
+                    status,
+                    from,
+                    to,
+                    pageable
+                )
+            }
+
+            else -> {
+                throw ApiException(ErrorCode.BAD_REQUEST)
+            }
+        }
 
         return ResponseEntity
-            .status(successCode.status)
-            .body(SuccessResponse.of(successCode, groups))
+            .status(ReportSuccessCode.REPORT_200_GROUP_LIST.status)
+            .body(
+                SuccessResponse.of(
+                    ReportSuccessCode.REPORT_200_GROUP_LIST,
+                    groups
+                )
+            )
     }
 
     @PostMapping("/groups/approve")
     fun approveGroup(
-        @RequestBody @Valid
+        @RequestBody
+        @Valid
         requestDto: AdminReportRequestDTO,
 
         @AuthenticationPrincipal
@@ -105,16 +130,20 @@ class AdminReportController(
             requestDto
         )
 
-        val successCode = ReportSuccessCode.REPORT_200_GROUP_APPROVE
-
         return ResponseEntity
-            .status(successCode.status)
-            .body(SuccessResponse.of(successCode, null))
+            .status(ReportSuccessCode.REPORT_200_GROUP_APPROVE.status)
+            .body(
+                SuccessResponse.of(
+                    ReportSuccessCode.REPORT_200_GROUP_APPROVE,
+                    null
+                )
+            )
     }
 
     @PostMapping("/groups/reject")
     fun rejectGroup(
-        @RequestBody @Valid
+        @RequestBody
+        @Valid
         requestDto: AdminReportRequestDTO,
 
         @AuthenticationPrincipal
@@ -126,14 +155,20 @@ class AdminReportController(
             requestDto
         )
 
-        val successCode = ReportSuccessCode.REPORT_200_GROUP_REJECT
-
         return ResponseEntity
-            .status(successCode.status)
-            .body(SuccessResponse.of(successCode, null))
+            .status(ReportSuccessCode.REPORT_200_GROUP_REJECT.status)
+            .body(
+                SuccessResponse.of(
+                    ReportSuccessCode.REPORT_200_GROUP_REJECT,
+                    null
+                )
+            )
     }
 
-    private fun getAuthenticatedUserId(principal: JwtPrincipal?): Long {
+    private fun getAuthenticatedUserId(
+        principal: JwtPrincipal?
+    ): Long {
+
         return principal?.userId()
             ?: throw ApiException(ErrorCode.UNAUTHORIZED)
     }
