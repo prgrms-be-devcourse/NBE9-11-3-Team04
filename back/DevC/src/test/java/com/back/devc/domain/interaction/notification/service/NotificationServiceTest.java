@@ -126,7 +126,7 @@ class NotificationServiceTest {
 
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
         when(postRepository.findById(100L)).thenReturn(Optional.of(post));
-        when(post.getIsDeleted()).thenReturn(false);
+        when(post.isDeleted()).thenReturn(false);
         when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
 
         // when
@@ -168,7 +168,7 @@ class NotificationServiceTest {
         Member actor = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.member).thenReturn(owner);
+        when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(postOwnerId);
         when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
         when(actor.getNickname()).thenReturn("작성자B");
@@ -201,7 +201,7 @@ class NotificationServiceTest {
         Member owner = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.member).thenReturn(owner);
+        when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(actorUserId);
 
         // when
@@ -298,7 +298,7 @@ class NotificationServiceTest {
         Member actor = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.member).thenReturn(owner);
+        when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(postOwnerId);
         when(notificationRepository.existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "LIKE"))
                 .thenReturn(false);
@@ -331,7 +331,7 @@ class NotificationServiceTest {
         Member owner = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.member).thenReturn(owner);
+        when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(actorUserId);
 
         // when
@@ -353,7 +353,7 @@ class NotificationServiceTest {
         Member owner = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.member).thenReturn(owner);
+        when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(postOwnerId);
         when(notificationRepository.existsByUserIdAndActorUserIdAndPostIdAndType(postOwnerId, actorUserId, postId, "LIKE"))
                 .thenReturn(true);
@@ -377,7 +377,7 @@ class NotificationServiceTest {
         Member owner = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.member).thenReturn(owner);
+        when(post.getMember()).thenReturn(owner);
         when(owner.getUserId()).thenReturn(postOwnerId);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);

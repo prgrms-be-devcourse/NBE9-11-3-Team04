@@ -70,11 +70,11 @@ public class UserReportService {
             Post post = postRepository.findById(targetId)
                     .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
-            if (post.member.getUserId().equals(reporterId)) {
+            if (post.getMember().getUserId().equals(reporterId)) {
                 throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 
-            if (post.getIsDeleted()) {
+            if (post.isDeleted()) {
                 throw new ApiException(ReportErrorCode.REPORT_410_ALREADY_DELETED);
             }
         }

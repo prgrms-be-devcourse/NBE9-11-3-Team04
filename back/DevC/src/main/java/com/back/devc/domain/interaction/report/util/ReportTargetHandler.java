@@ -17,6 +17,7 @@ import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,7 +93,7 @@ public class ReportTargetHandler {
         if (targetType == TargetType.POST) {
             postRepository.findById(targetId)
                     .ifPresentOrElse(post -> {
-                        if (!post.getIsDeleted()) {
+                        if (!post.isDeleted()) {
                             post.delete();
                             log.info("신고 대상 게시글 삭제 처리 완료 - postId={}", targetId);
                         } else {
@@ -202,9 +203,9 @@ public class ReportTargetHandler {
             }
 
             return new TargetInfo(
-                    post.member.getNickname(),
-                    post.title,
-                    post.content
+                    post.getMember().getNickname(),
+                    post.getTitle(),
+                    post.getContent()
             );
         }
 

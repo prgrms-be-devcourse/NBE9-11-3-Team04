@@ -47,9 +47,9 @@ class MemberPublicProfileControllerTest {
         );
         Category category = categoryRepository.save(new Category("public-profile-category"));
 
-        Post visiblePost1 = postRepository.save(new Post(member, category, "공개 글 1", "내용 1"));
-        Post visiblePost2 = postRepository.save(new Post(member, category, "공개 글 2", "내용 2"));
-        Post deletedPost = postRepository.save(new Post(member, category, "삭제된 글", "내용 3"));
+        Post visiblePost1 = postRepository.save(Post.create(member, category, "공개 글 1", "내용 1"));
+        Post visiblePost2 = postRepository.save(Post.create(member, category, "공개 글 2", "내용 2"));
+        Post deletedPost = postRepository.save(Post.create(member, category, "삭제된 글", "내용 3"));
         deletedPost.delete();
         postRepository.flush();
 
