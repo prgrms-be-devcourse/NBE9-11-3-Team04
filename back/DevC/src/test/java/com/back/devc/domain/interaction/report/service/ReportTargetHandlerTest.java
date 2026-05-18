@@ -174,7 +174,7 @@ class ReportTargetHandlerTest {
         Member writer = mock(Member.class);
 
         Post post = mock(Post.class);
-        when(post.getMember()).thenReturn(writer);
+        when(post.member).thenReturn(writer);
 
         when(postRepository.findById(10L))
                 .thenReturn(Optional.of(post));
@@ -281,9 +281,9 @@ class ReportTargetHandlerTest {
         when(writer.getNickname()).thenReturn("post-writer");
 
         Post post = mock(Post.class);
-        when(post.getMember()).thenReturn(writer);
-        when(post.getTitle()).thenReturn("post title");
-        when(post.getContent()).thenReturn("post content");
+        when(post.member).thenReturn(writer);
+        when(post.title).thenReturn("post title");
+        when(post.content).thenReturn("post content");
         when(postRepository.findById(10L)).thenReturn(Optional.of(post));
 
         var result = handler.getTargetInfo(TargetType.POST, 10L);

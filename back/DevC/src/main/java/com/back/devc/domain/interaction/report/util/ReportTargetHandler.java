@@ -202,9 +202,9 @@ public class ReportTargetHandler {
             }
 
             return new TargetInfo(
-                    post.getMember().getNickname(),
-                    post.getTitle(),
-                    post.getContent()
+                    post.member.getNickname(),
+                    post.title,
+                    post.content
             );
         }
 

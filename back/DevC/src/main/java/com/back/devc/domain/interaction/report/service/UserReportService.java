@@ -70,7 +70,7 @@ public class UserReportService {
             Post post = postRepository.findById(targetId)
                     .orElseThrow(() -> new ApiException(ReportErrorCode.REPORT_404_TARGET));
 
-            if (post.getMember().getUserId().equals(reporterId)) {
+            if (post.member.getUserId().equals(reporterId)) {
                 throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 

@@ -49,7 +49,7 @@ class CommentService(
             }
 
         // 삭제된 게시글에는 댓글을 작성할 수 없도록 차단
-        if (post.getIsDeleted()) {
+        if (post.isDeleted) {
             log.warn("댓글 작성 실패 - 삭제된 게시글, postId={}", postId)
             throw ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND)
         }
@@ -82,7 +82,7 @@ class CommentService(
         eventPublisher.publishEvent(CommentCreatedEvent(postId, loginUserId, savedCommentId))
         log.info("댓글 알림 이벤트 발행 완료 - commentId={}, postId={}", savedCommentId, postId)
 
-        return toResponse(savedComment, post.getTitle(), MemberDisplayUtil.getDisplayName(member))
+        return toResponse(savedComment, post.title, MemberDisplayUtil.getDisplayName(member))
     }
 
     @Transactional
@@ -112,7 +112,7 @@ class CommentService(
             }
 
         // 삭제된 게시글에는 대댓글을 작성할 수 없도록 차단
-        if (post.getIsDeleted()) {
+        if (post.isDeleted) {
             log.warn("대댓글 작성 실패 - 삭제된 게시글, postId={}", parentPostId)
             throw ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND)
         }
@@ -149,7 +149,7 @@ class CommentService(
             parentCommentId,
         )
 
-        return toResponse(savedReply, post.getTitle(), MemberDisplayUtil.getDisplayName(member))
+        return toResponse(savedReply, post.title, MemberDisplayUtil.getDisplayName(member))
     }
 
     @Transactional
@@ -204,7 +204,7 @@ class CommentService(
             }
 
         // 삭제된 게시글의 댓글 목록은 조회되지 않도록 차단
-        if (post.getIsDeleted()) {
+        if (post.isDeleted) {
             log.warn("댓글 목록 조회 실패 - 삭제된 게시글, postId={}", postId)
             throw ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND)
         }
@@ -232,7 +232,7 @@ class CommentService(
             .map { comment ->
                 toResponse(
                     comment,
-                    post.getTitle(),
+                    post.title,
                     findMemberNickname(comment.getUserId()),
                 )
             }
@@ -327,7 +327,7 @@ class CommentService(
                 log.warn("게시글 제목 조회 실패 - 게시글 없음, postId={}", postId)
                 ApiException(CommentErrorCode.COMMENT_404_POST_NOT_FOUND)
             }
-            .getTitle()
+            .title
     }
 
     private fun findMemberNickname(userId: Long): String {

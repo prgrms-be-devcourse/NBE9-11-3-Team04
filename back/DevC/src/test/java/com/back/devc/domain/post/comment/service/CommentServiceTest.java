@@ -71,7 +71,7 @@ class CommentServiceTest {
         Member member = mock(Member.class);
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.getTitle()).thenReturn("테스트 게시글");
+        when(post.title).thenReturn("테스트 게시글");
         when(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member));
         when(member.getUserId()).thenReturn(loginUserId);
         when(member.getNickname()).thenReturn("작성자B");
@@ -142,7 +142,7 @@ class CommentServiceTest {
 
         when(commentRepository.findById(parentCommentId)).thenReturn(Optional.of(parentComment));
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.getTitle()).thenReturn("테스트 게시글");
+        when(post.title).thenReturn("테스트 게시글");
         when(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member));
         when(member.getUserId()).thenReturn(loginUserId);
         when(member.getNickname()).thenReturn("작성자B");
@@ -215,7 +215,7 @@ class CommentServiceTest {
 
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.getTitle()).thenReturn("테스트 게시글");
+        when(post.title).thenReturn("테스트 게시글");
         when(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member));
         when(member.getNickname()).thenReturn("작성자B");
         when(commentAttachmentService.getAttachments(commentId)).thenReturn(new CommentAttachmentListResponse(List.of()));
@@ -261,7 +261,7 @@ class CommentServiceTest {
         Long postId = 10L;
         Post post = mock(Post.class);
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(post.getTitle()).thenReturn("테스트 게시글");
+        when(post.title).thenReturn("테스트 게시글");
 
         Comment parent = new Comment(postId, 1L, null, "부모 댓글");
         ReflectionTestUtils.setField(parent, "id", 1L);

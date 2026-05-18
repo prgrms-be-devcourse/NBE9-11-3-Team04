@@ -22,7 +22,8 @@ data class AdminPostDetailResponse(
         @JvmStatic
         fun from(post: Post): AdminPostDetailResponse {
             return AdminPostDetailResponse(
-                postId = post.postId,
+                postId = post.postId
+                    ?: throw IllegalStateException("Post ID cannot be null"),
                 title = post.title,
                 content = post.content,
                 userId = post.member?.userId,

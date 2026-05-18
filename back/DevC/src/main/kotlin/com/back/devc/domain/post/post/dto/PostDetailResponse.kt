@@ -29,7 +29,8 @@ data class PostDetailResponse(
             bookmarkCount: Int = 0
         ): PostDetailResponse {
             return PostDetailResponse(
-                postId = post.postId,
+                postId = post.postId
+                    ?: throw IllegalStateException("Post ID cannot be null"),
                 title = post.title,
                 content = post.content,
                 userId = post.member?.userId,
