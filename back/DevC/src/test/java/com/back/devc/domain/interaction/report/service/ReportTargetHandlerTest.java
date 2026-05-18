@@ -288,9 +288,9 @@ class ReportTargetHandlerTest {
 
         var result = handler.getTargetInfo(TargetType.POST, 10L);
 
-        assertThat(result.nickname()).isEqualTo("post-writer");
-        assertThat(result.title()).isEqualTo("post title");
-        assertThat(result.content()).isEqualTo("post content");
+        assertThat(result.nickname).isEqualTo("post-writer");
+        assertThat(result.title).isEqualTo("post title");
+        assertThat(result.content).isEqualTo("post content");
     }
 
     @Test
@@ -306,9 +306,9 @@ class ReportTargetHandlerTest {
 
         var result = handler.getTargetInfo(TargetType.COMMENT, 20L);
 
-        assertThat(result.nickname()).isEqualTo("comment-writer");
-        assertThat(result.title()).isNull();
-        assertThat(result.content()).isEqualTo("comment content");
+        assertThat(result.nickname).isEqualTo("comment-writer");
+        assertThat(result.title).isNull();
+        assertThat(result.content).isEqualTo("comment content");
     }
 
     @Test
@@ -317,8 +317,8 @@ class ReportTargetHandlerTest {
 
         var result = handler.getTargetInfo(TargetType.POST, 10L);
 
-        assertThat(result.nickname()).isNull();
-        assertThat(result.title()).isNull();
-        assertThat(result.content()).isNull();
+        assertThat(result.nickname).isNull();
+        assertThat(result.title).isNull();
+        assertThat(result.content).isNull();
     }
 }
