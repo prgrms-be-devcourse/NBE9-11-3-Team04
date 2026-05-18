@@ -33,13 +33,6 @@ class MypageService(
     private val bookmarkService: BookmarkService,
 ) {
 
-    private fun getMember(userId: Long): Member {
-        return memberRepository.findById(userId)
-            .orElseThrow {
-                ApiException(MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND)
-            }
-    }
-
     fun getMyProfile(userId: Long): MyProfileResponse {
         val member = getMember(userId)
 
@@ -54,7 +47,6 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<MyPostResponse> {
-
         val member = getMember(userId)
 
         val posts = postRepository.findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(
@@ -63,7 +55,6 @@ class MypageService(
         )
 
         val response = posts.map { post ->
-
             val postId = post.postId
                 ?: throw ApiException(MypageErrorCode.MYPAGE_404_POST_NOT_FOUND)
 
@@ -96,7 +87,6 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<MyCommentResponse> {
-
         getMember(userId)
 
         val comments = commentRepository.findMyComments(userId, pageable)
@@ -108,7 +98,6 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<LikedPostResponse> {
-
         getMember(userId)
 
         return postLikeService.getLikedPosts(userId, pageable)
@@ -118,7 +107,6 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<BookmarkedPostResponse> {
-
         getMember(userId)
 
         return bookmarkService.getBookmarkedPosts(userId, pageable)
@@ -129,18 +117,14 @@ class MypageService(
         userId: Long,
         request: UpdateMyProfileRequest,
     ): MyProfileResponse {
-
         val member = getMember(userId)
-
         val newNickname = request.nickname.trim()
 
         if (
             member.nickname != newNickname &&
             memberRepository.existsByNickname(newNickname)
         ) {
-            throw ApiException(
-                MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS
-            )
+            throw ApiException(MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS)
         }
 
         member.updateNickname(newNickname)
@@ -150,5 +134,12 @@ class MypageService(
             email = member.email,
             nickname = member.nickname,
         )
+    }
+
+    private fun getMember(userId: Long): Member {
+        return memberRepository.findById(userId)
+            .orElseThrow {
+                ApiException(MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND)
+            }
     }
 }
