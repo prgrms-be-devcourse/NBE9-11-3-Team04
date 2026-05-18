@@ -126,10 +126,10 @@ class ReportIntegrationTest {
         List<Report> reports = reportRepository.findAllByTargetTypeAndTargetId(TargetType.POST, post.getPostId());
         assertThat(reports).hasSize(1);
         Report savedReport = reports.getFirst();
-        assertThat(savedReport.reporter.getUserId()).isEqualTo(reporter.getUserId());
+        assertThat(savedReport.getReporter().getUserId()).isEqualTo(reporter.getUserId());
         assertThat(savedReport.getStatus()).isEqualTo(ReportStatus.PENDING);
-        assertThat(savedReport.reasonType).isEqualTo("SPAM");
-        assertThat(savedReport.reasonDetail).isEqualTo("Repeated promotion");
+        assertThat(savedReport.getReasonType()).isEqualTo("SPAM");
+        assertThat(savedReport.getReasonDetail()).isEqualTo("Repeated promotion");
     }
 
     @Test
@@ -221,7 +221,7 @@ class ReportIntegrationTest {
                 });
 
         Post deletedPost = postRepository.findById(post.getPostId()).orElseThrow();
-        assertThat(deletedPost.getIsDeleted()).isTrue();
+        assertThat(deletedPost.isDeleted()).isTrue();
 
         Member sanctionedAuthor = memberRepository.findById(author.getUserId()).orElseThrow();
         assertThat(sanctionedAuthor.getStatus()).isEqualTo(MemberStatus.WARNED);
@@ -253,17 +253,17 @@ class ReportIntegrationTest {
     }
 
     private Post createPost(Member member, String title, String content) {
-        return postRepository.save(new Post(member, category, title, content));
+        return postRepository.save(Post.create(member, category, title, content));
     }
 
     private Report report(Member reporter, TargetType targetType, Long targetId, String reasonType, String reasonDetail) {
-        return Report.builder()
-                .reporter(reporter)
-                .targetType(targetType)
-                .targetId(targetId)
-                .reasonType(reasonType)
-                .reasonDetail(reasonDetail)
-                .build();
+        return Report.create(
+                reporter,
+                targetType,
+                targetId,
+                reasonType,
+                reasonDetail
+        );
     }
 
     private String reportRequest(Long targetId, String reasonType) {

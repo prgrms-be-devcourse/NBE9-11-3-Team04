@@ -69,7 +69,7 @@ class AdminReportService(
 
     @Transactional(readOnly = true)
     fun getGroupedReportsNoBatch(
-        status: ReportStatus,
+        status: ReportStatus?,
         pageable: Pageable
     ): Page<ReportGroupResponseDTO> {
 
@@ -128,7 +128,7 @@ class AdminReportService(
 
     @Transactional(readOnly = true)
     fun getGroupedReports(
-        status: ReportStatus,
+        status: ReportStatus?,
         pageable: Pageable
     ): Page<ReportGroupResponseDTO> {
 
@@ -145,7 +145,7 @@ class AdminReportService(
 
     @Transactional(readOnly = true)
     fun getGroupedReports(
-        status: ReportStatus,
+        status: ReportStatus?,
         from: LocalDateTime,
         to: LocalDateTime,
         pageable: Pageable

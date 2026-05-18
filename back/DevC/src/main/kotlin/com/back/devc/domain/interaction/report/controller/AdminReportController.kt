@@ -62,8 +62,8 @@ class AdminReportController(
         @AuthenticationPrincipal
         principal: JwtPrincipal?,
 
-        @RequestParam
-        status: ReportStatus,
+        @RequestParam(required = false)
+        status: ReportStatus?,
 
         @RequestParam(required = false)
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)

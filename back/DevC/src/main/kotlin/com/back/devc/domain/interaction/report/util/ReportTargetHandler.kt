@@ -182,7 +182,7 @@ class ReportTargetHandler(
                     return
                 }
 
-                if (post.isDeleted) {
+                if (!post.isDeleted) {
 
                     post.delete()
 
