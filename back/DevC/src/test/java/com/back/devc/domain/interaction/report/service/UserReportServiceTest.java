@@ -90,11 +90,11 @@ class UserReportServiceTest {
             ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
             verify(reportRepository).save(captor.capture());
             Report savedReport = captor.getValue();
-            assertThat(savedReport.reporter).isSameAs(reporter);
-            assertThat(savedReport.targetType).isEqualTo(TargetType.POST);
-            assertThat(savedReport.targetId).isEqualTo(10L);
-            assertThat(savedReport.reasonType).isEqualTo("SPAM");
-            assertThat(savedReport.reasonDetail).isEqualTo("Repeated promotion");
+            assertThat(savedReport.getReporter()).isSameAs(reporter);
+            assertThat(savedReport.getTargetType()).isEqualTo(TargetType.POST);
+            assertThat(savedReport.getTargetId()).isEqualTo(10L);
+            assertThat(savedReport.getReasonType()).isEqualTo("SPAM");
+            assertThat(savedReport.getReasonDetail()).isEqualTo("Repeated promotion");
         }
 
         @Test
@@ -126,7 +126,7 @@ class UserReportServiceTest {
         @DisplayName("throws when reporter owns the post")
         void reportPost_throwsWhenReportingOwnPost() {
             givenExistingReporter();
-            given(post.member).willReturn(reporter);
+            given(post.getMember()).willReturn(reporter);
             given(postRepository.findById(10L)).willReturn(Optional.of(post));
 
             assertReportError(
@@ -183,11 +183,11 @@ class UserReportServiceTest {
             ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
             verify(reportRepository).save(captor.capture());
             Report savedReport = captor.getValue();
-            assertThat(savedReport.reporter).isSameAs(reporter);
-            assertThat(savedReport.targetType).isEqualTo(TargetType.COMMENT);
-            assertThat(savedReport.targetId).isEqualTo(20L);
-            assertThat(savedReport.reasonType).isEqualTo("ABUSE");
-            assertThat(savedReport.reasonDetail).isEqualTo("Insulting content");
+            assertThat(savedReport.getReporter()).isSameAs(reporter);
+            assertThat(savedReport.getTargetType()).isEqualTo(TargetType.COMMENT);
+            assertThat(savedReport.getTargetId()).isEqualTo(20L);
+            assertThat(savedReport.getReasonType()).isEqualTo("ABUSE");
+            assertThat(savedReport.getReasonDetail()).isEqualTo("Insulting content");
         }
 
         @Test
@@ -251,8 +251,8 @@ class UserReportServiceTest {
     }
 
     private void givenExistingPostByAnotherMember(boolean deleted) {
-        given(post.member).willReturn(author);
-        given(post.getIsDeleted()).willReturn(deleted);
+        given(post.getMember()).willReturn(author);
+        given(post.isDeleted()).willReturn(deleted);
         given(postRepository.findById(10L)).willReturn(Optional.of(post));
     }
 
