@@ -115,7 +115,7 @@ class CommentAttachmentService(
         validateCommentExists(commentId)
 
         val attachment = commentAttachmentRepository.findByIdAndCommentId(attachmentId, commentId)
-            .orElseThrow { ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_NOT_FOUND) }
+            ?: throw ApiException(CommentAttachmentErrorCode.COMMENT_ATTACHMENT_404_NOT_FOUND)
 
         log.debug(
             "댓글 첨부파일 삭제 대상 조회 완료 - commentId={}, attachmentId={}, storedName={}",
