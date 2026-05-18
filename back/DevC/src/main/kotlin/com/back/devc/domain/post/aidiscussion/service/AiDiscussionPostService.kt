@@ -1,5 +1,6 @@
 package com.back.devc.domain.post.aidiscussion.service
 
+import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionPostResponse
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
 import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
@@ -9,7 +10,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
-import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionPostResponse
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 
 
 @Service
@@ -56,8 +58,11 @@ class AiDiscussionPostService(
     }
 
     @Transactional(readOnly = true)
-    fun getDiscussions(status: AiDiscussionStatus): List<AiDiscussionPostResponse> {
-        return aiDiscussionPostRepository.findAllByStatusOrderByCreatedAtDesc(status)
+    fun getDiscussions(
+        status: AiDiscussionStatus,
+        pageable: Pageable,
+    ): Page<AiDiscussionPostResponse> {
+        return aiDiscussionPostRepository.findAllByStatusOrderByCreatedAtDesc(status, pageable)
             .map { aiDiscussionPost -> AiDiscussionPostResponse.from(aiDiscussionPost) }
     }
 
