@@ -22,7 +22,7 @@ data class AiDiscussionPostResponse(
                 status = aiDiscussionPost.status,
                 rejectionReason = aiDiscussionPost.rejectionReason,
                 approvedPostId = aiDiscussionPost.approvedPostId,
-                createdAt = aiDiscussionPost.getCreatedAt(),
+                createdAt = aiDiscussionPost.createdAt,
             )
         }
     }
