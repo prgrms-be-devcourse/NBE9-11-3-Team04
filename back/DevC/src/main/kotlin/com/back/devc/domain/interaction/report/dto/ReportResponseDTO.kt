@@ -53,19 +53,19 @@ data class ReportResponseDTO(
             targetTitle: String?,
             targetContent: String?
         ): ReportResponseDTO {
-            val reporter = report.getReporter()
+            val reporter = report.reporter
 
             return ReportResponseDTO(
                 reportId = report.getReportId(),
                 reporterEmail = reporter.email,
                 reporterNickname = reporter.nickname,
-                targetType = report.getTargetType(),
-                targetId = report.getTargetId(),
+                targetType = report.targetType,
+                targetId = report.targetId,
                 targetNickname = targetNickname,
                 targetTitle = targetTitle,
                 targetContent = targetContent,
-                reasonType = report.getReasonType(),
-                reasonDetail = report.getReasonDetail(),
+                reasonType = report.reasonType,
+                reasonDetail = report.reasonDetail,
                 status = report.getStatus(),
                 createdAt = report.getCreatedAt(),
                 processedAt = report.getProcessedAt()

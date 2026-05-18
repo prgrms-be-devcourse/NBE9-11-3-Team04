@@ -179,8 +179,8 @@ public class ReportTargetHandler {
     public ReportResponseDTO toDtoWithTargetInfo(Report report) {
 
         TargetInfo info = getTargetInfo(
-                report.getTargetType(),
-                report.getTargetId()
+                report.targetType,
+                report.targetId
         );
 
         return ReportResponseDTO.of(

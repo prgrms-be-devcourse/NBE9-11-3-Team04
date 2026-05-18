@@ -22,11 +22,11 @@ class ReportTest {
                 .reasonDetail("Repeated promotion")
                 .build();
 
-        assertThat(report.getReporter()).isSameAs(reporter);
-        assertThat(report.getTargetType()).isEqualTo(TargetType.POST);
-        assertThat(report.getTargetId()).isEqualTo(10L);
-        assertThat(report.getReasonType()).isEqualTo("SPAM");
-        assertThat(report.getReasonDetail()).isEqualTo("Repeated promotion");
+        assertThat(report.reporter).isSameAs(reporter);
+        assertThat(report.targetType).isEqualTo(TargetType.POST);
+        assertThat(report.targetId).isEqualTo(10L);
+        assertThat(report.reasonType).isEqualTo("SPAM");
+        assertThat(report.reasonDetail).isEqualTo("Repeated promotion");
         assertThat(report.getStatus()).isEqualTo(ReportStatus.PENDING);
         assertThat(report.getProcessedByAdmin()).isNull();
         assertThat(report.getProcessedAt()).isNull();

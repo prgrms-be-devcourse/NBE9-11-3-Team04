@@ -90,11 +90,11 @@ class UserReportServiceTest {
             ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
             verify(reportRepository).save(captor.capture());
             Report savedReport = captor.getValue();
-            assertThat(savedReport.getReporter()).isSameAs(reporter);
-            assertThat(savedReport.getTargetType()).isEqualTo(TargetType.POST);
-            assertThat(savedReport.getTargetId()).isEqualTo(10L);
-            assertThat(savedReport.getReasonType()).isEqualTo("SPAM");
-            assertThat(savedReport.getReasonDetail()).isEqualTo("Repeated promotion");
+            assertThat(savedReport.reporter).isSameAs(reporter);
+            assertThat(savedReport.targetType).isEqualTo(TargetType.POST);
+            assertThat(savedReport.targetId).isEqualTo(10L);
+            assertThat(savedReport.reasonType).isEqualTo("SPAM");
+            assertThat(savedReport.reasonDetail).isEqualTo("Repeated promotion");
         }
 
         @Test
@@ -183,11 +183,11 @@ class UserReportServiceTest {
             ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
             verify(reportRepository).save(captor.capture());
             Report savedReport = captor.getValue();
-            assertThat(savedReport.getReporter()).isSameAs(reporter);
-            assertThat(savedReport.getTargetType()).isEqualTo(TargetType.COMMENT);
-            assertThat(savedReport.getTargetId()).isEqualTo(20L);
-            assertThat(savedReport.getReasonType()).isEqualTo("ABUSE");
-            assertThat(savedReport.getReasonDetail()).isEqualTo("Insulting content");
+            assertThat(savedReport.reporter).isSameAs(reporter);
+            assertThat(savedReport.targetType).isEqualTo(TargetType.COMMENT);
+            assertThat(savedReport.targetId).isEqualTo(20L);
+            assertThat(savedReport.reasonType).isEqualTo("ABUSE");
+            assertThat(savedReport.reasonDetail).isEqualTo("Insulting content");
         }
 
         @Test

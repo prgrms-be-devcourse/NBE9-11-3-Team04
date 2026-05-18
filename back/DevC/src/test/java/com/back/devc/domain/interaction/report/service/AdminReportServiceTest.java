@@ -452,8 +452,8 @@ class AdminReportServiceTest {
     private Report report(ReportStatus status) {
         Report report = mock(Report.class);
         given(report.getStatus()).willReturn(status);
-        given(report.getTargetType()).willReturn(TargetType.POST);
-        given(report.getTargetId()).willReturn(10L);
+        given(report.targetType).willReturn(TargetType.POST);
+        given(report.targetId).willReturn(10L);
         return report;
     }
 

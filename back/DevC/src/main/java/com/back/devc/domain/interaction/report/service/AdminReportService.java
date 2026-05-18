@@ -346,14 +346,14 @@ public class AdminReportService {
 
         Report report = findReportOrThrow(dto.reportId);
         validatePendingStatus(report);
-        validateTargetExists(report.getTargetType(), report.getTargetId());
+        validateTargetExists(report.targetType, report.targetId);
         validateSanctionDetails(dto);
 
         report.processReport(admin);
 
         reportTargetHandler.handleApproved(
-                report.getTargetType(),
-                report.getTargetId(),
+                report.targetType,
+                report.targetId,
                 admin,
                 dto.sanctionType,
                 dto.suspensionDays
@@ -362,8 +362,8 @@ public class AdminReportService {
         log.info("관리자 신고 단건 승인 완료 - adminId={}, reportId={}, targetType={}, targetId={}, sanctionType={}, suspensionDays={}",
                 adminId,
                 dto.reportId,
-                report.getTargetType(),
-                report.getTargetId(),
+                report.targetType,
+                report.targetId,
                 dto.sanctionType,
                 dto.suspensionDays);
     }
@@ -383,16 +383,16 @@ public class AdminReportService {
         report.rejectReport(admin);
 
         reportTargetHandler.handleRejected(
-                report.getTargetType(),
-                report.getTargetId(),
+                report.targetType,
+                report.targetId,
                 admin
         );
 
         log.info("관리자 신고 단건 반려 완료 - adminId={}, reportId={}, targetType={}, targetId={}",
                 adminId,
                 dto.reportId,
-                report.getTargetType(),
-                report.getTargetId());
+                report.targetType,
+                report.targetId);
     }
 
     /* =========================================================

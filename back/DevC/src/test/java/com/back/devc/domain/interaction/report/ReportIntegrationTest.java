@@ -126,10 +126,10 @@ class ReportIntegrationTest {
         List<Report> reports = reportRepository.findAllByTargetTypeAndTargetId(TargetType.POST, post.getPostId());
         assertThat(reports).hasSize(1);
         Report savedReport = reports.getFirst();
-        assertThat(savedReport.getReporter().getUserId()).isEqualTo(reporter.getUserId());
+        assertThat(savedReport.reporter.getUserId()).isEqualTo(reporter.getUserId());
         assertThat(savedReport.getStatus()).isEqualTo(ReportStatus.PENDING);
-        assertThat(savedReport.getReasonType()).isEqualTo("SPAM");
-        assertThat(savedReport.getReasonDetail()).isEqualTo("Repeated promotion");
+        assertThat(savedReport.reasonType).isEqualTo("SPAM");
+        assertThat(savedReport.reasonDetail).isEqualTo("Repeated promotion");
     }
 
     @Test
