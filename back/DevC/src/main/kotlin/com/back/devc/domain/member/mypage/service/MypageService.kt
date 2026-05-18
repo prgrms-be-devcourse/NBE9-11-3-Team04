@@ -14,9 +14,9 @@ import com.back.devc.domain.member.mypage.dto.MyProfileResponse
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.repository.PostRepository
+import com.back.devc.global.exception.ApiException
 import com.back.devc.global.exception.errorCode.MypageErrorCode
 import com.back.devc.global.response.PageResponse
-import jakarta.persistence.EntityNotFoundException
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -32,15 +32,6 @@ class MypageService(
     private val postLikeService: PostLikeService,
     private val bookmarkService: BookmarkService,
 ) {
-
-    private fun getMember(userId: Long): Member {
-        return memberRepository.findById(userId)
-            .orElseThrow {
-                EntityNotFoundException(
-                    MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.getCode()
-                )
-            }
-    }
 
     fun getMyProfile(userId: Long): MyProfileResponse {
         val member = getMember(userId)
@@ -65,7 +56,7 @@ class MypageService(
 
         val response = posts.map { post ->
             val postId = post.postId
-                ?: throw EntityNotFoundException("Post not found")
+                ?: throw ApiException(MypageErrorCode.MYPAGE_404_POST_NOT_FOUND)
 
             val liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
                 userId,
@@ -127,15 +118,13 @@ class MypageService(
         request: UpdateMyProfileRequest,
     ): MyProfileResponse {
         val member = getMember(userId)
-
         val newNickname = request.nickname.trim()
 
-        if (member.nickname != newNickname &&
+        if (
+            member.nickname != newNickname &&
             memberRepository.existsByNickname(newNickname)
         ) {
-            throw IllegalArgumentException(
-                MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.getCode()
-            )
+            throw ApiException(MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS)
         }
 
         member.updateNickname(newNickname)
@@ -145,5 +134,12 @@ class MypageService(
             email = member.email,
             nickname = member.nickname,
         )
+    }
+
+    private fun getMember(userId: Long): Member {
+        return memberRepository.findById(userId)
+            .orElseThrow {
+                ApiException(MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND)
+            }
     }
 }

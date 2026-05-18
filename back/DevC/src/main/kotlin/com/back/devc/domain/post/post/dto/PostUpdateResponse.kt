@@ -17,6 +17,7 @@ data class PostUpdateResponse(
                 title = post.title,
                 content = post.content,
                 categoryId = post.category.categoryId
+                    ?: throw IllegalStateException("Category ID cannot be null")
             )
         }
     }

@@ -4,6 +4,8 @@ import com.back.devc.domain.interaction.notification.dto.NotificationListRespons
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse
 import com.back.devc.domain.interaction.notification.entity.Notification
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository
+import com.back.devc.domain.interaction.notification.type.NotificationType
+import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
@@ -32,13 +34,13 @@ import kotlin.math.min
  * - COMMENT : 내 게시글에 다른 사용자가 댓글을 남긴 경우
  * - REPLY   : 내 댓글에 다른 사용자가 답글을 남긴 경우
  * - LIKE    : 내 게시글에 다른 사용자가 좋아요를 누른 경우
- * - BOOKMARK: 내 게시글을 다른 사용자가 북마크한 경우
  * - REPORT  : 관리자 처리 후 내 게시글/댓글이 신고된 사실을 안내하는 경우
  *
  * 구현 시 주의한 점
  * - 자기 자신이 한 행동은 알림을 만들지 않는다.
  * - soft delete 된 부모 댓글에는 답글 알림을 만들지 않는다.
  * - 좋아요 알림은 취소 후 다시 눌렀을 때 중복 생성되지 않도록 한 번만 만든다.
+ * - 북마크는 현재 서비스 정책상 알림을 생성하지 않는다.
  */
 @Service
 @Transactional(readOnly = true)
@@ -138,7 +140,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = commentId,
-            type = "COMMENT",
+            type = NotificationType.COMMENT.value,
             message = "${actorNickname}님이 게시글에 댓글을 남겼습니다.",
         )
 
@@ -199,7 +201,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = replyCommentId,
-            type = "REPLY",
+            type = NotificationType.REPLY.value,
             message = "${actorNickname}님이 회원님의 댓글에 답글을 남겼습니다.",
         )
 
@@ -234,7 +236,7 @@ class NotificationService(
             postOwnerId,
             actorUserId,
             postId,
-            "LIKE",
+            NotificationType.LIKE.value,
         )
 
         if (alreadyNotified) {
@@ -254,66 +256,12 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = null,
-            type = "LIKE",
+            type = NotificationType.LIKE.value,
             message = "${actorNickname}님이 회원님의 게시글을 좋아합니다.",
         )
 
         log.info(
             "좋아요 알림 생성 완료 - receiverUserId={}, actorUserId={}, postId={}",
-            postOwnerId,
-            actorUserId,
-            postId,
-        )
-    }
-
-    /**
-     * 게시글 북마크 알림 생성
-     *
-     * 주의 사항
-     * - 자기 자신의 게시글을 북마크한 경우 알림을 만들지 않음
-     * - 같은 사용자가 같은 게시글을 북마크 취소 후 다시 눌러도
-     * BOOKMARK 알림은 한 번만 남기도록 중복 생성 방지 검사를 수행
-     */
-    @Transactional
-    fun createBookmarkNotification(postId: Long, actorUserId: Long) {
-        log.info("북마크 알림 생성 시작 - postId={}, actorUserId={}", postId, actorUserId)
-        val postOwnerId = findPostOwnerId(postId)
-
-        if (postOwnerId == actorUserId) {
-            log.info("북마크 알림 생성 생략 - 본인 게시글 북마크, postId={}, actorUserId={}", postId, actorUserId)
-            return
-        }
-
-        val alreadyNotified = notificationRepository.existsByUserIdAndActorUserIdAndPostIdAndType(
-            postOwnerId,
-            actorUserId,
-            postId,
-            "BOOKMARK",
-        )
-
-        if (alreadyNotified) {
-            log.info(
-                "북마크 알림 생성 생략 - 이미 생성된 알림, receiverUserId={}, actorUserId={}, postId={}",
-                postOwnerId,
-                actorUserId,
-                postId,
-            )
-            return
-        }
-
-        val actorNickname = findMemberNickname(actorUserId)
-
-        saveNotification(
-            receiverUserId = postOwnerId,
-            actorUserId = actorUserId,
-            postId = postId,
-            commentId = null,
-            type = "BOOKMARK",
-            message = "${actorNickname}님이 회원님의 게시글을 북마크했습니다.",
-        )
-
-        log.info(
-            "북마크 알림 생성 완료 - receiverUserId={}, actorUserId={}, postId={}",
             postOwnerId,
             actorUserId,
             postId,
@@ -347,7 +295,7 @@ class NotificationService(
             actorUserId = adminUserId,
             postId = postId,
             commentId = null,
-            type = "REPORT",
+            type = NotificationType.REPORT.value,
             message = "회원님의 게시글이 신고 접수되어 관리자에 의해 처리되었습니다.",
         )
 
@@ -386,7 +334,7 @@ class NotificationService(
             actorUserId = adminUserId,
             postId = null,
             commentId = commentId,
-            type = "REPORT",
+            type = NotificationType.REPORT.value,
             message = "회원님의 댓글이 신고 접수되어 관리자에 의해 처리되었습니다.",
         )
 
@@ -426,7 +374,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = null,
             commentId = null,
-            type = "REPORT",
+            type = NotificationType.REPORT.value,
             message = message,
         )
 
@@ -481,8 +429,15 @@ class NotificationService(
             )
         }
 
+        val actorUserIds = notificationPage.content
+            .mapNotNull { notification -> notification.actorUserId }
+            .distinct()
+
+        val memberMap = memberRepository.findAllById(actorUserIds)
+            .associateBy { member -> requireNotNull(member.userId) }
+
         val notifications = notificationPage.content
-            .map { notification -> toResponse(notification) }
+            .map { notification -> toResponse(notification, memberMap) }
 
         log.info(
             "알림 목록 조회 완료 - loginUserId={}, tab={}, count={}, totalElements={}, totalPages={}, hasNext={}",
@@ -612,11 +567,14 @@ class NotificationService(
         }
 
         if (tab.equals("comments", ignoreCase = true)) {
-            return listOf("COMMENT", "REPLY")
+            return listOf(
+                NotificationType.COMMENT.value,
+                NotificationType.REPLY.value,
+            )
         }
 
         if (tab.equals("likes", ignoreCase = true)) {
-            return listOf("LIKE")
+            return listOf(NotificationType.LIKE.value)
         }
 
         return emptyList()
@@ -647,6 +605,26 @@ class NotificationService(
         val actorUserId = requireNotNull(notification.actorUserId)
         val actorNickname = findMemberNickname(actorUserId)
 
+        return createNotificationResponse(notification, actorUserId, actorNickname)
+    }
+
+    // 알림 목록 조회 시 actor 회원 정보를 미리 조회한 Map을 사용해 N+1 조회를 방지한다.
+    private fun toResponse(
+        notification: Notification,
+        memberMap: Map<Long, Member>,
+    ): NotificationResponse {
+        val actorUserId = requireNotNull(notification.actorUserId)
+        val actorNickname = memberMap[actorUserId]?.nickname
+            ?: throw ApiException(NotificationErrorCode.NOTIFICATION_404_MEMBER_NOT_FOUND)
+
+        return createNotificationResponse(notification, actorUserId, actorNickname)
+    }
+
+    private fun createNotificationResponse(
+        notification: Notification,
+        actorUserId: Long,
+        actorNickname: String,
+    ): NotificationResponse {
         return NotificationResponse(
             requireNotNull(notification.id),
             requireNotNull(notification.userId),
@@ -657,7 +635,7 @@ class NotificationService(
             requireNotNull(notification.type),
             requireNotNull(notification.message),
             notification.isRead,
-            notification.getCreatedAt(),
+            requireNotNull(notification.createdAt)
         )
     }
 

@@ -33,7 +33,7 @@ class PostLikeController(
         val successCode = PostLikeSuccessCode.POST_LIKE_CREATED
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -51,7 +51,7 @@ class PostLikeController(
         val successCode = PostLikeSuccessCode.POST_LIKE_CANCELED
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -67,7 +67,7 @@ class PostLikeController(
         val successCode = PostLikeSuccessCode.LIKED_POSTS_FETCHED
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 }

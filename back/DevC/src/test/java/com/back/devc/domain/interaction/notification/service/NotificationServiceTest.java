@@ -75,11 +75,12 @@ class NotificationServiceTest {
         when(notification.getCreatedAt()).thenReturn(LocalDateTime.now());
 
         Member actor = mock(Member.class);
+        when(actor.getUserId()).thenReturn(actorUserId);
         when(actor.getNickname()).thenReturn("작성자B");
 
         when(notificationRepository.findAvailableByUserIdOrderByCreatedAtDesc(eq(loginUserId), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(notification), PageRequest.of(0, 20), 1));
-        when(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor));
+        when(memberRepository.findAllById(List.of(actorUserId))).thenReturn(List.of(actor));
 
         // when
         NotificationListResponse response = notificationService.getMyNotifications(loginUserId, 0, 20, "all");
@@ -93,7 +94,7 @@ class NotificationServiceTest {
         assertThat(response.getTotalPages()).isEqualTo(1);
         assertThat(response.getHasNext()).isFalse();
         verify(notificationRepository).findAvailableByUserIdOrderByCreatedAtDesc(eq(loginUserId), any(Pageable.class));
-        verify(memberRepository).findById(actorUserId);
+        verify(memberRepository).findAllById(List.of(actorUserId));
     }
 
     @Test

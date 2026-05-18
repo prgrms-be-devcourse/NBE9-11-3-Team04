@@ -36,7 +36,7 @@ class MypageController(
         val successCode = MypageSuccessCode.MYPAGE_200_PROFILE_FETCH
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -51,7 +51,7 @@ class MypageController(
         val successCode = MypageSuccessCode.MYPAGE_200_POSTS_FETCH
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -66,7 +66,7 @@ class MypageController(
         val successCode = MypageSuccessCode.MYPAGE_200_COMMENTS_FETCH
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -81,7 +81,7 @@ class MypageController(
         val successCode = MypageSuccessCode.MYPAGE_200_LIKES_FETCH
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -96,7 +96,7 @@ class MypageController(
         val successCode = MypageSuccessCode.MYPAGE_200_BOOKMARKS_FETCH
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
@@ -111,7 +111,7 @@ class MypageController(
         val successCode = MypageSuccessCode.MYPAGE_200_PROFILE_UPDATE
 
         return ResponseEntity
-            .status(successCode.getStatus())
+            .status(successCode.status)
             .body(SuccessResponse.of(successCode, response))
     }
 
