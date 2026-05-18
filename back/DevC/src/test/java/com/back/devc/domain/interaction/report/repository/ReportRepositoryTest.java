@@ -78,12 +78,12 @@ class ReportRepositoryTest {
     }
 
     private Report report(Member reporter, TargetType targetType, Long targetId) {
-        return Report.builder()
-                .reporter(reporter)
-                .targetType(targetType)
-                .targetId(targetId)
-                .reasonType("SPAM")
-                .reasonDetail("spam")
-                .build();
+        return Report.create(
+                reporter,
+                TargetType.POST,
+                10L,
+                "SPAM",
+                "Repeated promotion"
+        );
     }
 }
