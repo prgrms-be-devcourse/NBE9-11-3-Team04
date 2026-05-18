@@ -31,6 +31,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -119,7 +120,7 @@ class CommentServiceTest {
         assertThrows(ApiException.class,
                 () -> commentService.createComment(postId, loginUserId, requestDto));
         verify(commentRepository, never()).save(any(Comment.class));
-        verify(postService, never()).increaseCommentCount(any());
+        verify(postService, never()).increaseCommentCount(anyLong());
         verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
@@ -193,7 +194,7 @@ class CommentServiceTest {
                 () -> commentService.createReply(parentCommentId, 2L, new CommentCreateRequest("대댓글")));
         verify(eventPublisher, never()).publishEvent(any(Object.class));
         verify(commentRepository, never()).save(any(Comment.class));
-        verify(postService, never()).increaseCommentCount(any());
+        verify(postService, never()).increaseCommentCount(anyLong());
     }
 
     @Test
