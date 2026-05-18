@@ -6,6 +6,7 @@ import com.back.devc.domain.interaction.notification.entity.Notification
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository
 import com.back.devc.domain.interaction.notification.type.NotificationType
 import com.back.devc.domain.member.member.repository.MemberRepository
+import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.comment.service.CommentService
@@ -482,8 +483,15 @@ class NotificationService(
             )
         }
 
+        val actorUserIds = notificationPage.content
+            .mapNotNull { notification -> notification.actorUserId }
+            .distinct()
+
+        val memberMap = memberRepository.findAllById(actorUserIds)
+            .associateBy { member -> requireNotNull(member.userId) }
+
         val notifications = notificationPage.content
-            .map { notification -> toResponse(notification) }
+            .map { notification -> toResponse(notification, memberMap) }
 
         log.info(
             "알림 목록 조회 완료 - loginUserId={}, tab={}, count={}, totalElements={}, totalPages={}, hasNext={}",
@@ -651,6 +659,26 @@ class NotificationService(
         val actorUserId = requireNotNull(notification.actorUserId)
         val actorNickname = findMemberNickname(actorUserId)
 
+        return createNotificationResponse(notification, actorUserId, actorNickname)
+    }
+
+    // 알림 목록 조회 시 actor 회원 정보를 미리 조회한 Map을 사용해 N+1 조회를 방지한다.
+    private fun toResponse(
+        notification: Notification,
+        memberMap: Map<Long, Member>,
+    ): NotificationResponse {
+        val actorUserId = requireNotNull(notification.actorUserId)
+        val actorNickname = memberMap[actorUserId]?.nickname
+            ?: throw ApiException(NotificationErrorCode.NOTIFICATION_404_MEMBER_NOT_FOUND)
+
+        return createNotificationResponse(notification, actorUserId, actorNickname)
+    }
+
+    private fun createNotificationResponse(
+        notification: Notification,
+        actorUserId: Long,
+        actorNickname: String,
+    ): NotificationResponse {
         return NotificationResponse(
             requireNotNull(notification.id),
             requireNotNull(notification.userId),
