@@ -1,8 +1,14 @@
-package com.back.devc.global.response;
+package com.back.devc.global.response
 
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatus
 
-public enum SuccessCode {
+enum class SuccessCode(
+    override val status: HttpStatus,
+    override val code: String,
+    override val message: String
+) : SuccessCodeSpec {
+
+    // 인증 관련 성공 코드
     LOGIN_SUCCESS(HttpStatus.OK, "AUTH_200_LOGIN_SUCCESS", "로그인에 성공했습니다."),
     LOGOUT_SUCCESS(HttpStatus.OK, "AUTH_200_LOGOUT_SUCCESS", "로그아웃이 완료되었습니다."),
     SIGN_UP_SUCCESS(HttpStatus.CREATED, "AUTH_201_SIGNUP_SUCCESS", "회원가입이 완료되었습니다."),
@@ -18,35 +24,13 @@ public enum SuccessCode {
     REPORT_GROUP_APPROVE_SUCCESS(HttpStatus.OK, "REPORT_200_GROUP_APPROVE", "그룹 신고 승인 완료"),
     REPORT_GROUP_REJECT_SUCCESS(HttpStatus.OK, "REPORT_200_GROUP_REJECT", "그룹 신고 반려 완료"),
 
+
     REPORT_POST_SUCCESS(HttpStatus.CREATED, "REPORT_201_POST", "게시글 신고가 정상적으로 접수되었습니다."),
     REPORT_COMMENT_SUCCESS(HttpStatus.CREATED, "REPORT_201_COMMENT", "댓글 신고가 정상적으로 접수되었습니다."),
-
 
     // 대시보드 관련 성공 코드
     DASHBOARD_LIST(HttpStatus.OK, "DASHBOARD_200_LIST", "대시보드 조회 성공"),
 
     // 회원 탈퇴 성공 코드
     WITHDRAW_SUCCESS(HttpStatus.OK, "USER_200_WITHDRAW_SUCCESS", "회원 탈퇴가 완료되었습니다.");
-
-    private final HttpStatus status;
-    private final String code;
-    private final String message;
-
-    SuccessCode(HttpStatus status, String code, String message) {
-        this.status = status;
-        this.code = code;
-        this.message = message;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
 }
