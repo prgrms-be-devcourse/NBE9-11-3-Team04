@@ -1,8 +1,12 @@
 package com.back.devc.global.response.successCode;
 
 import com.back.devc.global.response.SuccessCodeSpec;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
+@Getter
+@RequiredArgsConstructor
 public enum BookmarkSuccessCode implements SuccessCodeSpec {
 
     BOOKMARK_201_CREATE(
@@ -26,25 +30,4 @@ public enum BookmarkSuccessCode implements SuccessCodeSpec {
     private final HttpStatus status;
     private final String code;
     private final String message;
-
-    BookmarkSuccessCode(HttpStatus status, String code, String message) {
-        this.status = status;
-        this.code = code;
-        this.message = message;
-    }
-
-    @Override
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    @Override
-    public String getCode() {
-        return code;
-    }
-
-    @Override
-    public String getMessage() {
-        return message;
-    }
 }
