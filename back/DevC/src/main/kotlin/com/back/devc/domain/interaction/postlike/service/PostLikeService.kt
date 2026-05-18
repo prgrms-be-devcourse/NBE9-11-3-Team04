@@ -66,7 +66,7 @@ class PostLikeService(
             postId = postId,
             liked = true,
             likeCount = likeCount,
-            message = successCode.getMessage(),
+            message = successCode.message,
         )
     }
 
@@ -104,7 +104,7 @@ class PostLikeService(
             postId = postId,
             liked = false,
             likeCount = likeCount,
-            message = successCode.getMessage(),
+            message = successCode.message,
         )
     }
 
