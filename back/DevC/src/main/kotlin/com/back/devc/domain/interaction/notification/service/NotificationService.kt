@@ -652,7 +652,7 @@ class NotificationService(
             requireNotNull(notification.userId),
             actorUserId,
             actorNickname,
-            requireNotNull(notification.postId),
+            notification.postId,
             notification.commentId,
             requireNotNull(notification.type),
             requireNotNull(notification.message),
