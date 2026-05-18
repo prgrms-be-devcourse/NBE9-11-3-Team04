@@ -49,13 +49,14 @@ class ReportDtoTest {
     @DisplayName("ReportResponseDTO maps report and target information")
     void reportResponseDto_mapsReportAndTargetInfo() {
         Member reporter = Member.createLocalMember("reporter@test.com", "password", "reporter");
-        Report report = Report.builder()
-                .reporter(reporter)
-                .targetType(TargetType.POST)
-                .targetId(10L)
-                .reasonType("SPAM")
-                .reasonDetail("Repeated promotion")
-                .build();
+        Report report = Report.create(
+                reporter,
+                TargetType.POST,
+                10L,
+                "SPAM",
+                "Repeated promotion"
+        );
+
         LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 10, 0);
         ReflectionTestUtils.setField(report, "reportId", 1L);
         ReflectionTestUtils.setField(report, "createdAt", createdAt);

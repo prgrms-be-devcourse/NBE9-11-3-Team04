@@ -77,9 +77,9 @@ public class AdminPostControllerTest {
     @Test
     @DisplayName("게시글 전체 조회 - 관리자용 (삭제 포함, 개수 유지)")
     void t2() throws Exception {
-        postRepository.save(new Post(member, category, "글1", "내용1"));
-        Post post2 = postRepository.save(new Post(member, category, "글2", "내용2"));
-        postRepository.save(new Post(member, category, "글3", "내용3"));
+        postRepository.save(Post.create(member, category, "글1", "내용1"));
+        Post post2 = postRepository.save(Post.create(member, category, "글2", "내용2"));
+        postRepository.save(Post.create(member, category, "글3", "내용3"));
 
         post2.delete();
         postRepository.saveAndFlush(post2);
@@ -95,7 +95,7 @@ public class AdminPostControllerTest {
     @Test
     @DisplayName("게시글 상세 조회 - 관리자용 (삭제된 게시글도 조회 가능)")
     void t3() throws Exception {
-        Post deletedPost = postRepository.save(new Post(member, category, "삭제된 글", "내용"));
+        Post deletedPost = postRepository.save(Post.create(member, category, "삭제된 글", "내용"));
 
         deletedPost.delete();
         postRepository.saveAndFlush(deletedPost);

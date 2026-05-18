@@ -86,13 +86,6 @@ class Report(
     var createdAt: LocalDateTime? = null
         protected set
 
-    protected constructor() : this(
-        reporter = null!!,
-        targetType = TargetType.POST,
-        targetId = 0L,
-        reasonType = ""
-    )
-
     fun processReport(admin: Member) {
         processedByAdmin = admin
         status = ReportStatus.RESOLVED

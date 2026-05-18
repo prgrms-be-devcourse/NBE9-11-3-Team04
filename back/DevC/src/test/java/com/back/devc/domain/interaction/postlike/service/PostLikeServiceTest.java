@@ -3,7 +3,6 @@ package com.back.devc.domain.interaction.postlike.service;
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
-import com.back.devc.domain.interaction.postLike.dto.LikedPostsQuery;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeCommand;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse;
 import com.back.devc.domain.interaction.postLike.entity.PostLike;
@@ -11,17 +10,22 @@ import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.PostLikeErrorCode;
+import com.back.devc.global.response.PageResponse;
 import com.back.devc.global.response.successCode.PostLikeSuccessCode;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
@@ -131,12 +135,13 @@ class PostLikeServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postLikeService.createLike(command))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode());
+                .isInstanceOf(ApiException.class)
+                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getMessage());
 
         then(postRepository).should(never()).findByPostIdAndIsDeletedFalse(anyLong());
         then(postLikeRepository).should(never()).insertIgnore(anyLong(), anyLong());
         then(postRepository).should(never()).increaseLikeCount(anyLong());
+
         verifyNoInteractions(notificationService);
     }
 
@@ -152,11 +157,12 @@ class PostLikeServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postLikeService.createLike(command))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode());
+                .isInstanceOf(ApiException.class)
+                .hasMessage(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getMessage());
 
         then(postLikeRepository).should(never()).insertIgnore(anyLong(), anyLong());
         then(postRepository).should(never()).increaseLikeCount(anyLong());
+
         verifyNoInteractions(notificationService);
     }
 
@@ -226,8 +232,8 @@ class PostLikeServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postLikeService.cancelLike(command))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode());
+                .isInstanceOf(ApiException.class)
+                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getMessage());
 
         then(postRepository).should(never()).findByPostIdAndIsDeletedFalse(anyLong());
         then(postLikeRepository).should(never()).deleteByUserIdAndPostId(anyLong(), anyLong());
@@ -246,8 +252,8 @@ class PostLikeServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postLikeService.cancelLike(command))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode());
+                .isInstanceOf(ApiException.class)
+                .hasMessage(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getMessage());
 
         then(postLikeRepository).should(never()).deleteByUserIdAndPostId(anyLong(), anyLong());
         then(postRepository).should(never()).decreaseLikeCount(anyLong());
@@ -272,22 +278,26 @@ class PostLikeServiceTest {
         );
 
         PostLike postLike = PostLike.create(member, post);
-        LikedPostsQuery query = new LikedPostsQuery(userId);
+
+        Pageable pageable = PageRequest.of(0, 10);
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
-        given(postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member))
-                .willReturn(List.of(postLike));
+
+        given(postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member, pageable))
+                .willReturn(new PageImpl<>(List.of(postLike), pageable, 1));
+
         given(bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId))
                 .willReturn(true);
 
         // when
-        List<LikedPostResponse> responses = postLikeService.getLikedPosts(query);
+        PageResponse<LikedPostResponse> responses =
+                postLikeService.getLikedPosts(userId, pageable);
 
         // then
-        assertThat(responses).hasSize(1);
+        assertThat(responses.content()).hasSize(1);
 
-        LikedPostResponse response = responses.get(0);
+        LikedPostResponse response = responses.content().get(0);
 
         assertThat(response.getPostId()).isEqualTo(postId);
         assertThat(response.getTitle()).isEqualTo("테스트 제목");
@@ -301,7 +311,7 @@ class PostLikeServiceTest {
 
         then(memberRepository).should().findById(userId);
         then(postLikeRepository).should()
-                .findAllByMemberAndPost_IsDeletedFalse(member);
+                .findAllByMemberAndPost_IsDeletedFalse(member, pageable);
         then(bookmarkRepository).should()
                 .existsByMember_UserIdAndPost_PostId(userId, postId);
     }
@@ -310,18 +320,19 @@ class PostLikeServiceTest {
     @DisplayName("좋아요한 게시글 목록 조회 시 회원이 없으면 예외가 발생한다")
     void getLikedPosts_memberNotFound() {
         // given
-        LikedPostsQuery query = new LikedPostsQuery(userId);
+        Pageable pageable = PageRequest.of(0, 10);
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> postLikeService.getLikedPosts(query))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode());
+        assertThatThrownBy(() -> postLikeService.getLikedPosts(userId, pageable))
+                .isInstanceOf(ApiException.class)
+                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getMessage());
 
         then(postLikeRepository).should(never())
-                .findAllByMemberAndPost_IsDeletedFalse(any(Member.class));
+                .findAllByMemberAndPost_IsDeletedFalse(any(Member.class), any(Pageable.class));
+
         verifyNoInteractions(bookmarkRepository);
     }
 
@@ -346,18 +357,22 @@ class PostLikeServiceTest {
             int viewCount,
             LocalDateTime createdAt
     ) {
-        Post post = Post.builder()
-                .member(member)
-                .title(title)
-                .content("테스트 내용")
-                .likeCount(likeCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount)
-                .isDeleted(false)
-                .createdAt(createdAt)
-                .build();
+        Category category = mock(Category.class);
+
+        Post post = Post.create(
+                member,
+                category,
+                title,
+                "테스트 내용"
+        );
 
         setField(post, "postId", postId);
+        setField(post, "likeCount", likeCount);
+        setField(post, "commentCount", commentCount);
+        setField(post, "viewCount", viewCount);
+        setField(post, "isDeleted", false);
+        setField(post, "createdAt", createdAt);
+        setField(post, "updatedAt", createdAt);
 
         return post;
     }

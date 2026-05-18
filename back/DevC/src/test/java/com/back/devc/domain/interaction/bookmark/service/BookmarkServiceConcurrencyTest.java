@@ -48,9 +48,17 @@ class BookmarkServiceConcurrencyTest {
     @DisplayName("동시에 북마크를 여러 번 요청해도 북마크는 1개만 생성된다")
     void createBookmark_concurrently() throws Exception {
         // given
-        Member member = memberRepository.save(createMember("bookmark@test.com", "bookmarkUser"));
-        Category category = categoryRepository.save(createCategory("북마크 테스트 카테고리"));
-        Post post = postRepository.save(createPost(member, category));
+        Member member = memberRepository.save(
+                createMember("bookmark@test.com", "bookmarkUser")
+        );
+
+        Category category = categoryRepository.save(
+                createCategory("북마크 테스트 카테고리")
+        );
+
+        Post post = postRepository.save(
+                createPost(member, category)
+        );
 
         BookmarkCreateCommand command = new BookmarkCreateCommand(
                 member.getUserId(),
@@ -99,9 +107,17 @@ class BookmarkServiceConcurrencyTest {
     @DisplayName("동시에 북마크 취소를 여러 번 요청해도 북마크는 0개가 된다")
     void cancelBookmark_concurrently() throws Exception {
         // given
-        Member member = memberRepository.save(createMember("cancel-bookmark@test.com", "cancelBookmarkUser"));
-        Category category = categoryRepository.save(createCategory("북마크 취소 테스트 카테고리"));
-        Post post = postRepository.save(createPost(member, category));
+        Member member = memberRepository.save(
+                createMember("cancel-bookmark@test.com", "cancelBookmarkUser")
+        );
+
+        Category category = categoryRepository.save(
+                createCategory("북마크 취소 테스트 카테고리")
+        );
+
+        Post post = postRepository.save(
+                createPost(member, category)
+        );
 
         BookmarkCreateCommand createCommand = new BookmarkCreateCommand(
                 member.getUserId(),
@@ -166,7 +182,7 @@ class BookmarkServiceConcurrencyTest {
     }
 
     private Post createPost(Member member, Category category) {
-        return new Post(
+        return Post.create(
                 member,
                 category,
                 "테스트 제목",

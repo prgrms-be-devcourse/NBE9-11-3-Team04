@@ -12,12 +12,13 @@ import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
 import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
+import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
+import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.MypageErrorCode;
 import com.back.devc.global.response.PageResponse;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
 @DisplayName("MypageService 테스트")
@@ -100,8 +102,8 @@ class MypageServiceTest {
 
         // when & then
         assertThatThrownBy(() -> mypageService.getMyProfile(userId))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage(MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.getCode());
+                .isInstanceOf(ApiException.class)
+                .hasMessage(MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.getMessage());
     }
 
     @Test
@@ -125,15 +127,19 @@ class MypageServiceTest {
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(postRepository.findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member, pageable))
                 .willReturn(new PageImpl<>(List.of(post), pageable, 1));
+
         given(postLikeRepository.existsByMember_UserIdAndPost_PostId(userId, postId))
                 .willReturn(true);
+
         given(bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId))
                 .willReturn(false);
 
         // when
-        PageResponse<MyPostResponse> response = mypageService.getMyPosts(userId, pageable);
+        PageResponse<MyPostResponse> response =
+                mypageService.getMyPosts(userId, pageable);
 
         // then
         assertThat(response.content()).hasSize(1);
@@ -151,8 +157,10 @@ class MypageServiceTest {
 
         then(postRepository).should()
                 .findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member, pageable);
+
         then(postLikeRepository).should()
                 .existsByMember_UserIdAndPost_PostId(userId, postId);
+
         then(bookmarkRepository).should()
                 .existsByMember_UserIdAndPost_PostId(userId, postId);
     }
@@ -175,11 +183,13 @@ class MypageServiceTest {
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(commentRepository.findMyComments(userId, pageable))
                 .willReturn(new PageImpl<>(List.of(comment), pageable, 1));
 
         // when
-        PageResponse<MyCommentResponse> response = mypageService.getMyComments(userId, pageable);
+        PageResponse<MyCommentResponse> response =
+                mypageService.getMyComments(userId, pageable);
 
         // then
         assertThat(response.content()).hasSize(1);
@@ -219,11 +229,13 @@ class MypageServiceTest {
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(postLikeService.getLikedPosts(userId, pageable))
                 .willReturn(pageResponse);
 
         // when
-        PageResponse<LikedPostResponse> response = mypageService.getMyLikedPosts(userId, pageable);
+        PageResponse<LikedPostResponse> response =
+                mypageService.getMyLikedPosts(userId, pageable);
 
         // then
         assertThat(response.content()).hasSize(1);
@@ -258,6 +270,7 @@ class MypageServiceTest {
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(bookmarkService.getBookmarkedPosts(userId, pageable))
                 .willReturn(pageResponse);
 
@@ -278,15 +291,18 @@ class MypageServiceTest {
     void updateMyProfile_success() {
         // given
         Member member = createMemberWithId(userId, "test@test.com", "기존닉네임");
-        UpdateMyProfileRequest request = new UpdateMyProfileRequest("변경닉네임");
+        UpdateMyProfileRequest request =
+                new UpdateMyProfileRequest("변경닉네임");
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(memberRepository.existsByNickname("변경닉네임"))
                 .willReturn(false);
 
         // when
-        MyProfileResponse response = mypageService.updateMyProfile(userId, request);
+        MyProfileResponse response =
+                mypageService.updateMyProfile(userId, request);
 
         // then
         assertThat(response.getUserId()).isEqualTo(userId);
@@ -294,7 +310,8 @@ class MypageServiceTest {
         assertThat(response.getNickname()).isEqualTo("변경닉네임");
         assertThat(member.getNickname()).isEqualTo("변경닉네임");
 
-        then(memberRepository).should().existsByNickname("변경닉네임");
+        then(memberRepository).should()
+                .existsByNickname("변경닉네임");
     }
 
     @Test
@@ -302,15 +319,18 @@ class MypageServiceTest {
     void updateMyProfile_trimNickname() {
         // given
         Member member = createMemberWithId(userId, "test@test.com", "기존닉네임");
-        UpdateMyProfileRequest request = new UpdateMyProfileRequest("  변경닉네임  ");
+        UpdateMyProfileRequest request =
+                new UpdateMyProfileRequest("  변경닉네임  ");
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(memberRepository.existsByNickname("변경닉네임"))
                 .willReturn(false);
 
         // when
-        MyProfileResponse response = mypageService.updateMyProfile(userId, request);
+        MyProfileResponse response =
+                mypageService.updateMyProfile(userId, request);
 
         // then
         assertThat(response.getNickname()).isEqualTo("변경닉네임");
@@ -322,18 +342,22 @@ class MypageServiceTest {
     void updateMyProfile_sameNickname() {
         // given
         Member member = createMemberWithId(userId, "test@test.com", "기존닉네임");
-        UpdateMyProfileRequest request = new UpdateMyProfileRequest("기존닉네임");
+        UpdateMyProfileRequest request =
+                new UpdateMyProfileRequest("기존닉네임");
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
 
         // when
-        MyProfileResponse response = mypageService.updateMyProfile(userId, request);
+        MyProfileResponse response =
+                mypageService.updateMyProfile(userId, request);
 
         // then
         assertThat(response.getNickname()).isEqualTo("기존닉네임");
 
-        then(memberRepository).should(never()).existsByNickname(any(String.class));
+        then(memberRepository)
+                .should(never())
+                .existsByNickname(any(String.class));
     }
 
     @Test
@@ -341,22 +365,28 @@ class MypageServiceTest {
     void updateMyProfile_duplicateNickname() {
         // given
         Member member = createMemberWithId(userId, "test@test.com", "기존닉네임");
-        UpdateMyProfileRequest request = new UpdateMyProfileRequest("중복닉네임");
+        UpdateMyProfileRequest request =
+                new UpdateMyProfileRequest("중복닉네임");
 
         given(memberRepository.findById(userId))
                 .willReturn(Optional.of(member));
+
         given(memberRepository.existsByNickname("중복닉네임"))
                 .willReturn(true);
 
         // when & then
         assertThatThrownBy(() -> mypageService.updateMyProfile(userId, request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.getCode());
+                .isInstanceOf(ApiException.class)
+                .hasMessage(MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.getMessage());
 
         assertThat(member.getNickname()).isEqualTo("기존닉네임");
     }
 
-    private Member createMemberWithId(Long userId, String email, String nickname) {
+    private Member createMemberWithId(
+            Long userId,
+            String email,
+            String nickname
+    ) {
         Member member = Member.createLocalMember(
                 email,
                 "encodedPassword",
@@ -377,25 +407,34 @@ class MypageServiceTest {
             int viewCount,
             LocalDateTime createdAt
     ) {
-        Post post = Post.builder()
-                .member(member)
-                .title(title)
-                .content("테스트 내용")
-                .likeCount(likeCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount)
-                .isDeleted(false)
-                .createdAt(createdAt)
-                .build();
+        Category category = mock(Category.class);
+
+        Post post = Post.create(
+                member,
+                category,
+                title,
+                "테스트 내용"
+        );
 
         setField(post, "postId", postId);
+        setField(post, "likeCount", likeCount);
+        setField(post, "commentCount", commentCount);
+        setField(post, "viewCount", viewCount);
+        setField(post, "isDeleted", false);
+        setField(post, "createdAt", createdAt);
+        setField(post, "updatedAt", createdAt);
 
         return post;
     }
 
-    private void setField(Object target, String fieldName, Object value) {
+    private void setField(
+            Object target,
+            String fieldName,
+            Object value
+    ) {
         try {
             Field field = target.getClass().getDeclaredField(fieldName);
+
             field.setAccessible(true);
             field.set(target, value);
         } catch (ReflectiveOperationException e) {

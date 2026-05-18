@@ -165,7 +165,7 @@ class PostLikeServiceConcurrencyTest {
     }
 
     private Post createPost(Member member, Category category) {
-        return new Post(
+        return Post.create(
                 member,
                 category,
                 "테스트 제목",
