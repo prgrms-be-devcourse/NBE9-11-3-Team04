@@ -48,9 +48,9 @@ class ReportPerformanceTest {
     @Mock
     private PostRepository postRepository;
     @Mock
-    private CommentRepository commentRepository; // 누락 주의
+    private CommentRepository commentRepository;
     @Mock
-    private ReportTargetHandler reportTargetHandler; // 누락 주의
+    private ReportTargetHandler reportTargetHandler;
 
 
     @Test
