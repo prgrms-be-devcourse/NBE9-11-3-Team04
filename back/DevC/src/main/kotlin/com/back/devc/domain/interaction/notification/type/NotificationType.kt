@@ -6,6 +6,5 @@ enum class NotificationType(
     COMMENT("COMMENT"),
     REPLY("REPLY"),
     LIKE("LIKE"),
-    BOOKMARK("BOOKMARK"),
     REPORT("REPORT"),
 }
