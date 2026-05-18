@@ -206,11 +206,19 @@ class ReportPerformanceTest {
         assertThat(result.getContent()).hasSize(pageSize);
         assertThat(result.getTotalElements()).isEqualTo(totalData);
 
-        // 핵심 검증: row 수만큼 반복 호출됨 (N+1 구조)
-        org.mockito.Mockito.verify(reportTargetHandler, org.mockito.Mockito.times(pageSize))
-                .getTargetInfo(any(), any());
+// 핵심 검증: row 수만큼 반복 호출됨 (N+1 구조)
+        org.mockito.Mockito.verify(
+                        reportTargetHandler,
+                        org.mockito.Mockito.times(pageSize))
+                .getTargetInfo(any(TargetType.class)
+                        , any(Long.class)
+                );
 
-        org.mockito.Mockito.verify(reportRepository, org.mockito.Mockito.times(pageSize))
-                .findReasonTypesByTargetId(any(), any());
+        org.mockito.Mockito.verify(
+                        reportRepository,
+                        org.mockito.Mockito.times(pageSize))
+                .findReasonTypesByTargetId(any(TargetType.class),
+                        any(Long.class)
+                );
     }
 }
