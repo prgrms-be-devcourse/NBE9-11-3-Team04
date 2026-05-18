@@ -7,7 +7,7 @@ data class NotificationResponse(
     val userId: Long,
     val actorUserId: Long,
     val actorNickname: String,
-    val postId: Long,
+    val postId: Long?,
     val commentId: Long?,
     val type: String,
     val message: String,
