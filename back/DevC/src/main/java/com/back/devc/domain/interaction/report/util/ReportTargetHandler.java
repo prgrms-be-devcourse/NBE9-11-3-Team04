@@ -17,7 +17,6 @@ import com.back.devc.global.exception.ApiException;
 import com.back.devc.global.exception.errorCode.ReportErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
