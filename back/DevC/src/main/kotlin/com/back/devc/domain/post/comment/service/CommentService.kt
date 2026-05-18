@@ -3,11 +3,7 @@ package com.back.devc.domain.post.comment.service
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.member.member.util.MemberDisplayUtil
 import com.back.devc.domain.post.comment.attachment.service.CommentAttachmentService
-import com.back.devc.domain.post.comment.dto.CommentCreateRequest
-import com.back.devc.domain.post.comment.dto.CommentDeleteResponse
-import com.back.devc.domain.post.comment.dto.CommentListResponse
-import com.back.devc.domain.post.comment.dto.CommentResponse
-import com.back.devc.domain.post.comment.dto.CommentUpdateRequest
+import com.back.devc.domain.post.comment.dto.*
 import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.repository.PostRepository
@@ -286,8 +282,8 @@ class CommentService(
             comment.parentCommentId,
             requireNotNull(comment.content),
             comment.isDeleted,
-            comment.getCreatedAt(),
-            comment.getUpdatedAt(),
+            requireNotNull(comment.createdAt),
+            requireNotNull(comment.updatedAt)
         )
 
         if (!comment.isDeleted) {
