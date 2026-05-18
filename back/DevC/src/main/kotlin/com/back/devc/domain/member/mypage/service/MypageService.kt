@@ -14,9 +14,9 @@ import com.back.devc.domain.member.mypage.dto.MyProfileResponse
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.repository.PostRepository
+import com.back.devc.global.exception.ApiException
 import com.back.devc.global.exception.errorCode.MypageErrorCode
 import com.back.devc.global.response.PageResponse
-import jakarta.persistence.EntityNotFoundException
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,9 +36,7 @@ class MypageService(
     private fun getMember(userId: Long): Member {
         return memberRepository.findById(userId)
             .orElseThrow {
-                EntityNotFoundException(
-                    MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.code
-                )
+                ApiException(MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND)
             }
     }
 
@@ -56,6 +54,7 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<MyPostResponse> {
+
         val member = getMember(userId)
 
         val posts = postRepository.findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(
@@ -64,8 +63,9 @@ class MypageService(
         )
 
         val response = posts.map { post ->
+
             val postId = post.postId
-                ?: throw EntityNotFoundException("Post not found")
+                ?: throw ApiException(MypageErrorCode.MYPAGE_404_POST_NOT_FOUND)
 
             val liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
                 userId,
@@ -96,6 +96,7 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<MyCommentResponse> {
+
         getMember(userId)
 
         val comments = commentRepository.findMyComments(userId, pageable)
@@ -107,6 +108,7 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<LikedPostResponse> {
+
         getMember(userId)
 
         return postLikeService.getLikedPosts(userId, pageable)
@@ -116,6 +118,7 @@ class MypageService(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<BookmarkedPostResponse> {
+
         getMember(userId)
 
         return bookmarkService.getBookmarkedPosts(userId, pageable)
@@ -126,15 +129,17 @@ class MypageService(
         userId: Long,
         request: UpdateMyProfileRequest,
     ): MyProfileResponse {
+
         val member = getMember(userId)
 
         val newNickname = request.nickname.trim()
 
-        if (member.nickname != newNickname &&
+        if (
+            member.nickname != newNickname &&
             memberRepository.existsByNickname(newNickname)
         ) {
-            throw IllegalArgumentException(
-                MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.code
+            throw ApiException(
+                MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS
             )
         }
 
