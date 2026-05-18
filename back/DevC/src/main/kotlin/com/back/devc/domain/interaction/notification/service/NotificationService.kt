@@ -547,7 +547,7 @@ class NotificationService(
         val post = postRepository.findById(postId)
             .orElseThrow { ApiException(NotificationErrorCode.NOTIFICATION_404_POST_NOT_FOUND) }
 
-        return requireNotNull(post.getMember().userId)
+        return requireNotNull(post.member.userId)
     }
 
     // 댓글 작성자를 조회해 신고 알림 수신자(receiver)를 구하는 공통 메서드
@@ -632,7 +632,7 @@ class NotificationService(
         }
 
         val available = postRepository.findById(postId)
-            .map { post -> !post.getIsDeleted() }
+            .map { post -> !post.isDeleted }
             .orElse(false)
 
         if (!available) {
