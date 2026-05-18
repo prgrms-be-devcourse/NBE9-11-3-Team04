@@ -1,6 +1,6 @@
-package com.back.devc.global.exception;
+package com.back.devc.global.exception
 
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatus
 
 /**
  * 도메인별로 분리된 에러 코드 enum 을 공통 방식으로 처리하기 위한 인터페이스.
@@ -9,8 +9,8 @@ import org.springframework.http.HttpStatus;
  * code    : 에러 코드 식별자
  * message : 에러 메시지
  */
-public interface ErrorCodeSpec {
-    HttpStatus getStatus();
-    String getCode();
-    String getMessage();
+interface ErrorCodeSpec {
+    val status: HttpStatus
+    val code: String
+    val message: String
 }
