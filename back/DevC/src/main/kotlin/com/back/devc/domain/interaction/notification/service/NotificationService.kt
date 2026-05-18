@@ -4,6 +4,7 @@ import com.back.devc.domain.interaction.notification.dto.NotificationListRespons
 import com.back.devc.domain.interaction.notification.dto.NotificationResponse
 import com.back.devc.domain.interaction.notification.entity.Notification
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository
+import com.back.devc.domain.interaction.notification.type.NotificationType
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
@@ -138,7 +139,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = commentId,
-            type = "COMMENT",
+            type = NotificationType.COMMENT.value,
             message = "${actorNickname}님이 게시글에 댓글을 남겼습니다.",
         )
 
@@ -199,7 +200,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = replyCommentId,
-            type = "REPLY",
+            type = NotificationType.REPLY.value,
             message = "${actorNickname}님이 회원님의 댓글에 답글을 남겼습니다.",
         )
 
@@ -234,7 +235,7 @@ class NotificationService(
             postOwnerId,
             actorUserId,
             postId,
-            "LIKE",
+            NotificationType.LIKE.value,
         )
 
         if (alreadyNotified) {
@@ -254,7 +255,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = null,
-            type = "LIKE",
+            type = NotificationType.LIKE.value,
             message = "${actorNickname}님이 회원님의 게시글을 좋아합니다.",
         )
 
@@ -288,7 +289,7 @@ class NotificationService(
             postOwnerId,
             actorUserId,
             postId,
-            "BOOKMARK",
+            NotificationType.BOOKMARK.value,
         )
 
         if (alreadyNotified) {
@@ -308,7 +309,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = postId,
             commentId = null,
-            type = "BOOKMARK",
+            type = NotificationType.BOOKMARK.value,
             message = "${actorNickname}님이 회원님의 게시글을 북마크했습니다.",
         )
 
@@ -347,7 +348,7 @@ class NotificationService(
             actorUserId = adminUserId,
             postId = postId,
             commentId = null,
-            type = "REPORT",
+            type = NotificationType.REPORT.value,
             message = "회원님의 게시글이 신고 접수되어 관리자에 의해 처리되었습니다.",
         )
 
@@ -386,7 +387,7 @@ class NotificationService(
             actorUserId = adminUserId,
             postId = null,
             commentId = commentId,
-            type = "REPORT",
+            type = NotificationType.REPORT.value,
             message = "회원님의 댓글이 신고 접수되어 관리자에 의해 처리되었습니다.",
         )
 
@@ -426,7 +427,7 @@ class NotificationService(
             actorUserId = actorUserId,
             postId = null,
             commentId = null,
-            type = "REPORT",
+            type = NotificationType.REPORT.value,
             message = message,
         )
 
@@ -612,11 +613,14 @@ class NotificationService(
         }
 
         if (tab.equals("comments", ignoreCase = true)) {
-            return listOf("COMMENT", "REPLY")
+            return listOf(
+                NotificationType.COMMENT.value,
+                NotificationType.REPLY.value,
+            )
         }
 
         if (tab.equals("likes", ignoreCase = true)) {
-            return listOf("LIKE")
+            return listOf(NotificationType.LIKE.value)
         }
 
         return emptyList()
