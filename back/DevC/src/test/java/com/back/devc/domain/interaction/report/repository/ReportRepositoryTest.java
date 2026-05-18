@@ -80,8 +80,8 @@ class ReportRepositoryTest {
     private Report report(Member reporter, TargetType targetType, Long targetId) {
         return Report.create(
                 reporter,
-                TargetType.POST,
-                10L,
+                targetType,
+                targetId,
                 "SPAM",
                 "Repeated promotion"
         );
