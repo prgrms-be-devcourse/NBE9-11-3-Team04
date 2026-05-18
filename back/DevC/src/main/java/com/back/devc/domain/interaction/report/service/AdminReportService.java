@@ -305,9 +305,9 @@ public class AdminReportService {
             }
 
             return new ReportTargetHandler.TargetInfo(
-                    post.getMember().getNickname(),
-                    post.getTitle(),
-                    post.getContent()
+                    post.member.getNickname(),
+                    post.title,
+                    post.content
             );
         }
 

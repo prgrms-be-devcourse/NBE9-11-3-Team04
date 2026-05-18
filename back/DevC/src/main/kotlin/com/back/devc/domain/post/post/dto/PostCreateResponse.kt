@@ -10,6 +10,7 @@ data class PostCreateResponse(
         fun from(post: Post): PostCreateResponse {
             return PostCreateResponse(
                 postId = post.postId
+                    ?: throw IllegalStateException("Post ID cannot be null"),
             )
         }
     }

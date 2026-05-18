@@ -22,7 +22,8 @@ data class PostListResponse(
         @JvmStatic
         fun from(post: Post, liked: Boolean, bookmarked: Boolean): PostListResponse {
             return PostListResponse(
-                postId = post.postId,
+                postId = post.postId
+                    ?: throw IllegalStateException("Post ID cannot be null"),
                 title = post.title,
                 content = post.content,
                 userId = post.member?.userId,
