@@ -30,6 +30,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,111 +46,89 @@ class MypageControllerTest {
 
     @BeforeEach
     void setUp() {
-        MypageService mypageService = new MypageService(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        ) {
-            @Override
-            public MyProfileResponse getMyProfile(Long userId) {
-                return new MyProfileResponse(
-                        userId,
-                        "test@test.com",
-                        "기존닉네임"
-                );
-            }
+        MypageService mypageService = mock(MypageService.class);
 
-            @Override
-            public PageResponse<MyPostResponse> getMyPosts(Long userId, Pageable pageable) {
-                MyPostResponse post = new MyPostResponse(
-                        10L,
-                        "내 게시글",
-                        5L,
-                        2L,
-                        100L,
-                        LocalDateTime.of(2026, 5, 15, 10, 0),
-                        true,
-                        false
-                );
+        MyProfileResponse profileResponse = new MyProfileResponse(
+                1L,
+                "test@test.com",
+                "기존닉네임"
+        );
 
-                return PageResponse.from(
+        MyPostResponse post = new MyPostResponse(
+                10L,
+                "내 게시글",
+                5L,
+                2L,
+                100L,
+                LocalDateTime.of(2026, 5, 15, 10, 0),
+                true,
+                false
+        );
+
+        MyCommentResponse comment = new MyCommentResponse(
+                100L,
+                10L,
+                "게시글 제목",
+                "댓글 내용",
+                LocalDateTime.of(2026, 5, 15, 10, 0)
+        );
+
+        LikedPostResponse likedPost = new LikedPostResponse(
+                10L,
+                "좋아요한 게시글",
+                "작성자",
+                5L,
+                2L,
+                100L,
+                LocalDateTime.of(2026, 5, 15, 10, 0),
+                true,
+                false
+        );
+
+        BookmarkedPostResponse bookmarkedPost = new BookmarkedPostResponse(
+                10L,
+                "북마크한 게시글",
+                "작성자",
+                100L,
+                5L,
+                2L,
+                100L,
+                LocalDateTime.of(2026, 5, 15, 10, 0),
+                false,
+                true
+        );
+
+        MyProfileResponse updatedProfileResponse = new MyProfileResponse(
+                1L,
+                "test@test.com",
+                "변경닉네임"
+        );
+
+        when(mypageService.getMyProfile(anyLong()))
+                .thenReturn(profileResponse);
+
+        when(mypageService.getMyPosts(anyLong(), any(Pageable.class)))
+                .thenReturn(PageResponse.from(
                         new PageImpl<>(List.of(post), PageRequest.of(0, 10), 1)
-                );
-            }
+                ));
 
-            @Override
-            public PageResponse<MyCommentResponse> getMyComments(Long userId, Pageable pageable) {
-                MyCommentResponse comment = new MyCommentResponse(
-                        100L,
-                        10L,
-                        "게시글 제목",
-                        "댓글 내용",
-                        LocalDateTime.of(2026, 5, 15, 10, 0)
-                );
-
-                return PageResponse.from(
+        when(mypageService.getMyComments(anyLong(), any(Pageable.class)))
+                .thenReturn(PageResponse.from(
                         new PageImpl<>(List.of(comment), PageRequest.of(0, 10), 1)
-                );
-            }
+                ));
 
-            @Override
-            public PageResponse<LikedPostResponse> getMyLikedPosts(Long userId, Pageable pageable) {
-                LikedPostResponse likedPost = new LikedPostResponse(
-                        10L,
-                        "좋아요한 게시글",
-                        "작성자",
-                        5L,
-                        2L,
-                        100L,
-                        LocalDateTime.of(2026, 5, 15, 10, 0),
-                        true,
-                        false
-                );
-
-                return PageResponse.from(
+        when(mypageService.getMyLikedPosts(anyLong(), any(Pageable.class)))
+                .thenReturn(PageResponse.from(
                         new PageImpl<>(List.of(likedPost), PageRequest.of(0, 10), 1)
-                );
-            }
+                ));
 
-            @Override
-            public PageResponse<BookmarkedPostResponse> getMyBookmarkedPosts(
-                    Long userId,
-                    Pageable pageable
-            ) {
-                BookmarkedPostResponse bookmarkedPost = new BookmarkedPostResponse(
-                        10L,
-                        "북마크한 게시글",
-                        "작성자",
-                        100L,
-                        5L,
-                        2L,
-                        100L,
-                        LocalDateTime.of(2026, 5, 15, 10, 0),
-                        false,
-                        true
-                );
-
-                return PageResponse.from(
+        when(mypageService.getMyBookmarkedPosts(anyLong(), any(Pageable.class)))
+                .thenReturn(PageResponse.from(
                         new PageImpl<>(List.of(bookmarkedPost), PageRequest.of(0, 10), 1)
-                );
-            }
+                ));
 
-            @Override
-            public MyProfileResponse updateMyProfile(
-                    Long userId,
-                    UpdateMyProfileRequest request
-            ) {
-                return new MyProfileResponse(
-                        userId,
-                        "test@test.com",
-                        request.getNickname().trim()
-                );
-            }
-        };
+        when(mypageService.updateMyProfile(anyLong(), any(UpdateMyProfileRequest.class)))
+                .thenReturn(updatedProfileResponse);
 
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new MypageController(mypageService))
