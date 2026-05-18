@@ -48,13 +48,13 @@ public class UserReportService {
         validateTarget(reporterId, targetType, dto.targetId);
         validateDuplicateReport(reporter, targetType, dto.targetId);
 
-        Report report = Report.builder()
-                .reporter(reporter)
-                .targetType(targetType)
-                .targetId(dto.targetId)
-                .reasonType(dto.reasonType)
-                .reasonDetail(dto.reasonDetail)
-                .build();
+        Report report = Report.create(
+                reporter,
+                targetType,
+                dto.targetId,
+                dto.reasonType,
+                dto.reasonDetail
+        );
 
         reportRepository.save(report);
 

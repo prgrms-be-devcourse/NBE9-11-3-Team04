@@ -15,15 +15,11 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
-import lombok.Builder
-import lombok.Getter
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.LocalDateTime
 
 @Entity
-@Getter // 삭제 필요
-@Builder // 삭제 필요
 @Table(
     name = "reports",
     uniqueConstraints = [
