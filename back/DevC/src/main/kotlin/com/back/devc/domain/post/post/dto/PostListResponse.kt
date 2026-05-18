@@ -28,7 +28,8 @@ data class PostListResponse(
                 content = post.content,
                 userId = post.member?.userId,
                 nickName = MemberDisplayUtil.getDisplayName(post.member),
-                categoryId = post.category.categoryId,
+                categoryId = post.category.categoryId
+                    ?: throw IllegalStateException("Category ID cannot be null"),
                 viewCount = post.viewCount,
                 likeCount = post.likeCount,
                 commentCount = post.commentCount,

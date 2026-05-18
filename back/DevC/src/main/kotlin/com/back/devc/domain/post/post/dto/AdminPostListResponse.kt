@@ -23,7 +23,8 @@ data class AdminPostListResponse(
                     ?: throw IllegalStateException("Post ID cannot be null"),
                 title = post.title,
                 userId = post.member?.userId,
-                categoryId = post.category.categoryId,
+                categoryId = post.category.categoryId
+                    ?: throw IllegalStateException("Category ID cannot be null"),
                 isDeleted = post.isDeleted,
                 viewCount = post.viewCount,
                 likeCount = post.likeCount,
