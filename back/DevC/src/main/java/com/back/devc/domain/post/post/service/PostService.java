@@ -196,7 +196,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
 
-        if (!post.getMember().getUserId().equals(memberId)) {
+        if (!post.member.getUserId().equals(memberId)) {
             throw new ApiException(PostErrorCode.POST_403_FORBIDDEN);
         }
 
@@ -221,7 +221,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ApiException(PostErrorCode.POST_404_NOT_FOUND));
 
-        if (!post.getMember().getUserId().equals(memberId)) {
+        if (!post.member.getUserId().equals(memberId)) {
             throw new ApiException(PostErrorCode.POST_403_FORBIDDEN);
         }
 

@@ -433,8 +433,7 @@ public class NotificationService {
     // 게시글 작성자를 조회해 알림 수신자(receiver)를 구하는 공통 메서드
     private Long findPostOwnerId(Long postId) {
         return postRepository.findById(postId)
-                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_POST_NOT_FOUND))
-                .getMember()
+                .orElseThrow(() -> new ApiException(NotificationErrorCode.NOTIFICATION_404_POST_NOT_FOUND)).member
                 .getUserId();
     }
 

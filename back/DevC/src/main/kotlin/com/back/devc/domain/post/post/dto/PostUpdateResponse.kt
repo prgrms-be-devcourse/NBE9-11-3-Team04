@@ -12,7 +12,8 @@ data class PostUpdateResponse(
         @JvmStatic
         fun from(post: Post): PostUpdateResponse {
             return PostUpdateResponse(
-                postId = post.postId,
+                postId = post.postId
+                    ?: throw IllegalStateException("Post ID cannot be null"),
                 title = post.title,
                 content = post.content,
                 categoryId = post.category.categoryId

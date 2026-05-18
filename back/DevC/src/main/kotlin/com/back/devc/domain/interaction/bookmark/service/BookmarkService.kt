@@ -125,7 +125,7 @@ class BookmarkService(
         userId: Long,
     ): BookmarkedPostResponse {
         val post: Post = bookmark.post
-        val postId = post.getPostId()
+        val postId = post.postId ?: throw IllegalStateException("Post ID cannot be null")
 
         val liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
             userId,
@@ -134,13 +134,13 @@ class BookmarkService(
 
         return BookmarkedPostResponse(
             postId = postId,
-            title = post.getTitle(),
-            authorNickname = MemberDisplayUtil.getDisplayName(post.getMember()),
-            categoryId = post.getCategory().getCategoryId(),
-            likeCount = post.getLikeCount().toLong(),
-            commentCount = post.getCommentCount().toLong(),
-            viewCount = post.getViewCount().toLong(),
-            createdAt = post.getCreatedAt(),
+            title = post.title,
+            authorNickname = MemberDisplayUtil.getDisplayName(post.member),
+            categoryId = post.category.getCategoryId(),
+            likeCount = post.likeCount.toLong(),
+            commentCount = post.commentCount.toLong(),
+            viewCount = post.viewCount.toLong(),
+            createdAt = post.createdAt,
             liked = liked,
             bookmarked = true,
         )

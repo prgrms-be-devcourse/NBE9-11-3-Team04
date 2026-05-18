@@ -64,7 +64,8 @@ class MypageService(
         )
 
         val response = posts.map { post ->
-            val postId = post.getPostId()
+            val postId = post.postId
+                ?: throw EntityNotFoundException("Post not found")
 
             val liked = postLikeRepository.existsByMember_UserIdAndPost_PostId(
                 userId,
@@ -78,11 +79,11 @@ class MypageService(
 
             MyPostResponse(
                 postId = postId,
-                title = post.getTitle(),
-                likeCount = post.getLikeCount().toLong(),
-                commentCount = post.getCommentCount().toLong(),
-                viewCount = post.getViewCount().toLong(),
-                createdAt = post.getCreatedAt(),
+                title = post.title,
+                likeCount = post.likeCount.toLong(),
+                commentCount = post.commentCount.toLong(),
+                viewCount = post.viewCount.toLong(),
+                createdAt = post.createdAt,
                 liked = liked,
                 bookmarked = bookmarked,
             )
