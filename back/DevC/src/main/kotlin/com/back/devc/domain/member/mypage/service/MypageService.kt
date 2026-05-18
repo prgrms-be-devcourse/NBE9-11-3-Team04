@@ -37,7 +37,7 @@ class MypageService(
         return memberRepository.findById(userId)
             .orElseThrow {
                 EntityNotFoundException(
-                    MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.getCode()
+                    MypageErrorCode.MYPAGE_404_MEMBER_NOT_FOUND.code
                 )
             }
     }
@@ -133,7 +133,7 @@ class MypageService(
             memberRepository.existsByNickname(newNickname)
         ) {
             throw IllegalArgumentException(
-                MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.getCode()
+                MypageErrorCode.MYPAGE_409_NICKNAME_ALREADY_EXISTS.code
             )
         }
 

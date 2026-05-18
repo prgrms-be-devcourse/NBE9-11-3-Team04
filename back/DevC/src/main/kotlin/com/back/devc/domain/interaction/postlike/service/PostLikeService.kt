@@ -185,7 +185,7 @@ class PostLikeService(
         return memberRepository.findById(userId)
             .orElseThrow {
                 EntityNotFoundException(
-                    PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode()
+                    PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.code
                 )
             }
     }
@@ -196,7 +196,7 @@ class PostLikeService(
     private fun validateMemberExists(userId: Long) {
         if (!memberRepository.existsById(userId)) {
             throw EntityNotFoundException(
-                PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getCode()
+                PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.code
             )
         }
     }
@@ -207,7 +207,7 @@ class PostLikeService(
     private fun validatePostExists(postId: Long) {
         if (postRepository.findByPostIdAndIsDeletedFalse(postId).isEmpty()) {
             throw EntityNotFoundException(
-                PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getCode()
+                PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.code
             )
         }
     }

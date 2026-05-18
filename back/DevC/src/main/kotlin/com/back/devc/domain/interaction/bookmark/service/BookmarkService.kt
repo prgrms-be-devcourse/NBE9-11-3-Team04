@@ -153,7 +153,7 @@ class BookmarkService(
         return memberRepository.findById(userId)
             .orElseThrow {
                 EntityNotFoundException(
-                    BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+                    BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.code
                 )
             }
     }
@@ -164,7 +164,7 @@ class BookmarkService(
     private fun validateMemberExists(userId: Long) {
         if (!memberRepository.existsById(userId)) {
             throw EntityNotFoundException(
-                BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getCode()
+                BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.code
             )
         }
     }
@@ -175,7 +175,7 @@ class BookmarkService(
     private fun validatePostExists(postId: Long) {
         if (postRepository.findByPostIdAndIsDeletedFalse(postId).isEmpty) {
             throw EntityNotFoundException(
-                BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getCode()
+                BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.code
             )
         }
     }
