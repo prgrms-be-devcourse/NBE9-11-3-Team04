@@ -74,7 +74,7 @@ public class UserReportService {
                 throw new ApiException(ReportErrorCode.REPORT_400_REPORT_SELF);
             }
 
-            if (post.getIsDeleted()) {
+            if (post.isDeleted()) {
                 throw new ApiException(ReportErrorCode.REPORT_410_ALREADY_DELETED);
             }
         }

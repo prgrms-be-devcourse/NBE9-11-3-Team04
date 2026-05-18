@@ -227,6 +227,7 @@ class BookmarkServiceTest {
     void getBookmarkedPosts_success() {
         // given
         Member member = createMemberWithId(userId, "작성자");
+
         Category category = mock(Category.class);
         given(category.getCategoryId()).willReturn(100L);
 
@@ -334,19 +335,20 @@ class BookmarkServiceTest {
             int viewCount,
             LocalDateTime createdAt
     ) {
-        Post post = Post.builder()
-                .member(member)
-                .category(category)
-                .title(title)
-                .content("테스트 내용")
-                .likeCount(likeCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount)
-                .isDeleted(false)
-                .createdAt(createdAt)
-                .build();
+        Post post = Post.create(
+                member,
+                category,
+                title,
+                "테스트 내용"
+        );
 
         setField(post, "postId", postId);
+        setField(post, "likeCount", likeCount);
+        setField(post, "commentCount", commentCount);
+        setField(post, "viewCount", viewCount);
+        setField(post, "isDeleted", false);
+        setField(post, "createdAt", createdAt);
+        setField(post, "updatedAt", createdAt);
 
         return post;
     }

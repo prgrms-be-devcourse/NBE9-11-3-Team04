@@ -98,7 +98,7 @@ public class PostControllerUnitTest{
     void updatePost_Success() throws Exception {
 
         Post post = postRepository.save(
-                new Post(member, category, "수정 전 제목", "수정 전 내용")
+                Post.create(member, category, "수정 전 제목", "수정 전 내용")
         );
 
         mvc.perform(
@@ -123,7 +123,7 @@ public class PostControllerUnitTest{
     void deletePost_Success() throws Exception {
 
         Post post = postRepository.save(
-                new Post(member, category, "title", "content")
+                Post.create(member, category, "title", "content")
         );
 
         mvc.perform(delete("/api/posts/" + post.getPostId())
@@ -134,7 +134,7 @@ public class PostControllerUnitTest{
 
         Post deleted = postRepository.findById(post.getPostId()).orElseThrow();
 
-        assertThat(deleted.getIsDeleted()).isTrue();
+        assertThat(deleted.isDeleted()).isTrue();
     }
 
 }

@@ -11,6 +11,7 @@ import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository;
 import com.back.devc.domain.interaction.postLike.service.PostLikeService;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
+import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
 import com.back.devc.global.exception.errorCode.PostLikeErrorCode;
@@ -346,18 +347,22 @@ class PostLikeServiceTest {
             int viewCount,
             LocalDateTime createdAt
     ) {
-        Post post = Post.builder()
-                .member(member)
-                .title(title)
-                .content("테스트 내용")
-                .likeCount(likeCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount)
-                .isDeleted(false)
-                .createdAt(createdAt)
-                .build();
+        Category category = mock(Category.class);
+
+        Post post = Post.create(
+                member,
+                category,
+                title,
+                "테스트 내용"
+        );
 
         setField(post, "postId", postId);
+        setField(post, "likeCount", likeCount);
+        setField(post, "commentCount", commentCount);
+        setField(post, "viewCount", viewCount);
+        setField(post, "isDeleted", false);
+        setField(post, "createdAt", createdAt);
+        setField(post, "updatedAt", createdAt);
 
         return post;
     }

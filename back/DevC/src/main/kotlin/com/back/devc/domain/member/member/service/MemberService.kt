@@ -55,7 +55,7 @@ class MemberService(
             .findTop20ByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member)
             .map { post ->
                 PublicProfilePostResponse(
-                    postId = post.postId,
+                    postId = post.postId ?: throw ApiException(MemberErrorCode.MEMBER_NOT_FOUND),
                     title = post.title,
                     likeCount = post.likeCount,
                     commentCount = post.commentCount,

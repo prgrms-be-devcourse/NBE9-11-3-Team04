@@ -12,6 +12,7 @@ import com.back.devc.domain.member.mypage.dto.MyCommentResponse;
 import com.back.devc.domain.member.mypage.dto.MyPostResponse;
 import com.back.devc.domain.member.mypage.dto.MyProfileResponse;
 import com.back.devc.domain.member.mypage.dto.UpdateMyProfileRequest;
+import com.back.devc.domain.post.category.entity.Category;
 import com.back.devc.domain.post.comment.repository.CommentRepository;
 import com.back.devc.domain.post.post.entity.Post;
 import com.back.devc.domain.post.post.repository.PostRepository;
@@ -38,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
 @DisplayName("MypageService 테스트")
@@ -377,18 +379,22 @@ class MypageServiceTest {
             int viewCount,
             LocalDateTime createdAt
     ) {
-        Post post = Post.builder()
-                .member(member)
-                .title(title)
-                .content("테스트 내용")
-                .likeCount(likeCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount)
-                .isDeleted(false)
-                .createdAt(createdAt)
-                .build();
+        Category category = mock(Category.class);
+
+        Post post = Post.create(
+                member,
+                category,
+                title,
+                "테스트 내용"
+        );
 
         setField(post, "postId", postId);
+        setField(post, "likeCount", likeCount);
+        setField(post, "commentCount", commentCount);
+        setField(post, "viewCount", viewCount);
+        setField(post, "isDeleted", false);
+        setField(post, "createdAt", createdAt);
+        setField(post, "updatedAt", createdAt);
 
         return post;
     }

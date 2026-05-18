@@ -157,7 +157,7 @@ class PostLikeService(
         userId: Long,
     ): LikedPostResponse {
         val post: Post = postLike.post
-        val postId = post.getPostId()
+        val postId = post.postId ?: throw IllegalStateException("Post ID cannot be null")
 
         val bookmarked = bookmarkRepository.existsByMember_UserIdAndPost_PostId(
             userId,
@@ -166,12 +166,12 @@ class PostLikeService(
 
         return LikedPostResponse(
             postId = postId,
-            title = post.getTitle(),
-            authorNickname = MemberDisplayUtil.getDisplayName(post.getMember()),
-            likeCount = post.getLikeCount().toLong(),
-            commentCount = post.getCommentCount().toLong(),
-            viewCount = post.getViewCount().toLong(),
-            createdAt = post.getCreatedAt(),
+            title = post.title,
+            authorNickname = MemberDisplayUtil.getDisplayName(post.member),
+            likeCount = post.likeCount.toLong(),
+            commentCount = post.commentCount.toLong(),
+            viewCount = post.viewCount.toLong(),
+            createdAt = post.createdAt,
             liked = true,
             bookmarked = bookmarked,
         )
