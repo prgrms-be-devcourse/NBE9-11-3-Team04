@@ -126,7 +126,7 @@ class UserReportServiceTest {
         @DisplayName("throws when reporter owns the post")
         void reportPost_throwsWhenReportingOwnPost() {
             givenExistingReporter();
-            given(post.member).willReturn(reporter);
+            given(post.getMember()).willReturn(reporter);
             given(postRepository.findById(10L)).willReturn(Optional.of(post));
 
             assertReportError(
@@ -251,8 +251,8 @@ class UserReportServiceTest {
     }
 
     private void givenExistingPostByAnotherMember(boolean deleted) {
-        given(post.member).willReturn(author);
-        given(post.getIsDeleted()).willReturn(deleted);
+        given(post.getMember()).willReturn(author);
+        given(post.isDeleted()).willReturn(deleted);
         given(postRepository.findById(10L)).willReturn(Optional.of(post));
     }
 

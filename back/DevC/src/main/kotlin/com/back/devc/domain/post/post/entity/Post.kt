@@ -130,6 +130,10 @@ class Post protected constructor() {
         deletedAt = LocalDateTime.now()
     }
 
+    fun syncCommentCount(actualCount: Int) {
+        commentCount = actualCount
+    }
+
     companion object {
         @JvmStatic
         fun create(

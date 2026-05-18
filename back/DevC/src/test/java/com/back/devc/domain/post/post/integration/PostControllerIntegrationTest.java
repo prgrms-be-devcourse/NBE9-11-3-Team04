@@ -78,7 +78,7 @@ class PostControllerIntegrationTest{
     void getPostDetail() throws Exception {
 
         Post post = postRepository.save(
-                new Post(member, category, "테스트3", "테스트3내용")
+                Post.create(member, category, "테스트3", "테스트3내용")
         );
 
         mvc.perform(get("/api/posts/" + post.getPostId()))
@@ -96,13 +96,13 @@ class PostControllerIntegrationTest{
     void getPostsByLatest() throws Exception {
 
         Post post1 = postRepository.save(
-                new Post(member, category, "첫번째", "내용1")
+                Post.create(member, category, "첫번째", "내용1")
         );
 
         Thread.sleep(10);
 
         Post post2 = postRepository.save(
-                new Post(member, category, "두번째", "내용2")
+                Post.create(member, category, "두번째", "내용2")
         );
 
         mvc.perform(get("/api/posts")
@@ -120,11 +120,11 @@ class PostControllerIntegrationTest{
     void getPostsByLikesOrder_whenSameLikesThenLatest() throws Exception {
 
         // given
-        Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
+        Post post1 = postRepository.save(Post.create(member, category, "제목1", "내용1"));
         Thread.sleep(10); // createdAt 차이
-        Post post2 = postRepository.save(new Post(member, category, "제목2", "내용2"));
+        Post post2 = postRepository.save(Post.create(member, category, "제목2", "내용2"));
         Thread.sleep(10);
-        Post post3 = postRepository.save(new Post(member, category, "제목3", "내용3"));
+        Post post3 = postRepository.save(Post.create(member, category, "제목3", "내용3"));
 
         // 좋아요 증가
         for (int i = 0; i < 5; i++) post1.increaseLikeCount(); //제목1
@@ -154,11 +154,11 @@ class PostControllerIntegrationTest{
     void getPostsByViewsOrder_whenSameViewsThenLatest() throws Exception {
 
         // given
-        Post post1 = postRepository.save(new Post(member, category, "제목1", "내용1"));
+        Post post1 = postRepository.save(Post.create(member, category, "제목1", "내용1"));
         Thread.sleep(10);
-        Post post2 = postRepository.save(new Post(member, category, "제목2", "내용2"));
+        Post post2 = postRepository.save(Post.create(member, category, "제목2", "내용2"));
         Thread.sleep(10);
-        Post post3 = postRepository.save(new Post(member, category, "제목3", "내용3"));
+        Post post3 = postRepository.save(Post.create(member, category, "제목3", "내용3"));
 
         // 조회수 증가
         for (int i = 0; i < 5; i++) post1.increaseViewCount();
@@ -191,11 +191,11 @@ class PostControllerIntegrationTest{
         Category category2 = categoryRepository.save(new Category("테스트 공지"));
 
         // category1 게시글
-        postRepository.save(new Post(member, category, "자유1", "내용1"));
-        postRepository.save(new Post(member, category, "자유2", "내용2"));
+        postRepository.save(Post.create(member, category, "자유1", "내용1"));
+        postRepository.save(Post.create(member, category, "자유2", "내용2"));
 
         // category2 게시글
-        postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        postRepository.save(Post.create(member, category2, "공지1", "내용3"));
 
         // when & then
         mvc.perform(get("/api/posts")
@@ -217,12 +217,12 @@ class PostControllerIntegrationTest{
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
 
-        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
+        Post p1 = postRepository.save(Post.create(member, category, "자유1", "내용1"));
         Thread.sleep(10);
-        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+        Post p2 = postRepository.save(Post.create(member, category, "자유2", "내용2"));
 
         // 다른 카테고리
-        postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        postRepository.save(Post.create(member, category2, "공지1", "내용3"));
 
         // when & then
         mvc.perform(get("/api/posts")
@@ -245,15 +245,15 @@ class PostControllerIntegrationTest{
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
 
-        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
-        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+        Post p1 = postRepository.save(Post.create(member, category, "자유1", "내용1"));
+        Post p2 = postRepository.save(Post.create(member, category, "자유2", "내용2"));
 
         // 좋아요 차이
         for (int i = 0; i < 5; i++) p1.increaseLikeCount();
         for (int i = 0; i < 10; i++) p2.increaseLikeCount();
 
         // 다른 카테고리
-        Post other = postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        Post other = postRepository.save(Post.create(member, category2, "공지1", "내용3"));
         for (int i = 0; i < 100; i++) other.increaseLikeCount();
 
         postRepository.flush();
@@ -279,15 +279,15 @@ class PostControllerIntegrationTest{
         // given
         Category category2 = categoryRepository.save(new Category("공지"));
 
-        Post p1 = postRepository.save(new Post(member, category, "자유1", "내용1"));
-        Post p2 = postRepository.save(new Post(member, category, "자유2", "내용2"));
+        Post p1 = postRepository.save(Post.create(member, category, "자유1", "내용1"));
+        Post p2 = postRepository.save(Post.create(member, category, "자유2", "내용2"));
 
         // 조회수 차이
         for (int i = 0; i < 5; i++) p1.increaseViewCount();
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
 
         // 다른 카테고리
-        Post other = postRepository.save(new Post(member, category2, "공지1", "내용3"));
+        Post other = postRepository.save(Post.create(member, category2, "공지1", "내용3"));
         for (int i = 0; i < 100; i++) other.increaseViewCount();
 
         postRepository.flush();
@@ -314,9 +314,9 @@ class PostControllerIntegrationTest{
     @DisplayName("게시글 제목 검색")
     void searchPostsByTitle() throws Exception {
 
-        postRepository.save(new Post(member, category, "스프링 공부", "내용1"));
-        postRepository.save(new Post(member, category, "자바 공부", "내용2"));
-        postRepository.save(new Post(member, category, "리액트 공부", "내용3"));
+        postRepository.save(Post.create(member, category, "스프링 공부", "내용1"));
+        postRepository.save(Post.create(member, category, "자바 공부", "내용2"));
+        postRepository.save(Post.create(member, category, "리액트 공부", "내용3"));
 
         mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
@@ -333,9 +333,9 @@ class PostControllerIntegrationTest{
     @DisplayName("게시글 내용 검색")
     void searchPostsByContent() throws Exception {
 
-        postRepository.save(new Post(member, category, "글1", "스프링부트 강의"));
-        postRepository.save(new Post(member, category, "글2", "자바 강의"));
-        postRepository.save(new Post(member, category, "글3", "스프링 핵심"));
+        postRepository.save(Post.create(member, category, "글1", "스프링부트 강의"));
+        postRepository.save(Post.create(member, category, "글2", "자바 강의"));
+        postRepository.save(Post.create(member, category, "글3", "스프링 핵심"));
 
         mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
@@ -351,9 +351,9 @@ class PostControllerIntegrationTest{
     @DisplayName("게시글 제목 + 내용 검색")
     void searchPostsByTitleOrContent() throws Exception {
 
-        postRepository.save(new Post(member, category, "스프링", "자바 내용"));
-        postRepository.save(new Post(member, category, "자바", "스프링 내용"));
-        postRepository.save(new Post(member, category, "리액트", "프론트"));
+        postRepository.save(Post.create(member, category, "스프링", "자바 내용"));
+        postRepository.save(Post.create(member, category, "자바", "스프링 내용"));
+        postRepository.save(Post.create(member, category, "리액트", "프론트"));
 
         mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
@@ -369,9 +369,9 @@ class PostControllerIntegrationTest{
     @DisplayName("제목 검색 + 최신순")
     void searchPostsByTitleAndLatest() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
+        Post p1 = postRepository.save(Post.create(member, category, "스프링 1", "내용1"));
         Thread.sleep(10);
-        Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
+        Post p2 = postRepository.save(Post.create(member, category, "스프링 2", "내용2"));
 
         mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
@@ -388,8 +388,8 @@ class PostControllerIntegrationTest{
     @DisplayName("제목 검색 + 좋아요순")
     void searchPostsByTitleAndLikes() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
-        Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
+        Post p1 = postRepository.save(Post.create(member, category, "스프링 1", "내용1"));
+        Post p2 = postRepository.save(Post.create(member, category, "스프링 2", "내용2"));
 
         for (int i = 0; i < 10; i++) p1.increaseLikeCount(); // p1번의 좋아요를 더 많게 작성
         for (int i = 0; i < 5; i++) p2.increaseLikeCount();
@@ -410,9 +410,9 @@ class PostControllerIntegrationTest{
     @DisplayName("제목 검색 + 조회수순")
     void searchPostsByTitleAndViews() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "스프링 1", "내용1"));
-        Post p2 = postRepository.save(new Post(member, category, "스프링 2", "내용2"));
-        Post p3 = postRepository.save(new Post(member, category, "스프링 3", "내용3"));
+        Post p1 = postRepository.save(Post.create(member, category, "스프링 1", "내용1"));
+        Post p2 = postRepository.save(Post.create(member, category, "스프링 2", "내용2"));
+        Post p3 = postRepository.save(Post.create(member, category, "스프링 3", "내용3"));
 
         for (int i = 0; i < 5; i++) p1.increaseViewCount();
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
@@ -434,9 +434,9 @@ class PostControllerIntegrationTest{
     @DisplayName("내용 검색 + 최신순")
     void searchPostsByContentAndLatest() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
+        Post p1 = postRepository.save(Post.create(member, category, "글1", "스프링 1"));
         Thread.sleep(10);
-        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
+        Post p2 = postRepository.save(Post.create(member, category, "글2", "스프링 2"));
 
         mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
@@ -453,8 +453,8 @@ class PostControllerIntegrationTest{
     @DisplayName("내용 검색 + 좋아요순")
     void searchPostsByContentAndLikes() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
-        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
+        Post p1 = postRepository.save(Post.create(member, category, "글1", "스프링 1"));
+        Post p2 = postRepository.save(Post.create(member, category, "글2", "스프링 2"));
 
         for (int i = 0; i < 10; i++) p1.increaseLikeCount();
         for (int i = 0; i < 5; i++) p2.increaseLikeCount();
@@ -474,9 +474,9 @@ class PostControllerIntegrationTest{
     @DisplayName("내용 검색 + 조회수순")
     void searchPostsByContentAndViews() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "글1", "스프링 1"));
-        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 2"));
-        Post p3 = postRepository.save(new Post(member, category, "글3", "스프링 3"));
+        Post p1 = postRepository.save(Post.create(member, category, "글1", "스프링 1"));
+        Post p2 = postRepository.save(Post.create(member, category, "글2", "스프링 2"));
+        Post p3 = postRepository.save(Post.create(member, category, "글3", "스프링 3"));
 
         for (int i = 0; i < 5; i++) p1.increaseViewCount();
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
@@ -497,9 +497,9 @@ class PostControllerIntegrationTest{
     @DisplayName("제목+내용 검색 + 최신순")
     void searchPostsByTitleOrContentAndLatest() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
+        Post p1 = postRepository.save(Post.create(member, category, "스프링 글1", "내용 A"));
         Thread.sleep(10);
-        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
+        Post p2 = postRepository.save(Post.create(member, category, "글2", "스프링 내용"));
 
         mvc.perform(get("/api/posts")
                         .param("keyword", "스프링")
@@ -516,8 +516,8 @@ class PostControllerIntegrationTest{
     @DisplayName("제목+내용 검색 + 좋아요순")
     void searchPostsByTitleOrContentAndLikes() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
-        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
+        Post p1 = postRepository.save(Post.create(member, category, "스프링 글1", "내용 A"));
+        Post p2 = postRepository.save(Post.create(member, category, "글2", "스프링 내용"));
 
         for (int i = 0; i < 10; i++) p1.increaseLikeCount();
         for (int i = 0; i < 5; i++) p2.increaseLikeCount();
@@ -537,9 +537,9 @@ class PostControllerIntegrationTest{
     @DisplayName("제목+내용 검색 + 조회수순")
     void searchPostsByTitleOrContentAndViews() throws Exception {
 
-        Post p1 = postRepository.save(new Post(member, category, "스프링 글1", "내용 A"));
-        Post p2 = postRepository.save(new Post(member, category, "글2", "스프링 내용"));
-        Post p3 = postRepository.save(new Post(member, category, "글3", "내용 스프링"));
+        Post p1 = postRepository.save(Post.create(member, category, "스프링 글1", "내용 A"));
+        Post p2 = postRepository.save(Post.create(member, category, "글2", "스프링 내용"));
+        Post p3 = postRepository.save(Post.create(member, category, "글3", "내용 스프링"));
 
         for (int i = 0; i < 5; i++) p1.increaseViewCount();
         for (int i = 0; i < 10; i++) p2.increaseViewCount();
