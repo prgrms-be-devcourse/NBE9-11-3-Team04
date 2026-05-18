@@ -5,8 +5,11 @@ import com.back.devc.domain.member.member.dto.AdmMemberListRequest;
 import com.back.devc.domain.member.member.dto.AdmMemberListResponse;
 import com.back.devc.domain.member.member.dto.AdmMemberStatusUpdateRequest;
 import com.back.devc.domain.member.member.entity.MemberStatus;
+import com.back.devc.domain.member.member.repository.MemberRepository;
 import com.back.devc.domain.member.member.service.AdmMemberService;
 import com.back.devc.global.response.successCode.MemberSuccessCode;
+import com.back.devc.domain.post.comment.repository.CommentRepository;
+import com.back.devc.domain.post.post.repository.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.mock;
 
 @DisplayName("AdmMemberController 테스트")
 class AdmMemberControllerTest {
@@ -32,7 +36,11 @@ class AdmMemberControllerTest {
 
     @BeforeEach
     void setUp() {
-        AdmMemberService admMemberService = new AdmMemberService(null, null, null) {
+        AdmMemberService admMemberService = new AdmMemberService(
+                mock(MemberRepository.class),
+                mock(PostRepository.class),
+                mock(CommentRepository.class)
+        ) {
             @Override
             public Page<AdmMemberListResponse> getMembers(AdmMemberListRequest request) {
                 AdmMemberListResponse dto =
@@ -51,7 +59,7 @@ class AdmMemberControllerTest {
             }
 
             @Override
-            public AdmMemberDetailResponse getMemberDetail(Long userId) {
+            public AdmMemberDetailResponse getMemberDetail(long userId) {
                 return new AdmMemberDetailResponse(
                         userId,
                         "test@test.com",
@@ -66,7 +74,7 @@ class AdmMemberControllerTest {
 
             @Override
             public AdmMemberDetailResponse updateMemberStatus(
-                    Long userId,
+                    long userId,
                     AdmMemberStatusUpdateRequest request
             ) {
                 return new AdmMemberDetailResponse(
@@ -75,7 +83,7 @@ class AdmMemberControllerTest {
                         "nick",
                         0L,
                         0L,
-                        request.status(),
+                        request.getStatus(),
                         LocalDateTime.now(),
                         LocalDateTime.now()
                 );
