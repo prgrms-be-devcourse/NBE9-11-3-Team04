@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Bot,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -37,6 +38,11 @@ const navigation = [
     name: "신고 관리",
     href: "/admin/dashboard/reports",
     icon: AlertTriangle,
+  },
+  {
+    name: "AI 토론 관리",
+    href: "/admin/dashboard/ai-discussions",
+    icon: Bot,
   },
 ]
 
