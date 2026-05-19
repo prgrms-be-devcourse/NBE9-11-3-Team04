@@ -1,5 +1,6 @@
 package com.back.devc.domain.post.aidiscussion.service
 
+import com.back.devc.domain.post.category.repository.CategoryRepository
 import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionPostResponse
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
@@ -19,7 +20,11 @@ class AiDiscussionPostService(
     private val postService: PostService,
     private val aiDiscussionGeneratorService: AiDiscussionGeneratorService,
     private val aiDiscussionPersistenceService: AiDiscussionPersistenceService,
+    private val categoryRepository: CategoryRepository,
 ) {
+    companion object {
+        private const val DISCUSSION_CATEGORY_NAME = "discussion"
+    }
 
     fun createPendingDiscussion(): AiDiscussionPostResponse {
         aiDiscussionPersistenceService.validatePendingDiscussionDoesNotExist()
@@ -65,7 +70,6 @@ class AiDiscussionPostService(
     fun approveDiscussion(
         aiDiscussionPostId: Long,
         adminUserId: Long,
-        categoryId: Long,
     ): AiDiscussionPostResponse {
         val aiDiscussionPost = aiDiscussionPostRepository.findById(aiDiscussionPostId)
             .orElseThrow {
@@ -82,12 +86,18 @@ class AiDiscussionPostService(
             )
         }
 
+        val discussionCategory = categoryRepository.findByName(DISCUSSION_CATEGORY_NAME)
+            ?: throw ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "토론 게시판 카테고리를 찾을 수 없습니다.",
+            )
+
         val postCreateResponse = postService.write(
             userId = adminUserId,
             request = PostCreateRequest(
                 title = aiDiscussionPost.title,
                 content = aiDiscussionPost.content,
-                categoryId = categoryId,
+                categoryId = requireNotNull(discussionCategory.categoryId),
             ),
         )
 

@@ -50,12 +50,10 @@ class AiDiscussionAdminController(
     fun approveDiscussion(
         @PathVariable aiDiscussionPostId: Long,
         @AuthenticationPrincipal principal: JwtPrincipal,
-        @RequestParam categoryId: Long,
     ): AiDiscussionPostResponse {
         return aiDiscussionPostService.approveDiscussion(
             aiDiscussionPostId = aiDiscussionPostId,
             adminUserId = principal.userId,
-            categoryId = categoryId,
         )
     }
 
