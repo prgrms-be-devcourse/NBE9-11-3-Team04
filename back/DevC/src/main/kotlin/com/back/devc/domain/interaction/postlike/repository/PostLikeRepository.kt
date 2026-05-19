@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import java.util.*
 
 interface PostLikeRepository : JpaRepository<PostLike, Long> {
 
@@ -27,7 +26,7 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
     fun findByMemberAndPost(
         member: Member,
         post: Post,
-    ): Optional<PostLike>
+    ): PostLike?
 
     /**
      * 특정 회원이 좋아요한 게시글 목록 조회
@@ -65,6 +64,25 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
         userId: Long,
         postId: Long,
     ): Boolean
+
+    /**
+     * 북마크/좋아요 목록 조회 최적화용
+     *
+     * 특정 사용자가 좋아요한 게시글 ID만 한 번에 조회한다.
+     * 목록 DTO 매핑 시 exists 쿼리가 N번 나가는 문제를 방지한다.
+     */
+    @Query(
+        """
+            select pl.post.postId
+            from PostLike pl
+            where pl.member.userId = :userId
+            and pl.post.postId in :postIds
+        """
+    )
+    fun findLikedPostIdsByUserIdAndPostIds(
+        @Param("userId") userId: Long,
+        @Param("postIds") postIds: Collection<Long>,
+    ): List<Long>
 
     /**
      * 좋아요 생성

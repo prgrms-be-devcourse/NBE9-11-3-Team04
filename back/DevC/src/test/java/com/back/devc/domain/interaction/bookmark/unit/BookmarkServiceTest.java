@@ -33,11 +33,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 
 @DisplayName("BookmarkService 테스트")
 @ExtendWith(MockitoExtension.class)
@@ -106,6 +106,8 @@ class BookmarkServiceTest {
         assertThat(response.getPostId()).isEqualTo(postId);
         assertThat(response.getBookmarked()).isTrue();
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
         then(bookmarkRepository).should().insertIgnore(userId, postId);
     }
 
@@ -122,6 +124,7 @@ class BookmarkServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
         then(postRepository).should(never()).findByPostIdAndIsDeletedFalse(anyLong());
         then(bookmarkRepository).should(never()).insertIgnore(anyLong(), anyLong());
     }
@@ -141,6 +144,8 @@ class BookmarkServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
         then(bookmarkRepository).should(never()).insertIgnore(anyLong(), anyLong());
     }
 
@@ -189,6 +194,8 @@ class BookmarkServiceTest {
         assertThat(response.getPostId()).isEqualTo(postId);
         assertThat(response.getBookmarked()).isFalse();
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
         then(bookmarkRepository).should().deleteByUserIdAndPostId(userId, postId);
     }
 
@@ -205,6 +212,7 @@ class BookmarkServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
         then(postRepository).should(never()).findByPostIdAndIsDeletedFalse(anyLong());
         then(bookmarkRepository).should(never()).deleteByUserIdAndPostId(anyLong(), anyLong());
     }
@@ -224,11 +232,13 @@ class BookmarkServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
         then(bookmarkRepository).should(never()).deleteByUserIdAndPostId(anyLong(), anyLong());
     }
 
     @Test
-    @DisplayName("내가 북마크한 게시글 목록을 반환한다")
+    @DisplayName("내가 북마크한 게시글 목록을 페이징으로 반환한다")
     void getBookmarkedPosts_success() {
         // given
         Member member = createMemberWithId(userId, "작성자");
@@ -253,16 +263,15 @@ class BookmarkServiceTest {
 
         Pageable pageable = PageRequest.of(0, 10);
 
-        given(memberRepository.findById(userId))
-                .willReturn(Optional.of(member));
-
-        given(bookmarkRepository.findAllByMemberAndPost_IsDeletedFalse(
-                member,
+        given(bookmarkRepository.findPageWithPostMemberCategoryByUserId(
+                userId,
                 pageable
         )).willReturn(new PageImpl<>(List.of(bookmark), pageable, 1));
 
-        given(postLikeRepository.existsByMember_UserIdAndPost_PostId(userId, postId))
-                .willReturn(true);
+        given(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(
+                eq(userId),
+                anyCollection()
+        )).willReturn(List.of(postId));
 
         // when
         PageResponse<BookmarkedPostResponse> response =
@@ -284,47 +293,138 @@ class BookmarkServiceTest {
         assertThat(bookmarkedPost.getLiked()).isTrue();
         assertThat(bookmarkedPost.getBookmarked()).isTrue();
 
-        then(memberRepository).should().findById(userId);
-
         then(bookmarkRepository).should()
-                .findAllByMemberAndPost_IsDeletedFalse(
-                        member,
-                        pageable
-                );
+                .findPageWithPostMemberCategoryByUserId(userId, pageable);
 
         then(postLikeRepository).should()
-                .existsByMember_UserIdAndPost_PostId(userId, postId);
+                .findLikedPostIdsByUserIdAndPostIds(eq(userId), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+
+        then(postLikeRepository).should(never())
+                .existsByMember_UserIdAndPost_PostId(anyLong(), anyLong());
     }
 
     @Test
-    @DisplayName("북마크 목록 조회 시 회원이 없으면 예외가 발생한다")
-    void getBookmarkedPosts_memberNotFound() {
+    @DisplayName("북마크 목록이 비어 있으면 빈 페이지를 반환한다")
+    void getBookmarkedPosts_empty() {
         // given
         Pageable pageable = PageRequest.of(0, 10);
 
-        given(memberRepository.findById(userId))
-                .willReturn(Optional.empty());
+        given(bookmarkRepository.findPageWithPostMemberCategoryByUserId(
+                userId,
+                pageable
+        )).willReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        // when & then
-        assertThatThrownBy(() -> bookmarkService.getBookmarkedPosts(userId, pageable))
-                .isInstanceOf(ApiException.class)
-                .hasMessage(BookmarkErrorCode.BOOKMARK_404_MEMBER_NOT_FOUND.getMessage());
+        // when
+        PageResponse<BookmarkedPostResponse> response =
+                bookmarkService.getBookmarkedPosts(userId, pageable);
 
-        then(bookmarkRepository).should(never())
-                .findAllByMemberAndPost_IsDeletedFalse(
-                        any(Member.class),
-                        any(Pageable.class)
-                );
+        // then
+        assertThat(response.getContent()).isEmpty();
 
-        verifyNoInteractions(postLikeRepository);
+        then(bookmarkRepository).should()
+                .findPageWithPostMemberCategoryByUserId(userId, pageable);
+
+        then(postLikeRepository).should(never())
+                .findLikedPostIdsByUserIdAndPostIds(anyLong(), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("내가 북마크한 게시글 목록을 List로 반환한다")
+    void getBookmarkedPosts_list_success() {
+        // given
+        Member member = createMemberWithId(userId, "작성자");
+
+        Category category = mock(Category.class);
+        given(category.getCategoryId()).willReturn(100L);
+
+        LocalDateTime createdAt = LocalDateTime.of(2026, 5, 15, 10, 0);
+
+        Post post = createPostWithId(
+                postId,
+                member,
+                category,
+                "테스트 제목",
+                7,
+                2,
+                100,
+                createdAt
+        );
+
+        Bookmark bookmark = Bookmark.create(member, post);
+
+        given(bookmarkRepository.findAllWithPostMemberCategoryByUserId(userId))
+                .willReturn(List.of(bookmark));
+
+        given(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(
+                eq(userId),
+                anyCollection()
+        )).willReturn(List.of(postId));
+
+        // when
+        List<BookmarkedPostResponse> response = bookmarkService.getBookmarkedPosts(userId);
+
+        // then
+        assertThat(response).hasSize(1);
+
+        BookmarkedPostResponse bookmarkedPost = response.get(0);
+
+        assertThat(bookmarkedPost.getPostId()).isEqualTo(postId);
+        assertThat(bookmarkedPost.getTitle()).isEqualTo("테스트 제목");
+        assertThat(bookmarkedPost.getAuthorNickname()).isEqualTo("작성자");
+        assertThat(bookmarkedPost.getCategoryId()).isEqualTo(100L);
+        assertThat(bookmarkedPost.getLikeCount()).isEqualTo(7L);
+        assertThat(bookmarkedPost.getCommentCount()).isEqualTo(2L);
+        assertThat(bookmarkedPost.getViewCount()).isEqualTo(100L);
+        assertThat(bookmarkedPost.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(bookmarkedPost.getLiked()).isTrue();
+        assertThat(bookmarkedPost.getBookmarked()).isTrue();
+
+        then(bookmarkRepository).should()
+                .findAllWithPostMemberCategoryByUserId(userId);
+
+        then(postLikeRepository).should()
+                .findLikedPostIdsByUserIdAndPostIds(eq(userId), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+
+        then(postLikeRepository).should(never())
+                .existsByMember_UserIdAndPost_PostId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("List 북마크 목록이 비어 있으면 빈 리스트를 반환한다")
+    void getBookmarkedPosts_list_empty() {
+        // given
+        given(bookmarkRepository.findAllWithPostMemberCategoryByUserId(userId))
+                .willReturn(List.of());
+
+        // when
+        List<BookmarkedPostResponse> response = bookmarkService.getBookmarkedPosts(userId);
+
+        // then
+        assertThat(response).isEmpty();
+
+        then(bookmarkRepository).should()
+                .findAllWithPostMemberCategoryByUserId(userId);
+
+        then(postLikeRepository).should(never())
+                .findLikedPostIdsByUserIdAndPostIds(anyLong(), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
     }
 
     @Test
     @DisplayName("사용자가 특정 게시글을 북마크했는지 확인한다")
     void isBookmarkedByUser_success() {
         // given
-        given(bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId))
-                .willReturn(true);
+        given(bookmarkRepository.existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
+                userId,
+                postId
+        )).willReturn(true);
 
         // when
         boolean result = bookmarkService.isBookmarkedByUser(userId, postId);
@@ -333,7 +433,26 @@ class BookmarkServiceTest {
         assertThat(result).isTrue();
 
         then(bookmarkRepository).should()
-                .existsByMember_UserIdAndPost_PostId(userId, postId);
+                .existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(userId, postId);
+    }
+
+    @Test
+    @DisplayName("사용자가 특정 게시글을 북마크하지 않았으면 false를 반환한다")
+    void isBookmarkedByUser_false() {
+        // given
+        given(bookmarkRepository.existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
+                userId,
+                postId
+        )).willReturn(false);
+
+        // when
+        boolean result = bookmarkService.isBookmarkedByUser(userId, postId);
+
+        // then
+        assertThat(result).isFalse();
+
+        then(bookmarkRepository).should()
+                .existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(userId, postId);
     }
 
     private Member createMemberWithId(Long userId, String nickname) {
