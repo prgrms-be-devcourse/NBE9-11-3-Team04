@@ -116,6 +116,6 @@ class MypageController(
     }
 
     private fun getUserIdOrThrow(principal: JwtPrincipal?): Long {
-        return principal?.userId() ?: throw ApiException(ErrorCode.UNAUTHORIZED)
+        return principal?.userId ?: throw ApiException(ErrorCode.UNAUTHORIZED)
     }
 }

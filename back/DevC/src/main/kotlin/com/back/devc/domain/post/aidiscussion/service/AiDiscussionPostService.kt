@@ -1,45 +1,40 @@
 package com.back.devc.domain.post.aidiscussion.service
 
+import com.back.devc.domain.post.category.repository.CategoryRepository
 import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionPostResponse
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
 import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
 import com.back.devc.domain.post.post.dto.PostCreateRequest
 import com.back.devc.domain.post.post.service.PostService
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
-
 
 @Service
 class AiDiscussionPostService(
     private val aiDiscussionPostRepository: AiDiscussionPostRepository,
     private val postService: PostService,
     private val aiDiscussionGeneratorService: AiDiscussionGeneratorService,
+    private val aiDiscussionPersistenceService: AiDiscussionPersistenceService,
+    private val categoryRepository: CategoryRepository,
 ) {
+    companion object {
+        private const val DISCUSSION_CATEGORY_NAME = "discussion"
+    }
 
-    @Transactional
     fun createPendingDiscussion(): AiDiscussionPostResponse {
-        if (aiDiscussionPostRepository.existsByStatus(AiDiscussionStatus.PENDING)) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "이미 승인 대기 중인 AI 토론 주제가 있습니다.",
-            )
-        }
+        aiDiscussionPersistenceService.validatePendingDiscussionDoesNotExist()
 
         val generatedTopic = aiDiscussionGeneratorService.generateDailyTopic()
 
-        val aiDiscussionPost = AiDiscussionPost.create(
+        return aiDiscussionPersistenceService.savePendingDiscussion(
             title = generatedTopic.title,
             content = generatedTopic.content,
         )
-
-        val savedAiDiscussionPost = aiDiscussionPostRepository.save(aiDiscussionPost)
-
-        return AiDiscussionPostResponse.from(savedAiDiscussionPost)
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +70,6 @@ class AiDiscussionPostService(
     fun approveDiscussion(
         aiDiscussionPostId: Long,
         adminUserId: Long,
-        categoryId: Long,
     ): AiDiscussionPostResponse {
         val aiDiscussionPost = aiDiscussionPostRepository.findById(aiDiscussionPostId)
             .orElseThrow {
@@ -92,12 +86,18 @@ class AiDiscussionPostService(
             )
         }
 
+        val discussionCategory = categoryRepository.findByName(DISCUSSION_CATEGORY_NAME)
+            ?: throw ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "토론 게시판 카테고리를 찾을 수 없습니다.",
+            )
+
         val postCreateResponse = postService.write(
             userId = adminUserId,
             request = PostCreateRequest(
                 title = aiDiscussionPost.title,
                 content = aiDiscussionPost.content,
-                categoryId = categoryId,
+                categoryId = requireNotNull(discussionCategory.categoryId),
             ),
         )
 
@@ -131,3 +131,4 @@ class AiDiscussionPostService(
         return AiDiscussionPostResponse.from(aiDiscussionPost)
     }
 }
+

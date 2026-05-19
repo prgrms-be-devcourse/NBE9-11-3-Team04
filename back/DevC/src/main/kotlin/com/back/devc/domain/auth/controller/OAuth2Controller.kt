@@ -33,58 +33,51 @@ class OAuth2Controller(
         httpServletRequest: HttpServletRequest
     ): ResponseEntity<SuccessResponse<OAuth2MeResponse>> {
         val session = httpServletRequest.getSession(false)
+        val pendingSignup = session
+            ?.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY) as? OAuthPendingSignup
 
-        if (session != null) {
-            val raw = session.getAttribute(OAuth2LoginSuccessHandler.PENDING_SIGNUP_SESSION_KEY)
-            if (raw is OAuthPendingSignup) {
+        val body = when {
+            pendingSignup != null -> {
                 val attributes = linkedMapOf<String, Any>(
                     "pendingSignup" to true,
-                    "provider" to raw.provider,
-                    "providerUserId" to raw.providerUserId,
-                    "email" to raw.emailFromProvider,
-                    "login" to raw.loginFromProvider
+                    "provider" to pendingSignup.provider,
+                    "providerUserId" to pendingSignup.providerUserId,
+                    "email" to pendingSignup.emailFromProvider,
+                    "login" to pendingSignup.loginFromProvider
                 )
 
-                val body = OAuth2MeResponse(
+                OAuth2MeResponse(
                     authenticated = false,
                     name = null,
                     authorities = emptyList(),
                     attributes = attributes
                 )
+            }
 
-                val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
-                return ResponseEntity
-                    .status(successCode.status)
-                    .body(SuccessResponse.of(successCode, body))
+            oauth2User == null -> {
+                OAuth2MeResponse(
+                    authenticated = false,
+                    name = null,
+                    authorities = emptyList(),
+                    attributes = mapOf("pendingSignup" to false)
+                )
+            }
+
+            else -> {
+                val authorities = oauth2User.authorities
+                    .mapNotNull { it.authority }
+
+                val attributes = LinkedHashMap(oauth2User.attributes)
+                attributes["pendingSignup"] = false
+
+                OAuth2MeResponse(
+                    authenticated = true,
+                    name = oauth2User.name,
+                    authorities = authorities,
+                    attributes = attributes
+                )
             }
         }
-
-        if (oauth2User == null) {
-            val body = OAuth2MeResponse(
-                authenticated = false,
-                name = null,
-                authorities = emptyList(),
-                attributes = mapOf("pendingSignup" to false)
-            )
-
-            val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
-            return ResponseEntity
-                .status(successCode.status)
-                .body(SuccessResponse.of(successCode, body))
-        }
-
-        val authorities = oauth2User.authorities
-            .mapNotNull { it.authority }
-
-        val attributes = LinkedHashMap(oauth2User.attributes)
-        attributes["pendingSignup"] = false
-
-        val body = OAuth2MeResponse(
-            authenticated = true,
-            name = oauth2User.name,
-            authorities = authorities,
-            attributes = attributes
-        )
 
         val successCode = AuthSuccessCode.OAUTH_200_ME_SUCCESS
         return ResponseEntity
