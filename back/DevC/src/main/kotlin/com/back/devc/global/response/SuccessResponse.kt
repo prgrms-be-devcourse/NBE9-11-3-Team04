@@ -2,7 +2,6 @@ package com.back.devc.global.response
 
 import com.back.devc.global.response.successCode.AuthSuccessCode
 import com.back.devc.global.response.successCode.MemberSuccessCode
-import com.back.devc.global.response.successCode.ReportSuccessCode
 import java.time.LocalDateTime
 
 /**
@@ -69,17 +68,6 @@ data class SuccessResponse<T>(
          */
         @JvmStatic
         fun <T> of(successCode: SuccessCodeSpec, data: T?): SuccessResponse<T> {
-            return SuccessResponse(
-                code = successCode.code,
-                message = successCode.message,
-                timestamp = LocalDateTime.now(),
-                data = data
-            )
-        }
-
-        // 예비
-        @JvmStatic
-        fun <T> of(successCode: ReportSuccessCode, data: T?): SuccessResponse<T> {
             return SuccessResponse(
                 code = successCode.code,
                 message = successCode.message,
