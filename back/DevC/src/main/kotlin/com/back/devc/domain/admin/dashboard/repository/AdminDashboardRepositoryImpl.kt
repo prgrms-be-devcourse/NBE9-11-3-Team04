@@ -150,7 +150,7 @@ class AdminDashboardRepositoryImpl(
     ): List<ReportReasonCount> {
         return em.createQuery(
             """
-            select new com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto${'$'}ReportReasonCount(
+            select new com.back.devc.domain.dto.dashboard.DashboardResponseDto${'$'}ReportReasonCount(
                 r.reasonType, count(r)
             )
             from Report r
