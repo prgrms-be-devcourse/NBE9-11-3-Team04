@@ -25,6 +25,7 @@ const categories = [
     {name: "취업 시장 정보", href: "/category/job-market"},
     {name: "개발 트렌드", href: "/category/trend"},
     {name: "자유 주제", href: "/category/free"},
+    {name: "토론 게시판", href: "/category/discussion"},
 ]
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
