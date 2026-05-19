@@ -20,7 +20,7 @@ class SearchLogController(
         @RequestBody request: CreateSearchLogRequest,
     ): SearchLogResponse {
         return searchLogService.createSearchLog(
-            principal.userId(),
+            principal.userId,
             request,
         )
     }
@@ -30,7 +30,7 @@ class SearchLogController(
         @AuthenticationPrincipal principal: JwtPrincipal,
     ): List<SearchLogResponse> {
         return searchLogService.getMySearchLogs(
-            principal.userId(),
+            principal.userId,
         )
     }
 
@@ -40,7 +40,7 @@ class SearchLogController(
         @PathVariable searchLogId: Long,
     ) {
         searchLogService.deleteSearchLog(
-            principal.userId(),
+            principal.userId,
             searchLogId,
         )
     }
@@ -50,7 +50,7 @@ class SearchLogController(
         @AuthenticationPrincipal principal: JwtPrincipal,
     ) {
         searchLogService.deleteAllSearchLogs(
-            principal.userId(),
+            principal.userId,
         )
     }
 

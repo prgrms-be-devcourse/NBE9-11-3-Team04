@@ -268,9 +268,9 @@ class BookmarkServiceTest {
                 bookmarkService.getBookmarkedPosts(userId, pageable);
 
         // then
-        assertThat(response.content()).hasSize(1);
+        assertThat(response.getContent()).hasSize(1);
 
-        BookmarkedPostResponse bookmarkedPost = response.content().get(0);
+        BookmarkedPostResponse bookmarkedPost = response.getContent().get(0);
 
         assertThat(bookmarkedPost.getPostId()).isEqualTo(postId);
         assertThat(bookmarkedPost.getTitle()).isEqualTo("테스트 제목");

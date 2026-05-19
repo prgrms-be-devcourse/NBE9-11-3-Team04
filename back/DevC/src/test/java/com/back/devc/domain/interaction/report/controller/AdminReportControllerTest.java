@@ -59,10 +59,10 @@ class AdminReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().code())
+        assertThat(response.getBody().getCode())
                 .isEqualTo(ReportSuccessCode.REPORT_200_LIST.getCode());
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isSameAs(page);
 
         verify(adminReportService)
@@ -98,10 +98,10 @@ class AdminReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().code())
+        assertThat(response.getBody().getCode())
                 .isEqualTo(ReportSuccessCode.REPORT_200_GROUP_LIST.getCode());
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isSameAs(page);
 
         verify(adminReportService)
@@ -148,7 +148,7 @@ class AdminReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isSameAs(page);
 
         verify(adminReportService)
@@ -176,13 +176,13 @@ class AdminReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().code())
+        assertThat(response.getBody().getCode())
                 .isEqualTo(ReportSuccessCode.REPORT_200_GROUP_APPROVE.getCode());
 
-        assertThat(response.getBody().message())
+        assertThat(response.getBody().getMessage())
                 .isEqualTo(ReportSuccessCode.REPORT_200_GROUP_APPROVE.getMessage());
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isNull();
 
         verify(adminReportService)
@@ -210,13 +210,13 @@ class AdminReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().code())
+        assertThat(response.getBody().getCode())
                 .isEqualTo(ReportSuccessCode.REPORT_200_GROUP_REJECT.getCode());
 
-        assertThat(response.getBody().message())
+        assertThat(response.getBody().getMessage())
                 .isEqualTo(ReportSuccessCode.REPORT_200_GROUP_REJECT.getMessage());
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isNull();
 
         verify(adminReportService)

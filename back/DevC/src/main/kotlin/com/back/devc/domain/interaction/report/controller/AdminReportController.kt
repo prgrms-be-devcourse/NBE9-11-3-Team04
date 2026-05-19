@@ -169,7 +169,7 @@ class AdminReportController(
         principal: JwtPrincipal?
     ): Long {
 
-        return principal?.userId()
+        return principal?.userId
             ?: throw ApiException(ErrorCode.UNAUTHORIZED)
     }
 }
