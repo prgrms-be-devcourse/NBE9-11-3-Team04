@@ -63,3 +63,9 @@ custom:
     access-cookie-name: ${JWT_ACCESS_COOKIE_NAME:access_token}
     access-cookie-secure: ${JWT_ACCESS_COOKIE_SECURE:false}
     access-cookie-same-site: ${JWT_ACCESS_COOKIE_SAME_SITE:Lax}
+
+ai:
+  discussion:
+    scheduler:
+      enabled: ${AI_DISCUSSION_SCHEDULER_ENABLED:true}
+
