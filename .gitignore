@@ -25,3 +25,8 @@ log/
 *.log
 *.log.gz
 *.tmp
+
+# Environment variables
+.env
+.env.*
+!.env.example

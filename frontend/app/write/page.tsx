@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import {
@@ -243,7 +243,7 @@ const normalizeEditorNodes = (root: HTMLElement) => {
   })
 }
 
-export default function WritePage() {
+function WriteContent() {
   const router = useRouter()
   const editorRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -731,5 +731,13 @@ export default function WritePage() {
         )}
       </form>
     </div>
+  )
+}
+
+export default function WritePage() {
+  return (
+    <Suspense fallback={null}>
+      <WriteContent />
+    </Suspense>
   )
 }
