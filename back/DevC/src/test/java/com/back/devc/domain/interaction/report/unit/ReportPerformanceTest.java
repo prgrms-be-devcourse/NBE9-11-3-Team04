@@ -3,6 +3,7 @@ package com.back.devc.domain.interaction.report.unit;
 import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
@@ -44,6 +45,8 @@ class ReportPerformanceTest {
 
     @Mock
     private ReportRepository reportRepository;
+    @Mock
+    private ReportGroupRepository reportGroupRepository;
     @Mock
     private MemberRepository memberRepository;
     @Mock
