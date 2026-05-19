@@ -1,13 +1,18 @@
 package com.back.devc.domain.interaction.report.unit;
 
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO;
+import com.back.devc.domain.interaction.report.dto.ApproveReportGroupRequest;
 import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
+import com.back.devc.domain.interaction.report.dto.RejectReportGroupRequest;
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportGroup;
+import com.back.devc.domain.interaction.report.entity.ReportGroupStatus;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.SanctionType;
 import com.back.devc.domain.interaction.report.entity.TargetType;
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
+import com.back.devc.domain.interaction.report.repository.ReportReasonStatProjection;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
@@ -135,12 +140,23 @@ class AdminReportServiceTest {
             LocalDateTime to = LocalDateTime.of(2026, 1, 3, 0, 0);
             Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "latestCreatedAt"));
 
-            List<Object[]> rows = List.of(
-                    new Object[]{TargetType.POST, 10L, 2L, latestPostReport},
-                    new Object[]{TargetType.COMMENT, 20L, 3L, latestCommentReport}
-            );
-            given(reportRepository.findGroupedReports(ReportStatus.PENDING, from, to, pageable))
-                    .willReturn(new PageImpl<>(rows, pageable, rows.size()));
+            Pageable reportGroupPageable =
+                    PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "latestReportedAt"));
+            ReportGroup postReportGroup =
+                    reportGroup(1L, TargetType.POST, 10L, 2, latestPostReport);
+            ReportGroup commentReportGroup =
+                    reportGroup(2L, TargetType.COMMENT, 20L, 3, latestCommentReport);
+
+            given(reportGroupRepository.findReportGroups(
+                    ReportGroupStatus.OPEN,
+                    from,
+                    to,
+                    reportGroupPageable
+            )).willReturn(new PageImpl<>(
+                    List.of(postReportGroup, commentReportGroup),
+                    reportGroupPageable,
+                    2
+            ));
 
             Member postAuthor = mock(Member.class);
             given(postAuthor.getNickname()).willReturn("post-writer");
@@ -165,16 +181,12 @@ class AdminReportServiceTest {
             given(memberRepository.findAllById(List.of(30L)))
                     .willReturn(List.of(commentAuthor));
 
-            given(reportRepository.findReasonTypesBatch(
-                    TargetType.POST,
-                    List.of(10L),
-                    TargetType.COMMENT,
-                    List.of(20L)
-            )).willReturn(List.of(
-                    new Object[]{TargetType.POST, 10L, "SPAM"},
-                    new Object[]{TargetType.COMMENT, 20L, "ABUSE"},
-                    new Object[]{TargetType.COMMENT, 20L, "HATE"}
-            ));
+            given(reportRepository.findReasonStatsByReportGroupIds(List.of(1L, 2L)))
+                    .willReturn(List.of(
+                            reasonStat(1L, "SPAM", 1L),
+                            reasonStat(2L, "ABUSE", 1L),
+                            reasonStat(2L, "HATE", 1L)
+                    ));
 
             var result = adminReportService.getGroupedReports(ReportStatus.PENDING, from, to, pageable);
 
@@ -451,6 +463,133 @@ class AdminReportServiceTest {
                     ReportErrorCode.REPORT_404_PENDING_LIST
             );
             verify(reportTargetHandler, never()).handleRejected(TargetType.POST, 10L, admin);
+        }
+    }
+
+    @Nested
+    @DisplayName("approveReportGroupById")
+    class ApproveReportGroupById {
+
+        @Test
+        @DisplayName("approves report group and resolves pending reports during transition")
+        void approveReportGroupById_success() {
+            ReportGroup reportGroup = reportGroup();
+            ApproveReportGroupRequest request =
+                    new ApproveReportGroupRequest("note", SanctionType.WARNED, null);
+
+            given(memberRepository.findById(1L)).willReturn(Optional.of(admin));
+            given(reportGroupRepository.findById(10L)).willReturn(Optional.of(reportGroup));
+            given(reportTargetHandler.exists(TargetType.POST, 100L)).willReturn(true);
+            given(reportRepository.updateStatusByReportGroupId(10L, admin, ReportStatus.RESOLVED, ReportStatus.PENDING))
+                    .willReturn(2);
+
+            adminReportService.approveReportGroupById(1L, 10L, request);
+
+            assertThat(reportGroup.getStatus()).isEqualTo(ReportGroupStatus.APPROVED);
+            verify(reportGroupRepository).saveAndFlush(reportGroup);
+            verify(reportRepository).updateStatusByReportGroupId(10L, admin, ReportStatus.RESOLVED, ReportStatus.PENDING);
+            verify(reportTargetHandler).handleApproved(TargetType.POST, 100L, admin, SanctionType.WARNED, null);
+        }
+
+        @Test
+        @DisplayName("throws when report group does not exist")
+        void approveReportGroupById_throwsWhenGroupMissing() {
+            ApproveReportGroupRequest request =
+                    new ApproveReportGroupRequest("note", SanctionType.WARNED, null);
+
+            given(memberRepository.findById(1L)).willReturn(Optional.of(admin));
+            given(reportGroupRepository.findById(10L)).willReturn(Optional.empty());
+
+            assertServiceError(
+                    () -> adminReportService.approveReportGroupById(1L, 10L, request),
+                    ReportErrorCode.REPORT_404_REPORT_GROUP
+            );
+            verify(reportRepository, never()).updateStatusByReportGroupId(anyLong(), any(), any(), any());
+            verifyNoInteractions(reportTargetHandler);
+        }
+    }
+
+    @Nested
+    @DisplayName("rejectReportGroupById")
+    class RejectReportGroupById {
+
+        @Test
+        @DisplayName("rejects report group and rejects pending reports during transition")
+        void rejectReportGroupById_success() {
+            ReportGroup reportGroup = reportGroup();
+            RejectReportGroupRequest request =
+                    new RejectReportGroupRequest("not enough evidence");
+
+            given(memberRepository.findById(1L)).willReturn(Optional.of(admin));
+            given(reportGroupRepository.findById(10L)).willReturn(Optional.of(reportGroup));
+            given(reportRepository.updateStatusByReportGroupId(10L, admin, ReportStatus.REJECTED, ReportStatus.PENDING))
+                    .willReturn(2);
+
+            adminReportService.rejectReportGroupById(1L, 10L, request);
+
+            assertThat(reportGroup.getStatus()).isEqualTo(ReportGroupStatus.REJECTED);
+            verify(reportGroupRepository).saveAndFlush(reportGroup);
+            verify(reportRepository).updateStatusByReportGroupId(10L, admin, ReportStatus.REJECTED, ReportStatus.PENDING);
+            verify(reportTargetHandler).handleRejected(TargetType.POST, 100L, admin);
+        }
+    }
+
+    private ReportGroup reportGroup() {
+        return new ReportGroup(
+                TargetType.POST,
+                100L,
+                LocalDateTime.of(2026, 1, 1, 0, 0)
+        );
+    }
+
+    private ReportGroup reportGroup(
+            Long reportGroupId,
+            TargetType targetType,
+            Long targetId,
+            int reportCount,
+            LocalDateTime latestReportedAt
+    ) {
+        ReportGroup reportGroup =
+                new ReportGroup(targetType, targetId, latestReportedAt);
+
+        for (int i = 0; i < reportCount; i++) {
+            reportGroup.registerReport(latestReportedAt);
+        }
+
+        setField(reportGroup, "reportGroupId", reportGroupId);
+        return reportGroup;
+    }
+
+    private ReportReasonStatProjection reasonStat(
+            Long reportGroupId,
+            String reasonType,
+            Long reasonCount
+    ) {
+        return new ReportReasonStatProjection() {
+            @Override
+            public long getReportGroupId() {
+                return reportGroupId;
+            }
+
+            @Override
+            public String getReasonType() {
+                return reasonType;
+            }
+
+            @Override
+            public long getReasonCount() {
+                return reasonCount;
+            }
+        };
+    }
+
+    private void setField(Object target, String fieldName, Object value) {
+        try {
+            var field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
         }
     }
 
