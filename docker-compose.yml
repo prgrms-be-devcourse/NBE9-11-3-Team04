@@ -22,5 +22,37 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./back/DevC
+      dockerfile: Dockerfile
+    container_name: devc-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - devc-uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    container_name: devc-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    ports:
+      - "3000:3000"
+
 volumes:
   devc-mysql-data:
+  devc-uploads:
