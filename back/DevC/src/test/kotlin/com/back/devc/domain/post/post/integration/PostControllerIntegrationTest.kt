@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.ObjectMapper
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -53,7 +54,7 @@ internal class PostControllerIntegrationTest {
 
     @BeforeEach
     fun setUp() {
-        val unique = System.nanoTime().toString()
+        val unique = UUID.randomUUID().toString()
 
         member = memberRepository.save(
             Member.createLocalMember(

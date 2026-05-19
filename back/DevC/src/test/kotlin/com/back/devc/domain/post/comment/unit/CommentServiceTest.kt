@@ -296,7 +296,7 @@ internal class CommentServiceTest {
     }
 
     private fun emptyAttachmentListResponse(): CommentAttachmentListResponse {
-        return CommentAttachmentListResponse(mutableListOf<CommentAttachmentResponse>())
+        return CommentAttachmentListResponse(emptyList())
     }
 
     private fun setCommentId(
