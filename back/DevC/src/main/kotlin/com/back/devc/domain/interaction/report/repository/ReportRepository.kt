@@ -115,4 +115,18 @@ interface ReportRepository : JpaRepository<Report, Long> {
         reportGroup: ReportGroup
     ): List<Report>
 
+    @Query(
+        """
+    SELECT r.reportGroup.reportGroupId as reportGroupId,
+           r.reasonType as reasonType,
+           COUNT(r) as reasonCount
+    FROM Report r
+    WHERE r.reportGroup.reportGroupId IN :reportGroupIds
+    GROUP BY r.reportGroup.reportGroupId, r.reasonType
+    ORDER BY COUNT(r) DESC
+    """
+    )
+    fun findReasonStatsByReportGroupIds(
+        @Param("reportGroupIds") reportGroupIds: List<Long>
+    ): List<ReportReasonStatProjection>
 }

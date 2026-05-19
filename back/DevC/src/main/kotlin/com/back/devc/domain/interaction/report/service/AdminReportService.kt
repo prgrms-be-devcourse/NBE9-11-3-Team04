@@ -4,9 +4,11 @@ import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO
 import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO
 import com.back.devc.domain.interaction.report.entity.Report
+import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.ReportStatus
 import com.back.devc.domain.interaction.report.entity.SanctionType
 import com.back.devc.domain.interaction.report.entity.TargetType
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler
 import com.back.devc.domain.member.member.entity.Member
@@ -21,6 +23,7 @@ import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -33,6 +36,7 @@ import java.time.LocalDateTime
 @Transactional
 class AdminReportService(
     private val reportRepository: ReportRepository,
+    private val reportGroupRepository: ReportGroupRepository,
     private val memberRepository: MemberRepository,
     private val postRepository: PostRepository,
     private val commentRepository: CommentRepository,
@@ -126,22 +130,6 @@ class AdminReportService(
         }
     }
 
-    @Transactional(readOnly = true)
-    fun getGroupedReports(
-        status: ReportStatus?,
-        pageable: Pageable
-    ): Page<ReportGroupResponseDTO> {
-
-        val to = LocalDateTime.now()
-        val from = to.minusDays(DEFAULT_GROUP_LOOKBACK_DAYS.toLong())
-
-        return getGroupedReports(
-            status,
-            from,
-            to,
-            pageable
-        )
-    }
 
     @Transactional(readOnly = true)
     fun getGroupedReports(
@@ -157,6 +145,9 @@ class AdminReportService(
             pageable
         )
 
+        val reportGroupStatus = status.toReportGroupStatus()
+        val reportGroupPageable = toReportGroupPageable(pageable)
+
         log.info(
             "관리자 신고 그룹 목록 조회 시작 - status={}, page={}, size={}",
             status,
@@ -164,30 +155,27 @@ class AdminReportService(
             pageable.pageSize
         )
 
-        val result = reportRepository.findGroupedReports(
-            status,
+        val result = reportGroupRepository.findReportGroups(
+            reportGroupStatus,
             from,
             to,
-            pageable
+            reportGroupPageable
         )
 
-        val rows = result.content
+        val reportGroups = result.content
 
         log.debug(
             "관리자 신고 그룹 조회 row 수 - status={}, rowCount={}",
             status,
-            rows.size
+            reportGroups.size
         )
 
-        val groupRows = rows.map { row ->
-            requireNotNull(row).toGroupRow()
-        }
 
-        val postIds = groupRows
+        val postIds = reportGroups
             .filter { it.targetType == TargetType.POST }
             .map { it.targetId }
 
-        val commentIds = groupRows
+        val commentIds = reportGroups
             .filter { it.targetType == TargetType.COMMENT }
             .map { it.targetId }
 
@@ -226,43 +214,35 @@ class AdminReportService(
                     .associateBy { requireNotNull(it.userId) }
             }
 
-        val reasonTypeMap = loadReasonTypesBatch(
-            postIds,
-            commentIds
-        )
+        val reportGroupIds = reportGroups
+            .mapNotNull { it.reportGroupId }
 
-        val dtoPage = result.map { row ->
+        val reasonTypeMap = loadReasonTypesByReportGroupIds(reportGroupIds)
 
-            val groupRow = requireNotNull(row).toGroupRow()
+        val dtoPage = result.map { reportGroup ->
 
             val info = resolveTargetInfo(
-                targetType = groupRow.targetType,
-                targetId = groupRow.targetId,
+                targetType = reportGroup.targetType,
+                targetId = reportGroup.targetId,
                 postMap = postMap,
                 commentMap = commentMap,
                 memberMap = memberMap
             )
-
-            val key = buildKey(
-                groupRow.targetType,
-                groupRow.targetId
-            )
-
-            val reasonTypes = reasonTypeMap[key] ?.filterNotNull() ?: emptyList()
+            val reportGroupId = requireNotNull(reportGroup.reportGroupId)
+            val reasonTypes = reasonTypeMap[reportGroupId].orEmpty()
 
             ReportGroupResponseDTO(
-                groupRow.targetType,
-                groupRow.targetId,
+                reportGroup.targetType,
+                reportGroup.targetId,
                 info.nickname,
                 info.title,
                 info.content,
-                groupRow.reportCount,
+                reportGroup.reportCount,
                 reasonTypes,
-                status,
-                groupRow.latestCreatedAt
+                reportGroup.status.toReportStatus(),
+                reportGroup.latestReportedAt
             )
         }
-
         log.info(
             "관리자 신고 그룹 목록 조회 완료 - status={}, totalElements={}, totalPages={}, count={}",
             status,
@@ -270,7 +250,6 @@ class AdminReportService(
             dtoPage.totalPages,
             dtoPage.numberOfElements
         )
-
         return dtoPage
     }
 
@@ -762,6 +741,46 @@ class AdminReportService(
         private const val DEFAULT_GROUP_LOOKBACK_DAYS = 30
         private const val MAX_GROUP_RANGE_DAYS = 90
         private const val GROUP_SORT_PROPERTY = "latestCreatedAt"
+    }
+
+    private fun ReportStatus?.toReportGroupStatus(): ReportGroupStatus? {
+        return when (this) {
+            null -> null
+            ReportStatus.PENDING -> ReportGroupStatus.OPEN
+            ReportStatus.RESOLVED -> ReportGroupStatus.APPROVED
+            ReportStatus.REJECTED -> ReportGroupStatus.REJECTED
+        }
+    }
+
+    private fun ReportGroupStatus.toReportStatus(): ReportStatus {
+        return when (this) {
+            ReportGroupStatus.OPEN -> ReportStatus.PENDING
+            ReportGroupStatus.APPROVED -> ReportStatus.RESOLVED
+            ReportGroupStatus.REJECTED -> ReportStatus.REJECTED
+        }
+    }
+
+    private fun toReportGroupPageable(pageable: Pageable): Pageable {
+        return PageRequest.of(
+            pageable.pageNumber,
+            pageable.pageSize,
+            Sort.by(Sort.Direction.DESC, "latestReportedAt")
+        )
+    }
+
+    private fun loadReasonTypesByReportGroupIds(
+        reportGroupIds: List<Long>
+    ): Map<Long, List<String>> {
+
+        if (reportGroupIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return reportRepository.findReasonStatsByReportGroupIds(reportGroupIds)
+            .groupBy { it.reportGroupId }
+            .mapValues { (_, stats) ->
+                stats.map { it.reasonType }
+            }
     }
 }
 
