@@ -1,0 +1,8 @@
+.gradle
+build
+out
+.idea
+log
+*.mv.db
+*.trace.db
+uploads

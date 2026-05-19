@@ -1,11 +1,11 @@
 ﻿"use client"
 
-import { useEffect, useRef } from "react"
+import { Suspense, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { persistLoginSession } from "@/lib/auth-storage"
 import { exchangeOAuthCode } from "@/lib/auth"
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isProcessingRef = useRef(false)
@@ -72,5 +72,13 @@ export default function OAuthCallbackPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense fallback={null}>
+      <OAuthCallbackContent />
+    </Suspense>
   )
 }

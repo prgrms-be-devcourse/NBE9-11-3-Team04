@@ -257,13 +257,13 @@ class ReportIntegrationTest {
     }
 
     private Report report(Member reporter, TargetType targetType, Long targetId, String reasonType, String reasonDetail) {
-        return Report.builder()
-                .reporter(reporter)
-                .targetType(targetType)
-                .targetId(targetId)
-                .reasonType(reasonType)
-                .reasonDetail(reasonDetail)
-                .build();
+        return Report.create(
+                reporter,
+                targetType,
+                targetId,
+                reasonType,
+                reasonDetail
+        );
     }
 
     private String reportRequest(Long targetId, String reasonType) {

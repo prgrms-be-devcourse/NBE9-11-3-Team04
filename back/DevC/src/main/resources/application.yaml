@@ -48,6 +48,18 @@ logging:
     com.back: INFO
 
 custom:
+  oauth2:
+    frontend-success-url: ${FRONTEND_BASE_URL:http://localhost:3000}/oauth/callback
+    frontend-failure-url: ${FRONTEND_BASE_URL:http://localhost:3000}/login
+    frontend-signup-url: ${FRONTEND_BASE_URL:http://localhost:3000}/oauth/signup
+    allowed-redirect-uris: ${FRONTEND_BASE_URL:http://localhost:3000}/login,${FRONTEND_BASE_URL:http://localhost:3000}/oauth/signup,${FRONTEND_BASE_URL:http://localhost:3000}/oauth/callback
+
+  cors:
+    allowed-origins: ${FRONTEND_BASE_URL:http://localhost:3000}
+
   jwt:
     secret-key: "QkFzZv1faT1CmjVCThXvSf+/m+5jVqwaqPB5MqLpFPvpYwDj6kIQhnjrFn47eM4PLiL9bkRYwc2ILoy/9b2zhg=="
-    access-token-expiration-seconds: 3600
+    access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:3600}
+    access-cookie-name: ${JWT_ACCESS_COOKIE_NAME:access_token}
+    access-cookie-secure: ${JWT_ACCESS_COOKIE_SECURE:false}
+    access-cookie-same-site: ${JWT_ACCESS_COOKIE_SAME_SITE:Lax}

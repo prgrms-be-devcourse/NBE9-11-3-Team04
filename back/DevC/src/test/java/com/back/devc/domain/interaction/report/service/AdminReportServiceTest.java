@@ -312,7 +312,7 @@ class AdminReportServiceTest {
                     () -> adminReportService.approveReport(1L, approveDto()),
                     ReportErrorCode.REPORT_409_ALREADY_REPORT
             );
-            verify(reportTargetHandler, never()).handleApproved(any(), any(), any(), any(), any());
+            verify(reportTargetHandler, never()).handleApproved(TargetType.POST, 10L, admin, SanctionType.WARNED, null);
         }
 
         @Test
@@ -342,8 +342,8 @@ class AdminReportServiceTest {
                     () -> adminReportService.approveReport(1L, dto),
                     ReportErrorCode.REPORT_400_INVALID_SANCTION_PARAMETER
             );
-            verify(report, never()).processReport(any());
-            verify(reportTargetHandler, never()).handleApproved(any(), any(), any(), any(), any());
+            verify(report, never()).processReport(admin);
+            verify(reportTargetHandler, never()).handleApproved(TargetType.POST, 10L, admin, SanctionType.SUSPENDED, 0);
         }
     }
 
@@ -375,7 +375,7 @@ class AdminReportServiceTest {
                     () -> adminReportService.rejectReport(1L, approveDto()),
                     ReportErrorCode.REPORT_409_ALREADY_REPORT
             );
-            verify(reportTargetHandler, never()).handleRejected(any(), any(), any());
+            verify(reportTargetHandler, never()).handleRejected(TargetType.POST, 10L, admin);
         }
     }
 
@@ -411,7 +411,7 @@ class AdminReportServiceTest {
                     () -> adminReportService.approveReportGroup(1L, dto),
                     ReportErrorCode.REPORT_404_PENDING_LIST
             );
-            verify(reportTargetHandler, never()).handleApproved(any(), any(), any(), any(), any());
+            verify(reportTargetHandler, never()).handleApproved(TargetType.POST, 10L, admin, SanctionType.WARNED, null);
         }
     }
 
@@ -445,7 +445,7 @@ class AdminReportServiceTest {
                     () -> adminReportService.rejectReportGroup(1L, dto),
                     ReportErrorCode.REPORT_404_PENDING_LIST
             );
-            verify(reportTargetHandler, never()).handleRejected(any(), any(), any());
+            verify(reportTargetHandler, never()).handleRejected(TargetType.POST, 10L, admin);
         }
     }
 
