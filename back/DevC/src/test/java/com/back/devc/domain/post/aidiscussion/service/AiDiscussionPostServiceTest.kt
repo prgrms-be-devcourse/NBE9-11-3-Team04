@@ -6,6 +6,7 @@ import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
 import com.back.devc.domain.post.post.dto.PostCreateRequest
 import com.back.devc.domain.post.post.dto.PostCreateResponse
 import com.back.devc.domain.post.post.service.PostService
+import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -25,14 +26,17 @@ class AiDiscussionPostServiceTest {
     private lateinit var aiDiscussionPostRepository: AiDiscussionPostRepository
     private lateinit var postService: PostService
     private lateinit var aiDiscussionPostService: AiDiscussionPostService
+    private lateinit var aiDiscussionGeneratorService: AiDiscussionGeneratorService
 
     @BeforeEach
     fun setUp() {
         aiDiscussionPostRepository = mock(AiDiscussionPostRepository::class.java)
         postService = mock(PostService::class.java)
+        aiDiscussionGeneratorService = mock(AiDiscussionGeneratorService::class.java)
         aiDiscussionPostService = AiDiscussionPostService(
             aiDiscussionPostRepository = aiDiscussionPostRepository,
             postService = postService,
+            aiDiscussionGeneratorService = aiDiscussionGeneratorService,
         )
     }
 
@@ -46,6 +50,13 @@ class AiDiscussionPostServiceTest {
                 setId(aiDiscussionPost, 1L)
                 aiDiscussionPost
             }
+        `when`(aiDiscussionGeneratorService.generateDailyTopic())
+            .thenReturn(
+                AiDiscussionGenerateResponse(
+                    title = "AI 시대에 주니어 개발자는 어떤 역량을 길러야 할까?",
+                    content = "AI 토론 주제 테스트 본문입니다.",
+                ),
+            )
 
         val response = aiDiscussionPostService.createPendingDiscussion()
 
@@ -53,6 +64,9 @@ class AiDiscussionPostServiceTest {
         assertThat(response.status).isEqualTo(AiDiscussionStatus.PENDING)
         assertThat(response.approvedPostId).isNull()
         assertThat(response.rejectionReason).isNull()
+        assertThat(response.title).isEqualTo("AI 시대에 주니어 개발자는 어떤 역량을 길러야 할까?")
+        assertThat(response.content).isEqualTo("AI 토론 주제 테스트 본문입니다.")
+        verify(aiDiscussionGeneratorService).generateDailyTopic()
         verify(aiDiscussionPostRepository).existsByStatus(AiDiscussionStatus.PENDING)
         verify(aiDiscussionPostRepository).save(any(AiDiscussionPost::class.java))
     }
@@ -69,6 +83,7 @@ class AiDiscussionPostServiceTest {
         assertThat(exception.statusCode).isEqualTo(HttpStatus.CONFLICT)
         verify(aiDiscussionPostRepository).existsByStatus(AiDiscussionStatus.PENDING)
         verify(aiDiscussionPostRepository, never()).save(any(AiDiscussionPost::class.java))
+        verifyNoInteractions(aiDiscussionGeneratorService)
     }
 
     @Test
