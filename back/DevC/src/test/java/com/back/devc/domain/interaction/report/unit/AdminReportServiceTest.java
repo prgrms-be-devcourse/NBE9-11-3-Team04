@@ -7,6 +7,7 @@ import com.back.devc.domain.interaction.report.entity.Report;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.SanctionType;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.interaction.report.service.AdminReportService;
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler;
@@ -55,6 +56,9 @@ class AdminReportServiceTest {
 
     @Mock
     private ReportRepository reportRepository;
+
+    @Mock
+    private ReportGroupRepository reportGroupRepository;
 
     @Mock
     private MemberRepository memberRepository;
