@@ -1,104 +1,81 @@
 package com.back.devc.domain.admin.dashboard.service
 
 import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto
+import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto.ReportCategory
+import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto.ReportReasonCount
 import com.back.devc.domain.admin.dashboard.repository.AdminDashboardRepository
 import com.back.devc.domain.interaction.report.entity.ReportStatus
-import lombok.RequiredArgsConstructor
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDate
 
 @Service
-@RequiredArgsConstructor
+@Transactional(readOnly = true)
 class AdminDashboardService {
-    private val adminDashboardRepository: AdminDashboardRepository? = null
+    private val adminDashboardRepository: AdminDashboardRepository
+    private val clock: Clock
 
-    val dashboardData: DashboardResponseDto
-        get() {
-            val today = LocalDate.now()
+    @Autowired
+    constructor(adminDashboardRepository: AdminDashboardRepository) : this(
+        adminDashboardRepository,
+        Clock.systemDefaultZone(),
+    )
 
-            // =========================
-            // 1. 전체 통계
-            // =========================
-            val totalUsers = adminDashboardRepository!!.countAllUsers()
-            val totalPosts = adminDashboardRepository.countAllPosts()
-            val pendingReports = adminDashboardRepository.countPendingReports()
+    constructor(
+        adminDashboardRepository: AdminDashboardRepository,
+        clock: Clock,
+    ) {
+        this.adminDashboardRepository = adminDashboardRepository
+        this.clock = clock
+    }
 
-            // =========================
-            // 2. 오늘 활동
-            // =========================
-            val newUsers = adminDashboardRepository.countTodayUsers(today)
-            val newPosts = adminDashboardRepository.countTodayPosts(today)
-            val newComments = adminDashboardRepository.countTodayComments(today)
+    fun getDashboardData(): DashboardResponseDto {
+        val today = LocalDate.now(clock)
+        val postReportReasons = adminDashboardRepository.countTodayPostReportsByReason(today)
+        val commentReportReasons = adminDashboardRepository.countTodayCommentReportsByReason(today)
 
-            // =========================
-            // 3. 게시글 신고
-            // =========================
-            val postReportTotal = adminDashboardRepository.countTodayPostReports(today)
-            val postReportPending = adminDashboardRepository.countTodayPostReportsByStatus(
-                today,
-                ReportStatus.PENDING
-            )
-            val postReportResolved = adminDashboardRepository.countTodayPostReportsByStatus(
-                today,
-                ReportStatus.RESOLVED
-            )
-            val postReportReasons =
-                adminDashboardRepository.countTodayPostReportsByReason(today)
+        return DashboardResponseDto(
+            summary = DashboardResponseDto.SummaryStats(
+                totalUsers = adminDashboardRepository.countAllUsers(),
+                totalPosts = adminDashboardRepository.countAllPosts(),
+                pendingReports = adminDashboardRepository.countPendingReports(),
+                todayVisitors = 0L,
+            ),
+            todayActivity = DashboardResponseDto.TodayActivity(
+                newUsers = adminDashboardRepository.countTodayUsers(today),
+                newPosts = adminDashboardRepository.countTodayPosts(today),
+                newComments = adminDashboardRepository.countTodayComments(today),
+            ),
+            todayReports = DashboardResponseDto.TodayReportStats(
+                post = buildPostReportCategory(today, postReportReasons),
+                comment = buildCommentReportCategory(today, commentReportReasons),
+            ),
+        )
+    }
 
-            // =========================
-            // 4. 댓글 신고
-            // =========================
-            val commentReportTotal = adminDashboardRepository.countTodayCommentReports(today)
-            val commentReportPending = adminDashboardRepository.countTodayCommentReportsByStatus(
-                today,
-                ReportStatus.PENDING
-            )
-            val commentReportResolved = adminDashboardRepository.countTodayCommentReportsByStatus(
-                today,
-                ReportStatus.RESOLVED
-            )
-            val commentReportReasons =
-                adminDashboardRepository.countTodayCommentReportsByReason(today)
+    private fun buildPostReportCategory(
+        today: LocalDate,
+        byReason: List<ReportReasonCount>,
+    ): ReportCategory {
+        return ReportCategory(
+            total = adminDashboardRepository.countTodayPostReports(today),
+            pending = adminDashboardRepository.countTodayPostReportsByStatus(today, ReportStatus.PENDING),
+            resolved = adminDashboardRepository.countTodayPostReportsByStatus(today, ReportStatus.RESOLVED),
+            byReason = byReason,
+        )
+    }
 
-            // =========================
-            // 5. Response 조립
-            // =========================
-            return DashboardResponseDto.builder()
-                .summary(
-                    DashboardResponseDto.SummaryStats.builder()
-                        .totalUsers(totalUsers)
-                        .totalPosts(totalPosts)
-                        .pendingReports(pendingReports)
-                        .todayVisitors(0L) // 아직 미구현이면 고정
-                        .build()
-                )
-                .todayActivity(
-                    DashboardResponseDto.TodayActivity.builder()
-                        .newUsers(newUsers)
-                        .newPosts(newPosts)
-                        .newComments(newComments)
-                        .build()
-                )
-                .todayReports(
-                    DashboardResponseDto.TodayReportStats.builder()
-                        .post(
-                            DashboardResponseDto.ReportCategory.builder()
-                                .total(postReportTotal)
-                                .pending(postReportPending)
-                                .resolved(postReportResolved)
-                                .byReason(postReportReasons)
-                                .build()
-                        )
-                        .comment(
-                            DashboardResponseDto.ReportCategory.builder()
-                                .total(commentReportTotal)
-                                .pending(commentReportPending)
-                                .resolved(commentReportResolved)
-                                .byReason(commentReportReasons)
-                                .build()
-                        )
-                        .build()
-                )
-                .build()
-        }
+    private fun buildCommentReportCategory(
+        today: LocalDate,
+        byReason: List<ReportReasonCount>,
+    ): ReportCategory {
+        return ReportCategory(
+            total = adminDashboardRepository.countTodayCommentReports(today),
+            pending = adminDashboardRepository.countTodayCommentReportsByStatus(today, ReportStatus.PENDING),
+            resolved = adminDashboardRepository.countTodayCommentReportsByStatus(today, ReportStatus.RESOLVED),
+            byReason = byReason,
+        )
+    }
 }

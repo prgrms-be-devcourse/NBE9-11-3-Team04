@@ -1,59 +1,37 @@
 package com.back.devc.domain.admin.dashboard.dto
 
-import lombok.AllArgsConstructor
-import lombok.Builder
-import lombok.Data
+data class DashboardResponseDto(
+    val summary: SummaryStats,
+    val todayReports: TodayReportStats,
+    val todayActivity: TodayActivity,
+) {
+    data class SummaryStats(
+        val totalUsers: Long,
+        val totalPosts: Long,
+        val pendingReports: Long,
+        val todayVisitors: Long,
+    )
 
-@Data
-@Builder
-@AllArgsConstructor
-class DashboardResponseDto {
-    private val summary: SummaryStats? = null
-    private val todayReports: TodayReportStats? = null
-    private val todayActivity: TodayActivity? = null
+    data class TodayReportStats(
+        val post: ReportCategory,
+        val comment: ReportCategory,
+    )
 
-    @Data
-    @Builder
-    @AllArgsConstructor
-    class SummaryStats {
-        private val totalUsers: Long? = null
-        private val totalPosts: Long? = null
-        private val pendingReports: Long? = null
-        private val todayVisitors: Long? = null
-    }
+    data class ReportCategory(
+        val total: Long,
+        val pending: Long,
+        val resolved: Long,
+        val byReason: List<ReportReasonCount>,
+    )
 
-    @Data
-    @Builder
-    @AllArgsConstructor
-    class TodayReportStats {
-        private val post: ReportCategory? = null
-        private val comment: ReportCategory? = null
-    }
+    data class ReportReasonCount(
+        val reason: String,
+        val count: Long,
+    )
 
-    @Data
-    @Builder
-    @AllArgsConstructor
-    class ReportCategory {
-        private val total: Long? = null
-        private val pending: Long? = null
-        private val resolved: Long? = null
-        private val byReason: MutableList<ReportReasonCount?>? = null
-    }
-
-    @Data
-    @Builder
-    @AllArgsConstructor
-    class ReportReasonCount {
-        private val reason: String? = null
-        private val count: Long? = null
-    }
-
-    @Data
-    @Builder
-    @AllArgsConstructor
-    class TodayActivity {
-        private val newPosts: Long? = null
-        private val newComments: Long? = null
-        private val newUsers: Long? = null
-    }
+    data class TodayActivity(
+        val newPosts: Long,
+        val newComments: Long,
+        val newUsers: Long,
+    )
 }

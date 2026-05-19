@@ -4,8 +4,6 @@ import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto
 import com.back.devc.domain.admin.dashboard.service.AdminDashboardService
 import com.back.devc.global.response.SuccessCode
 import com.back.devc.global.response.SuccessResponse
-import lombok.RequiredArgsConstructor
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -14,18 +12,20 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/admin/dashboard")
-@RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-class AdminDashboardController {
-    private val adminDashboardService: AdminDashboardService? = null
+class AdminDashboardController(
+    private val adminDashboardService: AdminDashboardService,
+) {
 
-    @get:GetMapping
-    val dashboard: ResponseEntity<SuccessResponse<DashboardResponseDto?>?>
-        get() = ResponseEntity
-            .status(HttpStatus.OK)
-            .body<SuccessResponse<DashboardResponseDto?>?>(
-                SuccessResponse.of<DashboardResponseDto?>(
-                    SuccessCode.DASHBOARD_LIST, adminDashboardService!!.getDashboardData()
-                )
+    @GetMapping
+    fun getDashboard(): ResponseEntity<SuccessResponse<DashboardResponseDto>> {
+        return ResponseEntity
+            .status(SuccessCode.DASHBOARD_LIST.status)
+            .body(
+                SuccessResponse.of(
+                    SuccessCode.DASHBOARD_LIST,
+                    adminDashboardService.getDashboardData(),
+                ),
             )
+    }
 }
