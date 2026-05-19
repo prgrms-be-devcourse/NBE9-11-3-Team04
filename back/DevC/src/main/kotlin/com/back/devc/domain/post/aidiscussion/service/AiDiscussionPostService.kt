@@ -18,49 +18,18 @@ class AiDiscussionPostService(
     private val aiDiscussionPostRepository: AiDiscussionPostRepository,
     private val postService: PostService,
     private val aiDiscussionGeneratorService: AiDiscussionGeneratorService,
+    private val aiDiscussionPersistenceService: AiDiscussionPersistenceService,
 ) {
 
     fun createPendingDiscussion(): AiDiscussionPostResponse {
-        validatePendingDiscussionDoesNotExist()
+        aiDiscussionPersistenceService.validatePendingDiscussionDoesNotExist()
 
         val generatedTopic = aiDiscussionGeneratorService.generateDailyTopic()
 
-        return savePendingDiscussion(
+        return aiDiscussionPersistenceService.savePendingDiscussion(
             title = generatedTopic.title,
             content = generatedTopic.content,
         )
-    }
-
-    @Transactional(readOnly = true)
-    fun validatePendingDiscussionDoesNotExist() {
-        if (aiDiscussionPostRepository.existsByStatus(AiDiscussionStatus.PENDING)) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "이미 승인 대기 중인 AI 토론 주제가 있습니다.",
-            )
-        }
-    }
-
-    @Transactional
-    fun savePendingDiscussion(
-        title: String,
-        content: String,
-    ): AiDiscussionPostResponse {
-        if (aiDiscussionPostRepository.existsByStatus(AiDiscussionStatus.PENDING)) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "이미 승인 대기 중인 AI 토론 주제가 있습니다.",
-            )
-        }
-
-        val aiDiscussionPost = AiDiscussionPost.create(
-            title = title,
-            content = content,
-        )
-
-        val savedAiDiscussionPost = aiDiscussionPostRepository.save(aiDiscussionPost)
-
-        return AiDiscussionPostResponse.from(savedAiDiscussionPost)
     }
 
     @Transactional(readOnly = true)
@@ -152,3 +121,4 @@ class AiDiscussionPostService(
         return AiDiscussionPostResponse.from(aiDiscussionPost)
     }
 }
+

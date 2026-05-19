@@ -11,8 +11,8 @@ import org.springframework.web.client.RestClient
 class AiDiscussionGeneratorService(
     private val openAiProperties: OpenAiProperties,
     private val objectMapper: ObjectMapper,
+    private val restClient: RestClient,
 ) {
-    private val restClient: RestClient = RestClient.create()
 
     fun generateDailyTopic(): AiDiscussionGenerateResponse {
         val prompt = createDailyTopicPrompt()

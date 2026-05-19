@@ -1,7 +1,6 @@
 package com.back.devc.domain.post.aidiscussion.service
 
 import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
-
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
 import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
@@ -29,16 +28,19 @@ class AiDiscussionPostServiceTest {
     private lateinit var postService: PostService
     private lateinit var aiDiscussionPostService: AiDiscussionPostService
     private lateinit var aiDiscussionGeneratorService: AiDiscussionGeneratorService
+    private lateinit var aiDiscussionPersistenceService: AiDiscussionPersistenceService
 
     @BeforeEach
     fun setUp() {
         aiDiscussionPostRepository = mock(AiDiscussionPostRepository::class.java)
         postService = mock(PostService::class.java)
         aiDiscussionGeneratorService = mock(AiDiscussionGeneratorService::class.java)
+        aiDiscussionPersistenceService = AiDiscussionPersistenceService(aiDiscussionPostRepository)
         aiDiscussionPostService = AiDiscussionPostService(
             aiDiscussionPostRepository = aiDiscussionPostRepository,
             postService = postService,
             aiDiscussionGeneratorService = aiDiscussionGeneratorService,
+            aiDiscussionPersistenceService = aiDiscussionPersistenceService,
         )
     }
 
