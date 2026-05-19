@@ -6,7 +6,6 @@ import com.back.devc.domain.post.category.entity.Category
 import com.back.devc.domain.post.category.repository.CategoryRepository
 import com.back.devc.domain.post.post.entity.Post
 import com.back.devc.domain.post.post.repository.PostRepository
-import com.back.devc.global.security.jwt.JwtProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -15,11 +14,11 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.databind.ObjectMapper
 import java.util.UUID
 
 @SpringBootTest
@@ -31,8 +30,6 @@ internal class PostControllerIntegrationTest {
     @Autowired
     private lateinit var mvc: MockMvc
 
-    @Autowired
-    private lateinit var objectMapper: ObjectMapper
 
     @Autowired
     private lateinit var memberRepository: MemberRepository
@@ -43,18 +40,14 @@ internal class PostControllerIntegrationTest {
     @Autowired
     private lateinit var postRepository: PostRepository
 
-    @Autowired
-    private lateinit var jwtProvider: JwtProvider
 
     private lateinit var member: Member
     private lateinit var category: Category
 
-    private val accessToken: String
-        get() = jwtProvider.createAccessToken(member)
 
     @BeforeEach
     fun setUp() {
-        val unique = UUID.randomUUID().toString()
+        val unique = UUID.randomUUID().toString().take(8)
 
         member = memberRepository.save(
             Member.createLocalMember(
@@ -74,10 +67,10 @@ internal class PostControllerIntegrationTest {
             Post.create(member, category, "테스트3", "테스트3내용"),
         )
 
-        mvc.perform(MockMvcRequestBuilders.get("/api/posts/{postId}", post.postId))
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.title").value("테스트3"))
+        mvc.perform(get("/api/posts/{postId}", post.postId))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.title").value("테스트3"))
     }
 
     @Test
@@ -90,15 +83,15 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "두번째", "내용2"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("sort", "LATEST")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("두번째"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].title").value("첫번째"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("두번째"))
+            .andExpect(jsonPath("$.data.content[1].title").value("첫번째"))
     }
 
     @Test
@@ -117,17 +110,17 @@ internal class PostControllerIntegrationTest {
         postRepository.flush()
 
         val result = mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10"),
         )
 
-        result.andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("제목2"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].title").value("제목3"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[2].title").value("제목1"))
+        result.andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("제목2"))
+            .andExpect(jsonPath("$.data.content[1].title").value("제목3"))
+            .andExpect(jsonPath("$.data.content[2].title").value("제목1"))
     }
 
     @Test
@@ -146,17 +139,17 @@ internal class PostControllerIntegrationTest {
         postRepository.flush()
 
         val result = mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10"),
         )
 
-        result.andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("제목2"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].title").value("제목3"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[2].title").value("제목1"))
+        result.andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("제목2"))
+            .andExpect(jsonPath("$.data.content[1].title").value("제목3"))
+            .andExpect(jsonPath("$.data.content[2].title").value("제목1"))
     }
 
     @Test
@@ -169,16 +162,16 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category2, "공지1", "내용3"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("categoryId", category.categoryId.toString())
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].categoryId").value(category.categoryId))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].categoryId").value(category.categoryId))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(2))
+            .andExpect(jsonPath("$.data.content[0].categoryId").value(category.categoryId))
+            .andExpect(jsonPath("$.data.content[1].categoryId").value(category.categoryId))
     }
 
     @Test
@@ -192,17 +185,17 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category2, "공지1", "내용3"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("categoryId", category.categoryId.toString())
                 .param("sort", "LATEST")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("자유2"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].title").value("자유1"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(2))
+            .andExpect(jsonPath("$.data.content[0].title").value("자유2"))
+            .andExpect(jsonPath("$.data.content[1].title").value("자유1"))
     }
 
     @Test
@@ -222,17 +215,17 @@ internal class PostControllerIntegrationTest {
         postRepository.flush()
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("categoryId", category.categoryId.toString())
                 .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("자유2"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].title").value("자유1"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(2))
+            .andExpect(jsonPath("$.data.content[0].title").value("자유2"))
+            .andExpect(jsonPath("$.data.content[1].title").value("자유1"))
     }
 
     @Test
@@ -252,17 +245,17 @@ internal class PostControllerIntegrationTest {
         postRepository.flush()
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("categoryId", category.categoryId.toString())
                 .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("자유2"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].title").value("자유1"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(2))
+            .andExpect(jsonPath("$.data.content[0].title").value("자유2"))
+            .andExpect(jsonPath("$.data.content[1].title").value("자유1"))
     }
 
     @Test
@@ -273,16 +266,16 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "리액트 공부", "내용3"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(1))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("스프링 공부"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(1))
+            .andExpect(jsonPath("$.data.content[0].title").value("스프링 공부"))
     }
 
     @Test
@@ -293,15 +286,15 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "글3", "스프링 핵심"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "CONTENT")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(2))
     }
 
     @Test
@@ -312,15 +305,15 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "리액트", "프론트"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE_OR_CONTENT")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content.length()").value(2))
     }
 
     @Test
@@ -331,16 +324,16 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "스프링 2", "내용2"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE")
                 .param("sort", "LATEST")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("스프링 2"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("스프링 2"))
     }
 
     @Test
@@ -353,16 +346,16 @@ internal class PostControllerIntegrationTest {
         repeat(5) { post2.increaseLikeCount() }
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE")
                 .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("스프링 1"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("스프링 1"))
     }
 
     @Test
@@ -377,16 +370,16 @@ internal class PostControllerIntegrationTest {
         repeat(5) { post3.increaseViewCount() }
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE")
                 .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("스프링 2"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("스프링 2"))
     }
 
     @Test
@@ -397,16 +390,16 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "글2", "스프링 2"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "CONTENT")
                 .param("sort", "LATEST")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("글2"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("글2"))
     }
 
     @Test
@@ -419,16 +412,16 @@ internal class PostControllerIntegrationTest {
         repeat(5) { post2.increaseLikeCount() }
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "CONTENT")
                 .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("글1"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("글1"))
     }
 
     @Test
@@ -443,16 +436,16 @@ internal class PostControllerIntegrationTest {
         repeat(5) { post3.increaseViewCount() }
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "CONTENT")
                 .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("글2"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("글2"))
     }
 
     @Test
@@ -463,16 +456,16 @@ internal class PostControllerIntegrationTest {
         postRepository.save(Post.create(member, category, "글2", "스프링 내용"))
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE_OR_CONTENT")
                 .param("sort", "LATEST")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("글2"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("글2"))
     }
 
     @Test
@@ -485,16 +478,16 @@ internal class PostControllerIntegrationTest {
         repeat(5) { post2.increaseLikeCount() }
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE_OR_CONTENT")
                 .param("sort", "LIKES")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("스프링 글1"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("스프링 글1"))
     }
 
     @Test
@@ -509,15 +502,15 @@ internal class PostControllerIntegrationTest {
         repeat(5) { post3.increaseViewCount() }
 
         mvc.perform(
-            MockMvcRequestBuilders.get("/api/posts")
+            get("/api/posts")
                 .param("keyword", "스프링")
                 .param("searchType", "TITLE_OR_CONTENT")
                 .param("sort", "VIEWS")
                 .param("page", "0")
                 .param("size", "10"),
         )
-            .andDo(MockMvcResultHandlers.print())
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].title").value("글2"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].title").value("글2"))
     }
 }
