@@ -22,12 +22,6 @@ data class SuccessResponse<T>(
     val timestamp: LocalDateTime,
     val data: T?
 ) {
-    // Java record accessor 호환을 위해 임시 유지
-    fun code(): String = code
-    fun message(): String = message
-    fun timestamp(): LocalDateTime = timestamp
-    fun data(): T? = data
-
     companion object {
         /**
          * 기존 공통 SuccessCode enum 을 사용하는 성공 응답 생성 메서드.
