@@ -10,7 +10,10 @@ import com.back.devc.global.security.jwt.JwtPrincipal
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/report")
@@ -61,7 +64,7 @@ class UserReportController(
     }
 
     private fun getAuthenticatedUserId(principal: JwtPrincipal?): Long {
-        return principal?.userId()
+        return principal?.userId
             ?: throw ApiException(ErrorCode.UNAUTHORIZED)
     }
 }
