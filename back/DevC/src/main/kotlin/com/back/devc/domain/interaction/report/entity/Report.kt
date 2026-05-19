@@ -67,6 +67,11 @@ class Report(
     var reportId: Long? = null
         protected set
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "report_group_id")
+    var reportGroup: ReportGroup? = null
+        protected set
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     var status: ReportStatus = ReportStatus.PENDING

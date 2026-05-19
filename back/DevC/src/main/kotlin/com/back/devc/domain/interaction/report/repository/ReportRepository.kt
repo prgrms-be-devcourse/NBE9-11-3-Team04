@@ -1,6 +1,7 @@
 package com.back.devc.domain.interaction.report.repository
 
 import com.back.devc.domain.interaction.report.entity.Report
+import com.back.devc.domain.interaction.report.entity.ReportGroup
 import com.back.devc.domain.interaction.report.entity.ReportStatus
 import com.back.devc.domain.interaction.report.entity.TargetType
 import com.back.devc.domain.member.member.entity.Member
@@ -104,4 +105,14 @@ interface ReportRepository : JpaRepository<Report, Long> {
         @Param("newStatus") newStatus: ReportStatus,
         @Param("oldStatus") oldStatus: ReportStatus,
     ): Int
+
+    fun existsByReporterAndReportGroup(
+        reporter: Member,
+        reportGroup: ReportGroup
+    ): Boolean
+
+    fun findAllByReportGroup(
+        reportGroup: ReportGroup
+    ): List<Report>
+
 }
