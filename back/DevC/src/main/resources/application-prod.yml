@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/devc?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${SPRING_DATASOURCE_USERNAME:devc}
+    password: ${SPRING_DATASOURCE_PASSWORD:devc1234}
+    driver-class-name: com.mysql.cj.jdbc.Driver
