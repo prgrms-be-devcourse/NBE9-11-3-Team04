@@ -1,6 +1,7 @@
 package com.back.devc.domain.interaction.report.repository
 
 import com.back.devc.domain.interaction.report.entity.Report
+import com.back.devc.domain.interaction.report.entity.ReportGroup
 import com.back.devc.domain.interaction.report.entity.ReportStatus
 import com.back.devc.domain.interaction.report.entity.TargetType
 import com.back.devc.domain.member.member.entity.Member
@@ -104,4 +105,28 @@ interface ReportRepository : JpaRepository<Report, Long> {
         @Param("newStatus") newStatus: ReportStatus,
         @Param("oldStatus") oldStatus: ReportStatus,
     ): Int
+
+    fun existsByReporterAndReportGroup(
+        reporter: Member,
+        reportGroup: ReportGroup
+    ): Boolean
+
+    fun findAllByReportGroup(
+        reportGroup: ReportGroup
+    ): List<Report>
+
+    @Query(
+        """
+    SELECT r.reportGroup.reportGroupId as reportGroupId,
+           r.reasonType as reasonType,
+           COUNT(r) as reasonCount
+    FROM Report r
+    WHERE r.reportGroup.reportGroupId IN :reportGroupIds
+    GROUP BY r.reportGroup.reportGroupId, r.reasonType
+    ORDER BY COUNT(r) DESC
+    """
+    )
+    fun findReasonStatsByReportGroupIds(
+        @Param("reportGroupIds") reportGroupIds: List<Long>
+    ): List<ReportReasonStatProjection>
 }

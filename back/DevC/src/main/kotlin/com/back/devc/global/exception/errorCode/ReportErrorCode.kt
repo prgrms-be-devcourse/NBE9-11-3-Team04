@@ -20,6 +20,7 @@ enum class ReportErrorCode(
 
     REPORT_409_ALREADY_REPORT_USER(HttpStatus.CONFLICT, "REPORT_409", "이미 신고한 대상입니다."),
     REPORT_409_ALREADY_REPORT(HttpStatus.CONFLICT, "REPORT_409", "이미 처리된 신고입니다."),
+    REPORT_GROUP_409_ALREADY_REPORT(HttpStatus.CONFLICT, "REPORT_409", "이미 처리된 신고 그룹입니다."),
 
-    REPORT_410_ALREADY_DELETED(HttpStatus.GONE, "REPORT_410", "이미 삭제된 대상은 신고할 수 없습니다.");
+    REPORT_410_ALREADY_DELETED(HttpStatus.GONE, "REPORT_410", "이미 삭제된 대상은 신고할 수 없습니다."),
 }
