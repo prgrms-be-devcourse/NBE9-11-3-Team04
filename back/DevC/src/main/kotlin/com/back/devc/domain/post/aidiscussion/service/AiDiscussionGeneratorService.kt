@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient
 class AiDiscussionGeneratorService(
     private val openAiProperties: OpenAiProperties,
     private val objectMapper: ObjectMapper,
+    private val restClient: RestClient,
 ) {
 
     fun generateDailyTopic(): AiDiscussionGenerateResponse {
@@ -30,7 +31,7 @@ class AiDiscussionGeneratorService(
         }
 
         return runCatching {
-            val response = RestClient.create()
+            val response = restClient
                 .post()
                 .uri(openAiProperties.baseUrl)
                 .headers { headers -> headers.setBearerAuth(openAiProperties.apiKey) }
