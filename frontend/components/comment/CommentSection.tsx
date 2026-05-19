@@ -54,6 +54,7 @@ type CommentListResponse = {
 }
 
 const COMMENT_LIST_CACHE_TTL_MS = 1000
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"
 
 const recentCommentListCache = new Map<string, {
   timestamp: number
@@ -256,7 +257,7 @@ function getCurrentUserIdFromToken(): number | null {
  */
 async function fetchCurrentUserIdFromServer(): Promise<number | null> {
   try {
-    const response = await fetch("http://localhost:8080/api/users/me", {
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
       ...getAuthFetchOptions(),
       method: "GET",
     })
@@ -331,7 +332,7 @@ function renderAttachments(
         <div className="flex flex-col gap-3">
           {attachments.map((attachment) => {
             const resolvedAttachmentId = attachment.attachmentId ?? attachment.id
-            const fileUrl = `http://localhost:8080${attachment.fileUrl}`
+            const fileUrl = `${API_BASE_URL}${attachment.fileUrl}`
             const isImage = isImageAttachment(attachment)
             const isDeleting = resolvedAttachmentId !== undefined && options?.deletingAttachmentId === resolvedAttachmentId
 
@@ -430,7 +431,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       setDeletingAttachmentId(attachmentId)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments/${attachmentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/attachments/${attachmentId}`, {
         ...getAuthFetchOptions(),
         method: "DELETE",
         headers: getJsonAuthHeaders(),
@@ -513,7 +514,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
 
       const requestPromise = (async () => {
         const response = await fetch(
-            `http://localhost:8080/api/posts/${postId}/comments?page=${page}&size=20`
+            `${API_BASE_URL}/api/posts/${postId}/comments?page=${page}&size=20`
         )
 
         if (!response.ok) {
@@ -631,7 +632,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
 
     const authOptions = getAuthFetchOptions()
 
-    const response = await fetch(`http://localhost:8080/api/comments/${commentId}/attachments`, {
+    const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/attachments`, {
       ...authOptions,
       method: "POST",
       body: formData,
@@ -653,7 +654,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       setSubmitting(true)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/posts/${postId}/comments`, {
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/comments`, {
         ...getAuthFetchOptions(),
         method: "POST",
         headers: getJsonAuthHeaders(),
@@ -705,7 +706,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       setReplySubmittingId(commentId)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/comments/${commentId}/replies`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}/replies`, {
         ...getAuthFetchOptions(),
         method: "POST",
         headers: getJsonAuthHeaders(),
@@ -758,7 +759,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       setReportSubmittingId(commentId)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/report/comment`, {
+      const response = await fetch(`${API_BASE_URL}/api/report/comment`, {
         ...getAuthFetchOptions(),
         method: "POST",
         headers: getJsonAuthHeaders(),
@@ -819,7 +820,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       setDeletingCommentId(commentId)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
         ...getAuthFetchOptions(),
         method: "DELETE",
         headers: getJsonAuthHeaders(),
@@ -870,7 +871,7 @@ export default function CommentSection({ postId, onCommentsChanged }: CommentSec
       setEditingSubmittingId(commentId)
       setError(null)
 
-      const response = await fetch(`http://localhost:8080/api/comments/${commentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
         ...getAuthFetchOptions(),
         method: "PATCH",
         headers: getJsonAuthHeaders(),
