@@ -12,6 +12,7 @@ class AiDiscussionGeneratorService(
     private val openAiProperties: OpenAiProperties,
     private val objectMapper: ObjectMapper,
 ) {
+    private val restClient: RestClient = RestClient.create()
 
     fun generateDailyTopic(): AiDiscussionGenerateResponse {
         val prompt = createDailyTopicPrompt()
@@ -30,7 +31,7 @@ class AiDiscussionGeneratorService(
         }
 
         return runCatching {
-            val response = RestClient.create()
+            val response = restClient
                 .post()
                 .uri(openAiProperties.baseUrl)
                 .headers { headers -> headers.setBearerAuth(openAiProperties.apiKey) }

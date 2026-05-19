@@ -6,13 +6,12 @@ import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostReposit
 import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
 import com.back.devc.domain.post.post.dto.PostCreateRequest
 import com.back.devc.domain.post.post.service.PostService
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
-
 
 @Service
 class AiDiscussionPostService(
@@ -21,8 +20,32 @@ class AiDiscussionPostService(
     private val aiDiscussionGeneratorService: AiDiscussionGeneratorService,
 ) {
 
-    @Transactional
     fun createPendingDiscussion(): AiDiscussionPostResponse {
+        validatePendingDiscussionDoesNotExist()
+
+        val generatedTopic = aiDiscussionGeneratorService.generateDailyTopic()
+
+        return savePendingDiscussion(
+            title = generatedTopic.title,
+            content = generatedTopic.content,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun validatePendingDiscussionDoesNotExist() {
+        if (aiDiscussionPostRepository.existsByStatus(AiDiscussionStatus.PENDING)) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "이미 승인 대기 중인 AI 토론 주제가 있습니다.",
+            )
+        }
+    }
+
+    @Transactional
+    fun savePendingDiscussion(
+        title: String,
+        content: String,
+    ): AiDiscussionPostResponse {
         if (aiDiscussionPostRepository.existsByStatus(AiDiscussionStatus.PENDING)) {
             throw ResponseStatusException(
                 HttpStatus.CONFLICT,
@@ -30,11 +53,9 @@ class AiDiscussionPostService(
             )
         }
 
-        val generatedTopic = aiDiscussionGeneratorService.generateDailyTopic()
-
         val aiDiscussionPost = AiDiscussionPost.create(
-            title = generatedTopic.title,
-            content = generatedTopic.content,
+            title = title,
+            content = content,
         )
 
         val savedAiDiscussionPost = aiDiscussionPostRepository.save(aiDiscussionPost)

@@ -1,12 +1,13 @@
 package com.back.devc.domain.post.aidiscussion.service
 
+import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
+
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
 import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
 import com.back.devc.domain.post.post.dto.PostCreateRequest
 import com.back.devc.domain.post.post.dto.PostCreateResponse
 import com.back.devc.domain.post.post.service.PostService
-import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
@@ -67,7 +69,7 @@ class AiDiscussionPostServiceTest {
         assertThat(response.title).isEqualTo("AI 시대에 주니어 개발자는 어떤 역량을 길러야 할까?")
         assertThat(response.content).isEqualTo("AI 토론 주제 테스트 본문입니다.")
         verify(aiDiscussionGeneratorService).generateDailyTopic()
-        verify(aiDiscussionPostRepository).existsByStatus(AiDiscussionStatus.PENDING)
+        verify(aiDiscussionPostRepository, times(2)).existsByStatus(AiDiscussionStatus.PENDING)
         verify(aiDiscussionPostRepository).save(any(AiDiscussionPost::class.java))
     }
 
