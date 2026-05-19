@@ -106,6 +106,24 @@ interface ReportRepository : JpaRepository<Report, Long> {
         @Param("oldStatus") oldStatus: ReportStatus,
     ): Int
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        UPDATE Report r
+        SET r.status = :newStatus,
+            r.processedByAdmin = :admin,
+            r.processedAt = CURRENT_TIMESTAMP
+        WHERE r.reportGroup.reportGroupId = :reportGroupId
+          AND r.status = :oldStatus
+        """
+    )
+    fun updateStatusByReportGroupId(
+        @Param("reportGroupId") reportGroupId: Long,
+        @Param("admin") admin: Member,
+        @Param("newStatus") newStatus: ReportStatus,
+        @Param("oldStatus") oldStatus: ReportStatus
+    ): Int
+
     fun existsByReporterAndReportGroup(
         reporter: Member,
         reportGroup: ReportGroup

@@ -1,13 +1,18 @@
 package com.back.devc.domain.interaction.report.service
 
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO
+import com.back.devc.domain.interaction.report.dto.ApproveReportGroupRequest
 import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO
+import com.back.devc.domain.interaction.report.dto.RejectReportGroupRequest
 import com.back.devc.domain.interaction.report.entity.Report
+import com.back.devc.domain.interaction.report.entity.ReportGroup
+import com.back.devc.domain.interaction.report.entity.ReportGroupAction
 import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.ReportStatus
 import com.back.devc.domain.interaction.report.entity.SanctionType
 import com.back.devc.domain.interaction.report.entity.TargetType
+import com.back.devc.domain.interaction.report.repository.ReportGroupActionRepository
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler
@@ -37,6 +42,7 @@ import java.time.LocalDateTime
 class AdminReportService(
     private val reportRepository: ReportRepository,
     private val reportGroupRepository: ReportGroupRepository,
+    private val reportGroupActionRepository: ReportGroupActionRepository,
     private val memberRepository: MemberRepository,
     private val postRepository: PostRepository,
     private val commentRepository: CommentRepository,
@@ -640,6 +646,167 @@ class AdminReportService(
         )
     }
 
+    @Transactional
+    fun approveReportGroupById(
+        adminId: Long,
+        reportGroupId: Long,
+        request: ApproveReportGroupRequest
+    ) {
+
+        log.info(
+            "관리자 신고 그룹 승인 시작 - adminId={}, reportGroupId={}, sanctionType={}, suspensionDays={}",
+            adminId,
+            reportGroupId,
+            request.sanctionType,
+            request.suspensionDays
+        )
+
+        val admin = findMemberOrThrow(adminId)
+
+        validateAdminRole(admin)
+        validateSanctionDetails(
+            request.sanctionType,
+            request.suspensionDays
+        )
+
+        val reportGroup = findReportGroupOrThrow(reportGroupId)
+        val beforeStatus = reportGroup.status
+        val now = LocalDateTime.now()
+
+        validateTargetExists(
+            reportGroup.targetType,
+            reportGroup.targetId
+        )
+
+        reportGroup.approve(
+            admin = admin,
+            note = request.adminNote,
+            sanctionType = request.sanctionType,
+            suspensionDays = request.suspensionDays,
+            now = now
+        )
+        reportGroupRepository.saveAndFlush(reportGroup)
+        reportGroupActionRepository.save(
+            ReportGroupAction.approve(
+                reportGroup = reportGroup,
+                admin = admin,
+                beforeStatus = beforeStatus,
+                note = request.adminNote,
+                sanctionType = request.sanctionType,
+                suspensionDays = request.suspensionDays,
+                now = now
+            )
+        )
+
+        val updatedCount = reportRepository.updateStatusByReportGroupId(
+            reportGroupId,
+            admin,
+            ReportStatus.RESOLVED,
+            ReportStatus.PENDING
+        )
+
+        if (updatedCount == 0) {
+            log.warn(
+                "관리자 신고 그룹 승인 실패 - 처리 가능한 PENDING 신고 없음, adminId={}, reportGroupId={}",
+                adminId,
+                reportGroupId
+            )
+
+            throw ApiException(
+                ReportErrorCode.REPORT_404_PENDING_LIST
+            )
+        }
+
+        reportTargetHandler.handleApproved(
+            reportGroup.targetType,
+            reportGroup.targetId,
+            admin,
+            request.sanctionType,
+            request.suspensionDays
+        )
+
+        log.info(
+            "관리자 신고 그룹 승인 완료 - adminId={}, reportGroupId={}, targetType={}, targetId={}, updatedCount={}",
+            adminId,
+            reportGroupId,
+            reportGroup.targetType,
+            reportGroup.targetId,
+            updatedCount
+        )
+    }
+
+    @Transactional
+    fun rejectReportGroupById(
+        adminId: Long,
+        reportGroupId: Long,
+        request: RejectReportGroupRequest
+    ) {
+
+        log.info(
+            "관리자 신고 그룹 반려 시작 - adminId={}, reportGroupId={}",
+            adminId,
+            reportGroupId
+        )
+
+        val admin = findMemberOrThrow(adminId)
+
+        validateAdminRole(admin)
+
+        val reportGroup = findReportGroupOrThrow(reportGroupId)
+        val beforeStatus = reportGroup.status
+        val now = LocalDateTime.now()
+
+        reportGroup.reject(
+            admin = admin,
+            note = request.adminNote,
+            now = now
+        )
+        reportGroupRepository.saveAndFlush(reportGroup)
+        reportGroupActionRepository.save(
+            ReportGroupAction.reject(
+                reportGroup = reportGroup,
+                admin = admin,
+                beforeStatus = beforeStatus,
+                note = request.adminNote,
+                now = now
+            )
+        )
+
+        val updatedCount = reportRepository.updateStatusByReportGroupId(
+            reportGroupId,
+            admin,
+            ReportStatus.REJECTED,
+            ReportStatus.PENDING
+        )
+
+        if (updatedCount == 0) {
+            log.warn(
+                "관리자 신고 그룹 반려 실패 - 처리 가능한 PENDING 신고 없음, adminId={}, reportGroupId={}",
+                adminId,
+                reportGroupId
+            )
+
+            throw ApiException(
+                ReportErrorCode.REPORT_404_PENDING_LIST
+            )
+        }
+
+        reportTargetHandler.handleRejected(
+            reportGroup.targetType,
+            reportGroup.targetId,
+            admin
+        )
+
+        log.info(
+            "관리자 신고 그룹 반려 완료 - adminId={}, reportGroupId={}, targetType={}, targetId={}, updatedCount={}",
+            adminId,
+            reportGroupId,
+            reportGroup.targetType,
+            reportGroup.targetId,
+            updatedCount
+        )
+    }
+
     private fun validateAdminRole(member: Member) {
 
         if (!member.isAdmin()) {
@@ -678,15 +845,26 @@ class AdminReportService(
         dto: AdminReportRequestDTO
     ) {
 
+        validateSanctionDetails(
+            dto.sanctionType,
+            dto.suspensionDays
+        )
+    }
+
+    private fun validateSanctionDetails(
+        sanctionType: SanctionType?,
+        suspensionDays: Int?
+    ) {
+
         if (
-            dto.sanctionType == SanctionType.SUSPENDED &&
-            (dto.suspensionDays == null || dto.suspensionDays <= 0)
+            sanctionType == SanctionType.SUSPENDED &&
+            (suspensionDays == null || suspensionDays <= 0)
         ) {
 
             log.warn(
                 "신고 제재 파라미터 검증 실패 - sanctionType={}, suspensionDays={}",
-                dto.sanctionType,
-                dto.suspensionDays
+                sanctionType,
+                suspensionDays
             )
 
             throw ApiException(
@@ -719,6 +897,18 @@ class AdminReportService(
             .orElseThrow {
                 ApiException(
                     ReportErrorCode.REPORT_404_REPORT
+                )
+            }
+    }
+
+    private fun findReportGroupOrThrow(
+        reportGroupId: Long
+    ): ReportGroup {
+
+        return reportGroupRepository.findById(reportGroupId)
+            .orElseThrow {
+                ApiException(
+                    ReportErrorCode.REPORT_404_REPORT_GROUP
                 )
             }
     }
