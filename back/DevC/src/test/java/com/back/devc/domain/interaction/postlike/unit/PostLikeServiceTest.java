@@ -3,6 +3,7 @@ package com.back.devc.domain.interaction.postlike.unit;
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository;
 import com.back.devc.domain.interaction.notification.service.NotificationService;
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse;
+import com.back.devc.domain.interaction.postLike.dto.LikedPostsQuery;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeCommand;
 import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse;
 import com.back.devc.domain.interaction.postLike.entity.PostLike;
@@ -34,8 +35,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.*;
@@ -90,6 +92,9 @@ class PostLikeServiceTest {
         assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_CREATED.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
+        then(postLikeRepository).should().insertIgnore(userId, postId);
         then(postRepository).should().increaseLikeCount(postId);
         then(notificationService).should()
                 .createPostLikeNotification(postId, userId);
@@ -120,6 +125,9 @@ class PostLikeServiceTest {
         assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_ALREADY_EXISTS.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
+        then(postLikeRepository).should().insertIgnore(userId, postId);
         then(postRepository).should(never()).increaseLikeCount(anyLong());
         then(notificationService).should(never())
                 .createPostLikeNotification(anyLong(), anyLong());
@@ -138,6 +146,7 @@ class PostLikeServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
         then(postRepository).should(never()).findByPostIdAndIsDeletedFalse(anyLong());
         then(postLikeRepository).should(never()).insertIgnore(anyLong(), anyLong());
         then(postRepository).should(never()).increaseLikeCount(anyLong());
@@ -160,6 +169,8 @@ class PostLikeServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
         then(postLikeRepository).should(never()).insertIgnore(anyLong(), anyLong());
         then(postRepository).should(never()).increaseLikeCount(anyLong());
 
@@ -191,6 +202,9 @@ class PostLikeServiceTest {
         assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_CANCELED.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
+        then(postLikeRepository).should().deleteByUserIdAndPostId(userId, postId);
         then(postRepository).should().decreaseLikeCount(postId);
     }
 
@@ -219,6 +233,9 @@ class PostLikeServiceTest {
         assertThat(response.getMessage())
                 .isEqualTo(PostLikeSuccessCode.POST_LIKE_ALREADY_CANCELED.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
+        then(postLikeRepository).should().deleteByUserIdAndPostId(userId, postId);
         then(postRepository).should(never()).decreaseLikeCount(anyLong());
     }
 
@@ -235,6 +252,7 @@ class PostLikeServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
         then(postRepository).should(never()).findByPostIdAndIsDeletedFalse(anyLong());
         then(postLikeRepository).should(never()).deleteByUserIdAndPostId(anyLong(), anyLong());
         then(postRepository).should(never()).decreaseLikeCount(anyLong());
@@ -255,12 +273,14 @@ class PostLikeServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND.getMessage());
 
+        then(memberRepository).should().existsById(userId);
+        then(postRepository).should().findByPostIdAndIsDeletedFalse(postId);
         then(postLikeRepository).should(never()).deleteByUserIdAndPostId(anyLong(), anyLong());
         then(postRepository).should(never()).decreaseLikeCount(anyLong());
     }
 
     @Test
-    @DisplayName("내가 좋아요한 게시글 목록을 반환한다")
+    @DisplayName("내가 좋아요한 게시글 목록을 페이징으로 반환한다")
     void getLikedPosts_success() {
         // given
         Member member = createMemberWithId(userId, "작성자");
@@ -281,14 +301,15 @@ class PostLikeServiceTest {
 
         Pageable pageable = PageRequest.of(0, 10);
 
-        given(memberRepository.findById(userId))
-                .willReturn(Optional.of(member));
+        given(postLikeRepository.findPageWithPostMemberByUserId(
+                userId,
+                pageable
+        )).willReturn(new PageImpl<>(List.of(postLike), pageable, 1));
 
-        given(postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member, pageable))
-                .willReturn(new PageImpl<>(List.of(postLike), pageable, 1));
-
-        given(bookmarkRepository.existsByMember_UserIdAndPost_PostId(userId, postId))
-                .willReturn(true);
+        given(bookmarkRepository.findBookmarkedPostIdsByUserIdAndPostIds(
+                eq(userId),
+                anyCollection()
+        )).willReturn(List.of(postId));
 
         // when
         PageResponse<LikedPostResponse> responses =
@@ -309,31 +330,163 @@ class PostLikeServiceTest {
         assertThat(response.getLiked()).isTrue();
         assertThat(response.getBookmarked()).isTrue();
 
-        then(memberRepository).should().findById(userId);
         then(postLikeRepository).should()
-                .findAllByMemberAndPost_IsDeletedFalse(member, pageable);
+                .findPageWithPostMemberByUserId(userId, pageable);
+
         then(bookmarkRepository).should()
-                .existsByMember_UserIdAndPost_PostId(userId, postId);
+                .findBookmarkedPostIdsByUserIdAndPostIds(eq(userId), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+
+        then(bookmarkRepository).should(never())
+                .existsByMember_UserIdAndPost_PostId(anyLong(), anyLong());
     }
 
     @Test
-    @DisplayName("좋아요한 게시글 목록 조회 시 회원이 없으면 예외가 발생한다")
-    void getLikedPosts_memberNotFound() {
+    @DisplayName("좋아요한 게시글 목록이 비어 있으면 빈 페이지를 반환한다")
+    void getLikedPosts_empty() {
         // given
         Pageable pageable = PageRequest.of(0, 10);
 
-        given(memberRepository.findById(userId))
-                .willReturn(Optional.empty());
+        given(postLikeRepository.findPageWithPostMemberByUserId(
+                userId,
+                pageable
+        )).willReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        // when & then
-        assertThatThrownBy(() -> postLikeService.getLikedPosts(userId, pageable))
-                .isInstanceOf(ApiException.class)
-                .hasMessage(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND.getMessage());
+        // when
+        PageResponse<LikedPostResponse> responses =
+                postLikeService.getLikedPosts(userId, pageable);
 
-        then(postLikeRepository).should(never())
-                .findAllByMemberAndPost_IsDeletedFalse(any(Member.class), any(Pageable.class));
+        // then
+        assertThat(responses.getContent()).isEmpty();
 
-        verifyNoInteractions(bookmarkRepository);
+        then(postLikeRepository).should()
+                .findPageWithPostMemberByUserId(userId, pageable);
+
+        then(bookmarkRepository).should(never())
+                .findBookmarkedPostIdsByUserIdAndPostIds(anyLong(), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("내가 좋아요한 게시글 목록을 List로 반환한다")
+    void getLikedPosts_list_success() {
+        // given
+        Member member = createMemberWithId(userId, "작성자");
+
+        LocalDateTime createdAt = LocalDateTime.of(2026, 5, 15, 10, 0);
+
+        Post post = createPostWithId(
+                postId,
+                member,
+                "테스트 제목",
+                7,
+                2,
+                100,
+                createdAt
+        );
+
+        PostLike postLike = PostLike.create(member, post);
+
+        given(postLikeRepository.findAllWithPostMemberByUserId(userId))
+                .willReturn(List.of(postLike));
+
+        given(bookmarkRepository.findBookmarkedPostIdsByUserIdAndPostIds(
+                eq(userId),
+                anyCollection()
+        )).willReturn(List.of(postId));
+
+        // when
+        List<LikedPostResponse> responses =
+                postLikeService.getLikedPosts(new LikedPostsQuery(userId));
+
+        // then
+        assertThat(responses).hasSize(1);
+
+        LikedPostResponse response = responses.get(0);
+
+        assertThat(response.getPostId()).isEqualTo(postId);
+        assertThat(response.getTitle()).isEqualTo("테스트 제목");
+        assertThat(response.getAuthorNickname()).isEqualTo("작성자");
+        assertThat(response.getLikeCount()).isEqualTo(7L);
+        assertThat(response.getCommentCount()).isEqualTo(2L);
+        assertThat(response.getViewCount()).isEqualTo(100L);
+        assertThat(response.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(response.getLiked()).isTrue();
+        assertThat(response.getBookmarked()).isTrue();
+
+        then(postLikeRepository).should()
+                .findAllWithPostMemberByUserId(userId);
+
+        then(bookmarkRepository).should()
+                .findBookmarkedPostIdsByUserIdAndPostIds(eq(userId), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+
+        then(bookmarkRepository).should(never())
+                .existsByMember_UserIdAndPost_PostId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("List 좋아요 목록이 비어 있으면 빈 리스트를 반환한다")
+    void getLikedPosts_list_empty() {
+        // given
+        given(postLikeRepository.findAllWithPostMemberByUserId(userId))
+                .willReturn(List.of());
+
+        // when
+        List<LikedPostResponse> responses =
+                postLikeService.getLikedPosts(new LikedPostsQuery(userId));
+
+        // then
+        assertThat(responses).isEmpty();
+
+        then(postLikeRepository).should()
+                .findAllWithPostMemberByUserId(userId);
+
+        then(bookmarkRepository).should(never())
+                .findBookmarkedPostIdsByUserIdAndPostIds(anyLong(), anyCollection());
+
+        then(memberRepository).should(never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("사용자가 특정 게시글을 좋아요했는지 확인한다")
+    void isLikedByUser_success() {
+        // given
+        given(postLikeRepository.existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
+                userId,
+                postId
+        )).willReturn(true);
+
+        // when
+        boolean result = postLikeService.isLikedByUser(userId, postId);
+
+        // then
+        assertThat(result).isTrue();
+
+        then(postLikeRepository).should()
+                .existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(userId, postId);
+    }
+
+    @Test
+    @DisplayName("사용자가 특정 게시글을 좋아요하지 않았으면 false를 반환한다")
+    void isLikedByUser_false() {
+        // given
+        given(postLikeRepository.existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
+                userId,
+                postId
+        )).willReturn(false);
+
+        // when
+        boolean result = postLikeService.isLikedByUser(userId, postId);
+
+        // then
+        assertThat(result).isFalse();
+
+        then(postLikeRepository).should()
+                .existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(userId, postId);
     }
 
     private Member createMemberWithId(Long userId, String nickname) {

@@ -51,6 +51,55 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
     ): Page<PostLike>
 
     /**
+     * 좋아요한 게시글 목록 조회 - List
+     *
+     * PostLike -> Post -> Member 를 fetch join 해서
+     * 목록 DTO 매핑 시 N+1 방지
+     */
+    @Query(
+        """
+            select pl
+            from PostLike pl
+            join fetch pl.post p
+            join fetch p.member m
+            where pl.member.userId = :userId
+            and p.isDeleted = false
+            order by pl.createdAt desc
+        """
+    )
+    fun findAllWithPostMemberByUserId(
+        @Param("userId") userId: Long,
+    ): List<PostLike>
+
+    /**
+     * 좋아요한 게시글 목록 조회 - Paging
+     *
+     * PostLike -> Post -> Member 를 fetch join 해서
+     * 목록 DTO 매핑 시 N+1 방지
+     */
+    @Query(
+        value = """
+            select pl
+            from PostLike pl
+            join fetch pl.post p
+            join fetch p.member m
+            where pl.member.userId = :userId
+            and p.isDeleted = false
+        """,
+        countQuery = """
+            select count(pl)
+            from PostLike pl
+            join pl.post p
+            where pl.member.userId = :userId
+            and p.isDeleted = false
+        """,
+    )
+    fun findPageWithPostMemberByUserId(
+        @Param("userId") userId: Long,
+        pageable: Pageable,
+    ): Page<PostLike>
+
+    /**
      * 특정 게시글에 연결된 좋아요 전체 삭제
      */
     fun deleteByPost_PostId(
@@ -61,6 +110,14 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
      * userId, postId 기반 존재 여부 확인
      */
     fun existsByMember_UserIdAndPost_PostId(
+        userId: Long,
+        postId: Long,
+    ): Boolean
+
+    /**
+     * 삭제되지 않은 게시글에 대해서만 좋아요 여부 확인
+     */
+    fun existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
         userId: Long,
         postId: Long,
     ): Boolean
