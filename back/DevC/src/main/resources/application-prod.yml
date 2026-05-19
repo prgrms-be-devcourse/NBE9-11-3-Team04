@@ -4,3 +4,8 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:devc}
     password: ${SPRING_DATASOURCE_PASSWORD:devc1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+custom:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:change-me-to-a-long-random-secret-key}
+    access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:3600}
