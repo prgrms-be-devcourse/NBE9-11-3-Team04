@@ -7,10 +7,12 @@ import com.back.devc.domain.interaction.report.dto.ReportResponseDTO
 import com.back.devc.domain.interaction.report.dto.RejectReportGroupRequest
 import com.back.devc.domain.interaction.report.entity.Report
 import com.back.devc.domain.interaction.report.entity.ReportGroup
+import com.back.devc.domain.interaction.report.entity.ReportGroupAction
 import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.ReportStatus
 import com.back.devc.domain.interaction.report.entity.SanctionType
 import com.back.devc.domain.interaction.report.entity.TargetType
+import com.back.devc.domain.interaction.report.repository.ReportGroupActionRepository
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler
@@ -40,6 +42,7 @@ import java.time.LocalDateTime
 class AdminReportService(
     private val reportRepository: ReportRepository,
     private val reportGroupRepository: ReportGroupRepository,
+    private val reportGroupActionRepository: ReportGroupActionRepository,
     private val memberRepository: MemberRepository,
     private val postRepository: PostRepository,
     private val commentRepository: CommentRepository,
@@ -667,6 +670,8 @@ class AdminReportService(
         )
 
         val reportGroup = findReportGroupOrThrow(reportGroupId)
+        val beforeStatus = reportGroup.status
+        val now = LocalDateTime.now()
 
         validateTargetExists(
             reportGroup.targetType,
@@ -678,9 +683,20 @@ class AdminReportService(
             note = request.adminNote,
             sanctionType = request.sanctionType,
             suspensionDays = request.suspensionDays,
-            now = LocalDateTime.now()
+            now = now
         )
         reportGroupRepository.saveAndFlush(reportGroup)
+        reportGroupActionRepository.save(
+            ReportGroupAction.approve(
+                reportGroup = reportGroup,
+                admin = admin,
+                beforeStatus = beforeStatus,
+                note = request.adminNote,
+                sanctionType = request.sanctionType,
+                suspensionDays = request.suspensionDays,
+                now = now
+            )
+        )
 
         val updatedCount = reportRepository.updateStatusByReportGroupId(
             reportGroupId,
@@ -737,13 +753,24 @@ class AdminReportService(
         validateAdminRole(admin)
 
         val reportGroup = findReportGroupOrThrow(reportGroupId)
+        val beforeStatus = reportGroup.status
+        val now = LocalDateTime.now()
 
         reportGroup.reject(
             admin = admin,
             note = request.adminNote,
-            now = LocalDateTime.now()
+            now = now
         )
         reportGroupRepository.saveAndFlush(reportGroup)
+        reportGroupActionRepository.save(
+            ReportGroupAction.reject(
+                reportGroup = reportGroup,
+                admin = admin,
+                beforeStatus = beforeStatus,
+                note = request.adminNote,
+                now = now
+            )
+        )
 
         val updatedCount = reportRepository.updateStatusByReportGroupId(
             reportGroupId,

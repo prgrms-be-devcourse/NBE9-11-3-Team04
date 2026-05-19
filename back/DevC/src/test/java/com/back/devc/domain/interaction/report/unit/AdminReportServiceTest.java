@@ -6,11 +6,13 @@ import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO;
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO;
 import com.back.devc.domain.interaction.report.dto.RejectReportGroupRequest;
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportGroupActionType;
 import com.back.devc.domain.interaction.report.entity.ReportGroup;
 import com.back.devc.domain.interaction.report.entity.ReportGroupStatus;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.SanctionType;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupActionRepository;
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportReasonStatProjection;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
@@ -64,6 +66,9 @@ class AdminReportServiceTest {
 
     @Mock
     private ReportGroupRepository reportGroupRepository;
+
+    @Mock
+    private ReportGroupActionRepository reportGroupActionRepository;
 
     @Mock
     private MemberRepository memberRepository;
@@ -487,6 +492,14 @@ class AdminReportServiceTest {
 
             assertThat(reportGroup.getStatus()).isEqualTo(ReportGroupStatus.APPROVED);
             verify(reportGroupRepository).saveAndFlush(reportGroup);
+            verify(reportGroupActionRepository).save(argThat(action ->
+                    action.getActionType() == ReportGroupActionType.APPROVE
+                            && action.getBeforeStatus() == ReportGroupStatus.OPEN
+                            && action.getAfterStatus() == ReportGroupStatus.APPROVED
+                            && action.getNote().equals("note")
+                            && action.getSanctionType() == SanctionType.WARNED
+                            && action.getSuspensionDays() == null
+            ));
             verify(reportRepository).updateStatusByReportGroupId(10L, admin, ReportStatus.RESOLVED, ReportStatus.PENDING);
             verify(reportTargetHandler).handleApproved(TargetType.POST, 100L, admin, SanctionType.WARNED, null);
         }
@@ -529,6 +542,14 @@ class AdminReportServiceTest {
 
             assertThat(reportGroup.getStatus()).isEqualTo(ReportGroupStatus.REJECTED);
             verify(reportGroupRepository).saveAndFlush(reportGroup);
+            verify(reportGroupActionRepository).save(argThat(action ->
+                    action.getActionType() == ReportGroupActionType.REJECT
+                            && action.getBeforeStatus() == ReportGroupStatus.OPEN
+                            && action.getAfterStatus() == ReportGroupStatus.REJECTED
+                            && action.getNote().equals("not enough evidence")
+                            && action.getSanctionType() == null
+                            && action.getSuspensionDays() == null
+            ));
             verify(reportRepository).updateStatusByReportGroupId(10L, admin, ReportStatus.REJECTED, ReportStatus.PENDING);
             verify(reportTargetHandler).handleRejected(TargetType.POST, 100L, admin);
         }
