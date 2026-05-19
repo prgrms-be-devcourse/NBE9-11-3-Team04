@@ -91,6 +91,10 @@ class Report(
     var createdAt: LocalDateTime? = null
         protected set
 
+    fun assignReportGroup(reportGroup: ReportGroup) {
+        this.reportGroup = reportGroup
+    }
+
     fun processReport(admin: Member) {
         processedByAdmin = admin
         status = ReportStatus.RESOLVED

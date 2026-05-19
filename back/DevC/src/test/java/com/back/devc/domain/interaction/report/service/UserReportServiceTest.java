@@ -2,7 +2,9 @@ package com.back.devc.domain.interaction.report.service;
 
 import com.back.devc.domain.interaction.report.dto.ReportRequestDTO;
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportGroup;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
@@ -48,6 +50,9 @@ class UserReportServiceTest {
     private ReportRepository reportRepository;
 
     @Mock
+    private ReportGroupRepository reportGroupRepository;
+
+    @Mock
     private MemberRepository memberRepository;
 
     @Mock
@@ -84,6 +89,7 @@ class UserReportServiceTest {
             givenExistingPostByAnotherMember(false);
             given(reportRepository.existsByReporterAndTargetTypeAndTargetId(reporter, TargetType.POST, 10L))
                     .willReturn(false);
+            ReportGroup reportGroup = givenNewReportGroup(TargetType.POST, 10L);
 
             userReportService.reportPost(1L, dto);
 
@@ -95,6 +101,8 @@ class UserReportServiceTest {
             assertThat(savedReport.getTargetId()).isEqualTo(10L);
             assertThat(savedReport.getReasonType()).isEqualTo("SPAM");
             assertThat(savedReport.getReasonDetail()).isEqualTo("Repeated promotion");
+            assertThat(savedReport.getReportGroup()).isSameAs(reportGroup);
+            assertThat(reportGroup.getReportCount()).isEqualTo(1L);
         }
 
         @Test
@@ -106,7 +114,7 @@ class UserReportServiceTest {
                     () -> userReportService.reportPost(1L, new ReportRequestDTO(10L, "SPAM", null)),
                     MemberErrorCode.MEMBER_NOT_FOUND
             );
-            verifyNoInteractions(postRepository, commentRepository, reportRepository);
+            verifyNoInteractions(postRepository, commentRepository, reportRepository, reportGroupRepository);
         }
 
         @Test
@@ -177,6 +185,7 @@ class UserReportServiceTest {
             givenExistingCommentByAnotherMember(false);
             given(reportRepository.existsByReporterAndTargetTypeAndTargetId(reporter, TargetType.COMMENT, 20L))
                     .willReturn(false);
+            ReportGroup reportGroup = givenNewReportGroup(TargetType.COMMENT, 20L);
 
             userReportService.reportComment(1L, dto);
 
@@ -188,6 +197,8 @@ class UserReportServiceTest {
             assertThat(savedReport.getTargetId()).isEqualTo(20L);
             assertThat(savedReport.getReasonType()).isEqualTo("ABUSE");
             assertThat(savedReport.getReasonDetail()).isEqualTo("Insulting content");
+            assertThat(savedReport.getReportGroup()).isSameAs(reportGroup);
+            assertThat(reportGroup.getReportCount()).isEqualTo(1L);
         }
 
         @Test
@@ -260,6 +271,21 @@ class UserReportServiceTest {
         given(comment.getUserId()).willReturn(2L);
         given(comment.isDeleted()).willReturn(deleted);
         given(commentRepository.findById(20L)).willReturn(Optional.of(comment));
+    }
+
+    private ReportGroup givenNewReportGroup(TargetType targetType, Long targetId) {
+        ReportGroup reportGroup = new ReportGroup(
+                targetType,
+                targetId,
+                java.time.LocalDateTime.now()
+        );
+
+        given(reportGroupRepository.findByTargetTypeAndTargetId(targetType, targetId))
+                .willReturn(null);
+        given(reportGroupRepository.saveAndFlush(any(ReportGroup.class)))
+                .willReturn(reportGroup);
+
+        return reportGroup;
     }
 
     private void assertReportError(Runnable action, Object expectedErrorCode) {

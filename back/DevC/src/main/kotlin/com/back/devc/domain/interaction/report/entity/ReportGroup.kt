@@ -11,16 +11,34 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import jakarta.persistence.Version
 import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "report_group",
-    )
+    name = "report_groups",
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "uk_report_groups_target",
+            columnNames = ["target_type", "target_id"]
+        )
+    ],
+    indexes = [
+        Index(
+            name = "idx_report_groups_status_latest",
+            columnList = "status, latest_reported_at"
+        ),
+        Index(
+            name = "idx_report_groups_target",
+            columnList = "target_type, target_id"
+        )
+    ]
+)
 class ReportGroup(
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, length = 30)
@@ -30,7 +48,7 @@ class ReportGroup(
     val targetId: Long,
 
     firstReportedAt: LocalDateTime
-    ) {
+) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "report_group_id")
@@ -39,7 +57,7 @@ class ReportGroup(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    var status : ReportGroupStatus = ReportGroupStatus.OPEN
+    var status: ReportGroupStatus = ReportGroupStatus.OPEN
         protected set
 
     @Column(name = "report_count", nullable = false)
@@ -77,13 +95,13 @@ class ReportGroup(
     var version: Long = 0
         protected set
 
-    fun registerReport(reportedAt : LocalDateTime) {
-        if(status != ReportGroupStatus.OPEN){
+    fun registerReport(reportedAt: LocalDateTime) {
+        if (status != ReportGroupStatus.OPEN) {
             throw ApiException(ReportErrorCode.REPORT_GROUP_409_ALREADY_REPORT)
         }
         reportCount += 1
 
-        if(reportedAt.isAfter(latestReportedAt)){
+        if (reportedAt.isAfter(latestReportedAt)) {
             latestReportedAt = reportedAt
         }
     }
@@ -125,5 +143,4 @@ class ReportGroup(
             throw ApiException(ReportErrorCode.REPORT_GROUP_409_ALREADY_REPORT)
         }
     }
-
 }
