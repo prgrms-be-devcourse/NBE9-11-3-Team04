@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.web.cors.CorsUtils
 import org.springframework.web.filter.OncePerRequestFilter
 import java.io.IOException
 
@@ -23,6 +24,10 @@ class JwtAuthenticationFilter(
     @Value("\${custom.jwt.access-cookie-name:access_token}")
     private val accessCookieName: String
 ) : OncePerRequestFilter() {
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        return CorsUtils.isPreFlightRequest(request)
+    }
 
     // 모든 요청에서 JWT를 확인하고, 유효한 토큰이면 SecurityContext에 인증 정보를 저장
     // 유효하지 않은 토큰이면 실패 상태를 request attribute에 담아 EntryPoint가 응답 코드로 변환할 수 있게 한다.
