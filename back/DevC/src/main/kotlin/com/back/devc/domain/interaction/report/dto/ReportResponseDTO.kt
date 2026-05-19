@@ -53,22 +53,22 @@ data class ReportResponseDTO(
             targetTitle: String?,
             targetContent: String?
         ): ReportResponseDTO {
-            val reporter = report.getReporter()
+            val reporter = report.reporter
 
             return ReportResponseDTO(
-                reportId = report.getReportId(),
+                reportId = requireNotNull(report.reportId),
                 reporterEmail = reporter.email,
                 reporterNickname = reporter.nickname,
-                targetType = report.getTargetType(),
-                targetId = report.getTargetId(),
+                targetType = report.targetType,
+                targetId = report.targetId,
                 targetNickname = targetNickname,
                 targetTitle = targetTitle,
                 targetContent = targetContent,
-                reasonType = report.getReasonType(),
-                reasonDetail = report.getReasonDetail(),
-                status = report.getStatus(),
-                createdAt = report.getCreatedAt(),
-                processedAt = report.getProcessedAt()
+                reasonType = report.reasonType,
+                reasonDetail = report.reasonDetail,
+                status = report.status,
+                createdAt = requireNotNull(report.createdAt),
+                processedAt = report.processedAt
             )
         }
         @Suppress("UNCHECKED_CAST")

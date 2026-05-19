@@ -115,7 +115,8 @@ class BookmarkService(
             postId = postId,
             title = post.title,
             authorNickname = MemberDisplayUtil.getDisplayName(post.member),
-            categoryId = post.category.getCategoryId(),
+            categoryId = post.category.categoryId
+                ?: throw ApiException(BookmarkErrorCode.BOOKMARK_404_POST_NOT_FOUND),
             likeCount = post.likeCount.toLong(),
             commentCount = post.commentCount.toLong(),
             viewCount = post.viewCount.toLong(),

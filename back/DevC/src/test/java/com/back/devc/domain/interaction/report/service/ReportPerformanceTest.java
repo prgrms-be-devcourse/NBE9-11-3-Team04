@@ -48,9 +48,9 @@ class ReportPerformanceTest {
     @Mock
     private PostRepository postRepository;
     @Mock
-    private CommentRepository commentRepository; // 누락 주의
+    private CommentRepository commentRepository;
     @Mock
-    private ReportTargetHandler reportTargetHandler; // 누락 주의
+    private ReportTargetHandler reportTargetHandler;
 
 
     @Test
@@ -178,14 +178,13 @@ class ReportPerformanceTest {
                 new ReportTargetHandler.TargetInfo("작성자닉네임", "제목", "내용");
 
         // row마다 호출됨 (N+1 구조 재현)
-        given(reportTargetHandler.getTargetInfo(any(), any()))
-                .willReturn(mockInfo);
-
-        // reasonTypes도 row마다 호출됨
-        given(reportRepository.findReasonTypesByTargetId(
-                any(TargetType.class),
-                any(Long.class)
-        )).willReturn(List.of("SPAM", "ABUSE"));
+        for (Object[] row : pageRows) {
+            Long targetId = (Long) row[1];
+            given(reportTargetHandler.getTargetInfo(TargetType.POST, targetId))
+                    .willReturn(mockInfo);
+            given(reportRepository.findReasonTypesByTargetId(TargetType.POST, targetId))
+                    .willReturn(List.of("SPAM", "ABUSE"));
+        }
 
         // 3. When
         StopWatch sw = new StopWatch();
@@ -207,18 +206,12 @@ class ReportPerformanceTest {
         assertThat(result.getTotalElements()).isEqualTo(totalData);
 
 // 핵심 검증: row 수만큼 반복 호출됨 (N+1 구조)
-        org.mockito.Mockito.verify(
-                        reportTargetHandler,
-                        org.mockito.Mockito.times(pageSize))
-                .getTargetInfo(any(TargetType.class)
-                        , any(Long.class)
-                );
-
-        org.mockito.Mockito.verify(
-                        reportRepository,
-                        org.mockito.Mockito.times(pageSize))
-                .findReasonTypesByTargetId(any(TargetType.class),
-                        any(Long.class)
-                );
+        for (Object[] row : pageRows) {
+            Long targetId = (Long) row[1];
+            org.mockito.Mockito.verify(reportTargetHandler)
+                    .getTargetInfo(TargetType.POST, targetId);
+            org.mockito.Mockito.verify(reportRepository)
+                    .findReasonTypesByTargetId(TargetType.POST, targetId);
+        }
     }
 }
