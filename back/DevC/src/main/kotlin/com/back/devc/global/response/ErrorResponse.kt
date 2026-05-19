@@ -9,11 +9,6 @@ data class ErrorResponse(
     val timestamp: LocalDateTime,
     val validation: Map<String, String>
 ) {
-    // Java record accessor 호환을 위해 임시 유지
-    fun code(): String = code
-    fun message(): String = message
-    fun timestamp(): LocalDateTime = timestamp
-    fun validation(): Map<String, String> = validation
 
     companion object {
         @JvmStatic

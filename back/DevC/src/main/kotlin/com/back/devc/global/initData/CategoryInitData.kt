@@ -14,13 +14,13 @@ class CategoryInitData(
     @Bean
     fun init(): ApplicationRunner {
         return ApplicationRunner {
-            if (categoryRepository.count() > 0) {
-                return@ApplicationRunner
-            }
-
-            val names = listOf("tech", "job-market", "trend", "free")
+            val names = listOf("tech", "job-market", "trend", "free", "discussion")
 
             for (name in names) {
+                if (categoryRepository.existsByName(name)) {
+                    continue
+                }
+
                 val category = Category(name)
                 categoryRepository.save(category)
             }

@@ -2,7 +2,6 @@ package com.back.devc.global.response
 
 import com.back.devc.global.response.successCode.AuthSuccessCode
 import com.back.devc.global.response.successCode.MemberSuccessCode
-import com.back.devc.global.response.successCode.ReportSuccessCode
 import java.time.LocalDateTime
 
 /**
@@ -22,12 +21,6 @@ data class SuccessResponse<T>(
     val timestamp: LocalDateTime,
     val data: T?
 ) {
-    // Java record accessor 호환을 위해 임시 유지
-    fun code(): String = code
-    fun message(): String = message
-    fun timestamp(): LocalDateTime = timestamp
-    fun data(): T? = data
-
     companion object {
         /**
          * 기존 공통 SuccessCode enum 을 사용하는 성공 응답 생성 메서드.
@@ -75,17 +68,6 @@ data class SuccessResponse<T>(
          */
         @JvmStatic
         fun <T> of(successCode: SuccessCodeSpec, data: T?): SuccessResponse<T> {
-            return SuccessResponse(
-                code = successCode.code,
-                message = successCode.message,
-                timestamp = LocalDateTime.now(),
-                data = data
-            )
-        }
-
-        // 예비
-        @JvmStatic
-        fun <T> of(successCode: ReportSuccessCode, data: T?): SuccessResponse<T> {
             return SuccessResponse(
                 code = successCode.code,
                 message = successCode.message,

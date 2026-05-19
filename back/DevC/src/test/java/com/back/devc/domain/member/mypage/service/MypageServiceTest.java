@@ -142,9 +142,9 @@ class MypageServiceTest {
                 mypageService.getMyPosts(userId, pageable);
 
         // then
-        assertThat(response.content()).hasSize(1);
+        assertThat(response.getContent()).hasSize(1);
 
-        MyPostResponse myPost = response.content().get(0);
+        MyPostResponse myPost = response.getContent().get(0);
 
         assertThat(myPost.getPostId()).isEqualTo(postId);
         assertThat(myPost.getTitle()).isEqualTo("내 게시글");
@@ -192,9 +192,9 @@ class MypageServiceTest {
                 mypageService.getMyComments(userId, pageable);
 
         // then
-        assertThat(response.content()).hasSize(1);
+        assertThat(response.getContent()).hasSize(1);
 
-        MyCommentResponse myComment = response.content().get(0);
+        MyCommentResponse myComment = response.getContent().get(0);
 
         assertThat(myComment.getCommentId()).isEqualTo(100L);
         assertThat(myComment.getPostId()).isEqualTo(postId);
@@ -238,9 +238,9 @@ class MypageServiceTest {
                 mypageService.getMyLikedPosts(userId, pageable);
 
         // then
-        assertThat(response.content()).hasSize(1);
-        assertThat(response.content().get(0).getPostId()).isEqualTo(postId);
-        assertThat(response.content().get(0).getLiked()).isTrue();
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).getPostId()).isEqualTo(postId);
+        assertThat(response.getContent().get(0).getLiked()).isTrue();
 
         then(postLikeService).should().getLikedPosts(userId, pageable);
     }
@@ -279,9 +279,9 @@ class MypageServiceTest {
                 mypageService.getMyBookmarkedPosts(userId, pageable);
 
         // then
-        assertThat(response.content()).hasSize(1);
-        assertThat(response.content().get(0).getPostId()).isEqualTo(postId);
-        assertThat(response.content().get(0).getBookmarked()).isTrue();
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).getPostId()).isEqualTo(postId);
+        assertThat(response.getContent().get(0).getBookmarked()).isTrue();
 
         then(bookmarkService).should().getBookmarkedPosts(userId, pageable);
     }

@@ -46,7 +46,7 @@ class OAuth2MemberService(
         return toLoginResponse(member)
     }
 
-    // OAuth2 회원가입 완료 후 JWT를 발급해 로그인 응답 DTO를 반환한다.
+    // OAuth2 회원가입 완료 후 JWT를 발급한 로그인 응답 DTO를 반환한다.
     @Transactional
     fun completeSignupAndIssueToken(
         pending: OAuthPendingSignup?,
@@ -56,7 +56,7 @@ class OAuth2MemberService(
         return toLoginResponse(member)
     }
 
-    // OAuth2User의 속성에서 provider 정책에 맞춰 pendingSignup DTO를 생성한다.
+    // OAuth2User의 속성에서 provider 정책에 맞는 pendingSignup DTO를 생성한다.
     fun buildPendingSignup(
         provider: String?,
         oauth2User: OAuth2User
@@ -98,18 +98,11 @@ class OAuth2MemberService(
             throw ApiException(AuthErrorCode.OAUTH2_PROVIDER_USER_ID_MISSING)
         }
 
-        var email = ""
-        var login = ""
+        val account = oauth2User.getAttribute<Any>("kakao_account") as? Map<*, *>
+        val profile = account?.get("profile") as? Map<*, *>
 
-        val accountRaw = oauth2User.getAttribute<Any>("kakao_account")
-        if (accountRaw is Map<*, *>) {
-            email = valueAsString(accountRaw["email"]).trim()
-
-            val profileRaw = accountRaw["profile"]
-            if (profileRaw is Map<*, *>) {
-                login = valueAsString(profileRaw["nickname"]).trim()
-            }
-        }
+        val email = valueAsString(account?.get("email")).trim()
+        val login = valueAsString(profile?.get("nickname")).trim()
 
         return OAuthPendingSignup("kakao", providerUserId, email, login)
     }
@@ -201,19 +194,16 @@ class OAuth2MemberService(
             throw ApiException(AuthErrorCode.OAUTH2_PENDING_SIGNUP_REQUIRED)
         }
 
-        val existing = memberRepository.findByProviderAndProviderUserId(
-            provider,
-            pending.providerUserId
-        )
+        val existingMember = memberRepository
+            .findByProviderAndProviderUserId(provider, pending.providerUserId)
+            .orElse(null)
 
-        if (existing.isPresent) {
-            val member = existing.get()
-
-            if (member.status == MemberStatus.BLACKLISTED) {
+        if (existingMember != null) {
+            if (existingMember.status == MemberStatus.BLACKLISTED) {
                 throw ApiException(AuthErrorCode.MEMBER_BLACKLISTED)
             }
 
-            return member
+            return existingMember
         }
 
         val normalizedNickname = nickname?.trim().orEmpty()

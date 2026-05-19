@@ -263,7 +263,7 @@ class MypageControllerTest {
                 WebDataBinderFactory binderFactory
         ) {
             JwtPrincipal principal = mock(JwtPrincipal.class);
-            when(principal.userId()).thenReturn(1L);
+            when(principal.getUserId()).thenReturn(1L);
 
             return principal;
         }

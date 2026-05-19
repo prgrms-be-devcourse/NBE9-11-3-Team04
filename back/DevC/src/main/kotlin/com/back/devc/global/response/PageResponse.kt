@@ -12,15 +12,6 @@ data class PageResponse<T>(
     val last: Boolean,
     val hasNext: Boolean
 ) {
-    // Java record accessor 호환을 위해 임시 유지
-    fun content(): List<T> = content
-    fun page(): Int = page
-    fun size(): Int = size
-    fun totalElements(): Long = totalElements
-    fun totalPages(): Int = totalPages
-    fun first(): Boolean = first
-    fun last(): Boolean = last
-    fun hasNext(): Boolean = hasNext
 
     companion object {
         @JvmStatic

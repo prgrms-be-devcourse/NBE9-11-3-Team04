@@ -49,13 +49,13 @@ class UserReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().code())
+        assertThat(response.getBody().getCode())
                 .isEqualTo(ReportSuccessCode.REPORT_201_POST.getCode());
 
-        assertThat(response.getBody().message())
+        assertThat(response.getBody().getMessage())
                 .isEqualTo(ReportSuccessCode.REPORT_201_POST.getMessage());
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isNull();
 
         verify(reportService)
@@ -88,13 +88,13 @@ class UserReportControllerTest {
         assertThat(response.getBody())
                 .isNotNull();
 
-        assertThat(response.getBody().code())
+        assertThat(response.getBody().getCode())
                 .isEqualTo(ReportSuccessCode.REPORT_201_COMMENT.getCode());
 
-        assertThat(response.getBody().message())
+        assertThat(response.getBody().getMessage())
                 .isEqualTo(ReportSuccessCode.REPORT_201_COMMENT.getMessage());
 
-        assertThat(response.getBody().data())
+        assertThat(response.getBody().getData())
                 .isNull();
 
         verify(reportService)

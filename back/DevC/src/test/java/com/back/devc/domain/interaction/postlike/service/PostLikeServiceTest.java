@@ -295,9 +295,9 @@ class PostLikeServiceTest {
                 postLikeService.getLikedPosts(userId, pageable);
 
         // then
-        assertThat(responses.content()).hasSize(1);
+        assertThat(responses.getContent()).hasSize(1);
 
-        LikedPostResponse response = responses.content().get(0);
+        LikedPostResponse response = responses.getContent().get(0);
 
         assertThat(response.getPostId()).isEqualTo(postId);
         assertThat(response.getTitle()).isEqualTo("테스트 제목");

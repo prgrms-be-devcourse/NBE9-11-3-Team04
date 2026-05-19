@@ -1,12 +1,14 @@
 package com.back.devc.domain.post.aidiscussion.service
 
+import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
+import com.back.devc.domain.post.category.entity.Category
+import com.back.devc.domain.post.category.repository.CategoryRepository
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
 import com.back.devc.domain.post.aidiscussion.type.AiDiscussionStatus
 import com.back.devc.domain.post.post.dto.PostCreateRequest
 import com.back.devc.domain.post.post.dto.PostCreateResponse
 import com.back.devc.domain.post.post.service.PostService
-import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
@@ -27,16 +30,22 @@ class AiDiscussionPostServiceTest {
     private lateinit var postService: PostService
     private lateinit var aiDiscussionPostService: AiDiscussionPostService
     private lateinit var aiDiscussionGeneratorService: AiDiscussionGeneratorService
+    private lateinit var aiDiscussionPersistenceService: AiDiscussionPersistenceService
+    private lateinit var categoryRepository: CategoryRepository
 
     @BeforeEach
     fun setUp() {
         aiDiscussionPostRepository = mock(AiDiscussionPostRepository::class.java)
         postService = mock(PostService::class.java)
         aiDiscussionGeneratorService = mock(AiDiscussionGeneratorService::class.java)
+        aiDiscussionPersistenceService = AiDiscussionPersistenceService(aiDiscussionPostRepository)
+        categoryRepository = mock(CategoryRepository::class.java)
         aiDiscussionPostService = AiDiscussionPostService(
             aiDiscussionPostRepository = aiDiscussionPostRepository,
             postService = postService,
             aiDiscussionGeneratorService = aiDiscussionGeneratorService,
+            aiDiscussionPersistenceService = aiDiscussionPersistenceService,
+            categoryRepository = categoryRepository,
         )
     }
 
@@ -67,7 +76,7 @@ class AiDiscussionPostServiceTest {
         assertThat(response.title).isEqualTo("AI 시대에 주니어 개발자는 어떤 역량을 길러야 할까?")
         assertThat(response.content).isEqualTo("AI 토론 주제 테스트 본문입니다.")
         verify(aiDiscussionGeneratorService).generateDailyTopic()
-        verify(aiDiscussionPostRepository).existsByStatus(AiDiscussionStatus.PENDING)
+        verify(aiDiscussionPostRepository, times(2)).existsByStatus(AiDiscussionStatus.PENDING)
         verify(aiDiscussionPostRepository).save(any(AiDiscussionPost::class.java))
     }
 
@@ -136,6 +145,11 @@ class AiDiscussionPostServiceTest {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         `when`(aiDiscussionPostRepository.findById(1L))
             .thenReturn(Optional.of(aiDiscussionPost))
+        val discussionCategory = Category("discussion")
+        setCategoryId(discussionCategory, 3L)
+        `when`(categoryRepository.findByName("discussion"))
+            .thenReturn(discussionCategory)
+
         val expectedRequest = PostCreateRequest(
             title = aiDiscussionPost.title,
             content = aiDiscussionPost.content,
@@ -147,7 +161,6 @@ class AiDiscussionPostServiceTest {
         val response = aiDiscussionPostService.approveDiscussion(
             aiDiscussionPostId = 1L,
             adminUserId = 2L,
-            categoryId = 3L,
         )
 
         assertThat(response.id).isEqualTo(1L)
@@ -156,6 +169,27 @@ class AiDiscussionPostServiceTest {
         assertThat(response.rejectionReason).isNull()
 
         verify(postService).write(2L, expectedRequest)
+        verify(categoryRepository).findByName("discussion")
+    }
+
+    @Test
+    fun approveDiscussion_fail_whenDiscussionCategoryNotFound() {
+        val aiDiscussionPost = createAiDiscussionPost(id = 1L)
+        `when`(aiDiscussionPostRepository.findById(1L))
+            .thenReturn(Optional.of(aiDiscussionPost))
+        `when`(categoryRepository.findByName("discussion"))
+            .thenReturn(null)
+
+        val exception = assertThrows<ResponseStatusException> {
+            aiDiscussionPostService.approveDiscussion(
+                aiDiscussionPostId = 1L,
+                adminUserId = 2L,
+            )
+        }
+
+        assertThat(exception.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+        verify(categoryRepository).findByName("discussion")
+        verifyNoInteractions(postService)
     }
 
     @Test
@@ -169,7 +203,6 @@ class AiDiscussionPostServiceTest {
             aiDiscussionPostService.approveDiscussion(
                 aiDiscussionPostId = 1L,
                 adminUserId = 2L,
-                categoryId = 3L,
             )
         }
 
@@ -229,5 +262,14 @@ class AiDiscussionPostServiceTest {
         val field = AiDiscussionPost::class.java.getDeclaredField("id")
         field.isAccessible = true
         field.set(aiDiscussionPost, id)
+    }
+
+    private fun setCategoryId(
+        category: Category,
+        id: Long,
+    ) {
+        val field = Category::class.java.getDeclaredField("categoryId")
+        field.isAccessible = true
+        field.set(category, id)
     }
 }
