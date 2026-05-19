@@ -130,7 +130,25 @@ class AdminReportService(
         }
     }
 
+    // 전체 조회
+    @Transactional(readOnly = true)
+    fun getGroupedReports(
+        status: ReportStatus?,
+        pageable: Pageable
+    ): Page<ReportGroupResponseDTO> {
 
+        val to = LocalDateTime.now()
+        val from = to.minusDays(DEFAULT_GROUP_LOOKBACK_DAYS.toLong())
+
+        return getGroupedReports(
+            status,
+            from,
+            to,
+            pageable
+        )
+    }
+
+    // 기간 검색 조회
     @Transactional(readOnly = true)
     fun getGroupedReports(
         status: ReportStatus?,
