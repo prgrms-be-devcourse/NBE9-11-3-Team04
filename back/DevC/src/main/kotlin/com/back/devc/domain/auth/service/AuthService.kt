@@ -116,20 +116,16 @@ class AuthService(
         request: SignUpRequest,
         e: DataIntegrityViolationException
     ): ApiException {
-        val message = e.mostSpecificCause.message
+        val lowerMessage = e.mostSpecificCause.message?.lowercase()
 
-        if (message != null) {
-            val lowerMessage = message.lowercase()
+        if (lowerMessage?.contains("uk_users_email") == true) {
+            log.warn("회원가입 실패 - DB 이메일 unique 제약 조건 위반, email={}", request.email)
+            return ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS)
+        }
 
-            if (lowerMessage.contains("uk_users_email")) {
-                log.warn("회원가입 실패 - DB 이메일 unique 제약 조건 위반, email={}", request.email)
-                return ApiException(AuthErrorCode.EMAIL_ALREADY_EXISTS)
-            }
-
-            if (lowerMessage.contains("uk_users_nickname")) {
-                log.warn("회원가입 실패 - DB 닉네임 unique 제약 조건 위반, nickname={}", request.nickname)
-                return ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS)
-            }
+        if (lowerMessage?.contains("uk_users_nickname") == true) {
+            log.warn("회원가입 실패 - DB 닉네임 unique 제약 조건 위반, nickname={}", request.nickname)
+            return ApiException(AuthErrorCode.NICKNAME_ALREADY_EXISTS)
         }
 
         if (memberRepository.existsByEmail(request.email)) {
