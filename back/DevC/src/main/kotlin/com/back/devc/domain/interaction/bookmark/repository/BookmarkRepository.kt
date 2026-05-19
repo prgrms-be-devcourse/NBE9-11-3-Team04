@@ -62,9 +62,6 @@ interface BookmarkRepository : JpaRepository<Bookmark, Long> {
      *
      * Bookmark -> Post -> Member, Category 를 fetch join 해서
      * 목록 DTO 매핑 시 N+1 방지
-     *
-     * ManyToOne fetch join 이므로 paging 적용 가능.
-     * 단, countQuery 는 별도 지정.
      */
     @Query(
         value = """
@@ -82,12 +79,31 @@ interface BookmarkRepository : JpaRepository<Bookmark, Long> {
             join b.post p
             where b.member.userId = :userId
             and p.isDeleted = false
-        """
+        """,
     )
     fun findPageWithPostMemberCategoryByUserId(
         @Param("userId") userId: Long,
         pageable: Pageable,
     ): Page<Bookmark>
+
+    /**
+     * 좋아요/북마크 목록 조회 최적화용
+     *
+     * 특정 사용자가 북마크한 게시글 ID만 한 번에 조회한다.
+     * 목록 DTO 매핑 시 exists 쿼리가 N번 나가는 문제를 방지한다.
+     */
+    @Query(
+        """
+            select b.post.postId
+            from Bookmark b
+            where b.member.userId = :userId
+            and b.post.postId in :postIds
+        """
+    )
+    fun findBookmarkedPostIdsByUserIdAndPostIds(
+        @Param("userId") userId: Long,
+        @Param("postIds") postIds: Collection<Long>,
+    ): List<Long>
 
     @Modifying
     @Query(
@@ -120,9 +136,6 @@ interface BookmarkRepository : JpaRepository<Bookmark, Long> {
 
     /**
      * 특정 게시글의 전체 북마크 수를 조회
-     *
-     * 게시글 상세 페이지에서 북마크 수를 바로 표시할 수 있도록
-     * 상세조회 응답에 bookmarkCount 를 포함할 때 사용
      */
     fun countByPost_PostId(
         postId: Long,

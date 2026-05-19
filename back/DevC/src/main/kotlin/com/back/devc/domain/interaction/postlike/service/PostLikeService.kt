@@ -8,7 +8,6 @@ import com.back.devc.domain.interaction.postLike.dto.PostLikeCommand
 import com.back.devc.domain.interaction.postLike.dto.PostLikeResponse
 import com.back.devc.domain.interaction.postLike.entity.PostLike
 import com.back.devc.domain.interaction.postLike.repository.PostLikeRepository
-import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.member.member.util.MemberDisplayUtil
 import com.back.devc.domain.post.post.entity.Post
@@ -31,7 +30,9 @@ class PostLikeService(
     private val notificationService: NotificationService,
 ) {
 
-    // 게시글 좋아요 추가
+    /**
+     * 게시글 좋아요 추가
+     */
     @Transactional
     fun createLike(command: PostLikeCommand): PostLikeResponse {
         val userId = command.userId
@@ -62,7 +63,9 @@ class PostLikeService(
         )
     }
 
-    // 게시글 좋아요 취소
+    /**
+     * 게시글 좋아요 취소
+     */
     @Transactional
     fun cancelLike(command: PostLikeCommand): PostLikeResponse {
         val userId = command.userId
@@ -92,55 +95,101 @@ class PostLikeService(
         )
     }
 
-    // 좋아요한 게시글 목록 조회 - List
+    /**
+     * 좋아요한 게시글 목록 조회 - List
+     *
+     * 개선:
+     * - PostLikeRepository fetch join 으로 post/member N+1 방지
+     * - BookmarkRepository 일괄 조회로 bookmarked 여부 N+1 방지
+     */
     fun getLikedPosts(query: LikedPostsQuery): List<LikedPostResponse> {
-        val member = findMemberById(query.userId)
-        val postLikes = postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(member)
+        val postLikes = postLikeRepository.findAllWithPostMemberByUserId(query.userId)
+
+        val bookmarkedPostIds = findBookmarkedPostIds(
+            userId = query.userId,
+            postLikes = postLikes,
+        )
 
         return postLikes.map { postLike ->
-            toLikedPostResponse(postLike, query.userId)
+            val postId = getPostId(postLike.post)
+
+            toLikedPostResponse(
+                postLike = postLike,
+                bookmarked = postId in bookmarkedPostIds,
+            )
         }
     }
 
-    // 좋아요한 게시글 목록 조회 - Paging
+    /**
+     * 좋아요한 게시글 목록 조회 - Paging
+     *
+     * 개선:
+     * - PostLikeRepository fetch join 으로 post/member N+1 방지
+     * - BookmarkRepository 일괄 조회로 bookmarked 여부 N+1 방지
+     */
     fun getLikedPosts(
         userId: Long,
         pageable: Pageable,
     ): PageResponse<LikedPostResponse> {
-        val member = findMemberById(userId)
+        val postLikes = postLikeRepository.findPageWithPostMemberByUserId(
+            userId = userId,
+            pageable = pageable,
+        )
 
-        val postLikes = postLikeRepository.findAllByMemberAndPost_IsDeletedFalse(
-            member,
-            pageable,
+        val bookmarkedPostIds = findBookmarkedPostIds(
+            userId = userId,
+            postLikes = postLikes.content,
         )
 
         val responses = postLikes.map { postLike ->
-            toLikedPostResponse(postLike, userId)
+            val postId = getPostId(postLike.post)
+
+            toLikedPostResponse(
+                postLike = postLike,
+                bookmarked = postId in bookmarkedPostIds,
+            )
         }
 
         return PageResponse.from(responses)
     }
 
-    // 좋아요 여부 확인
+    /**
+     * 좋아요 여부 확인
+     */
     fun isLikedByUser(
         userId: Long,
         postId: Long,
     ): Boolean {
-        return postLikeRepository.existsByMember_UserIdAndPost_PostId(userId, postId)
+        return postLikeRepository.existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
+            userId = userId,
+            postId = postId,
+        )
+    }
+
+    private fun findBookmarkedPostIds(
+        userId: Long,
+        postLikes: List<PostLike>,
+    ): Set<Long> {
+        val postIds = postLikes.mapNotNull { postLike ->
+            postLike.post.postId
+        }
+
+        if (postIds.isEmpty()) {
+            return emptySet()
+        }
+
+        return bookmarkRepository.findBookmarkedPostIdsByUserIdAndPostIds(
+            userId = userId,
+            postIds = postIds,
+        ).toSet()
     }
 
     private fun toLikedPostResponse(
         postLike: PostLike,
-        userId: Long,
+        bookmarked: Boolean,
     ): LikedPostResponse {
         val post: Post = postLike.post
-        val postId = post.postId
-            ?: throw ApiException(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND)
-
-        val bookmarked = bookmarkRepository.existsByMember_UserIdAndPost_PostId(
-            userId,
-            postId,
-        )
+        val postId = getPostId(post)
 
         return LikedPostResponse(
             postId = postId,
@@ -155,11 +204,9 @@ class PostLikeService(
         )
     }
 
-    private fun findMemberById(userId: Long): Member {
-        return memberRepository.findById(userId)
-            .orElseThrow {
-                ApiException(PostLikeErrorCode.POST_LIKE_404_MEMBER_NOT_FOUND)
-            }
+    private fun getPostId(post: Post): Long {
+        return post.postId
+            ?: throw ApiException(PostLikeErrorCode.POST_LIKE_404_POST_NOT_FOUND)
     }
 
     private fun validateMemberExists(userId: Long) {
