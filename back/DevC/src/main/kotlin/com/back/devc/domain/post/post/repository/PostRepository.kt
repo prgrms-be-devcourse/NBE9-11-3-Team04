@@ -5,6 +5,7 @@ import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.post.post.entity.Post
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -13,8 +14,10 @@ import java.util.Optional
 
 interface PostRepository : JpaRepository<Post, Long> {
 
+    @EntityGraph(attributePaths = ["member", "category"])
     fun findByIsDeletedFalse(pageable: Pageable): Page<Post>
 
+    @EntityGraph(attributePaths = ["member", "category"])
     fun findByCategoryCategoryIdAndIsDeletedFalse(
         categoryId: Long,
         pageable: Pageable
@@ -30,6 +33,7 @@ interface PostRepository : JpaRepository<Post, Long> {
         pageable: Pageable
     ): Page<Post>
 
+    @EntityGraph(attributePaths = ["member", "category"])
     @Query(
         """
         SELECT p FROM Post p
