@@ -7,7 +7,6 @@ import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.TargetType
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
-import com.back.devc.domain.interaction.report.util.getOrThrow
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.entity.Comment
@@ -17,6 +16,7 @@ import com.back.devc.global.exception.ApiException
 import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -181,8 +181,8 @@ class UserReportService(
         targetId: Long
     ) {
 
-        val post = postRepository.findById(targetId)
-            .getOrThrow(ReportErrorCode.REPORT_404_TARGET)
+        val post = postRepository.findByIdOrNull(targetId)
+            ?: throw ApiException(ReportErrorCode.REPORT_404_TARGET)
 
         if (
             post.member.requiredUserId == reporterId
@@ -204,8 +204,8 @@ class UserReportService(
         targetId: Long
     ) {
 
-        val comment = commentRepository.findById(targetId)
-            .getOrThrow(ReportErrorCode.REPORT_404_TARGET)
+        val comment = commentRepository.findByIdOrNull(targetId)
+            ?: throw ApiException(ReportErrorCode.REPORT_404_TARGET)
 
         if (
             comment.writerId == reporterId
@@ -245,8 +245,8 @@ class UserReportService(
         userId: Long
     ): Member {
 
-        return memberRepository.findById(userId)
-            .getOrThrow(MemberErrorCode.MEMBER_NOT_FOUND)
+        return memberRepository.findByIdOrNull(userId)
+            ?: throw ApiException(MemberErrorCode.MEMBER_NOT_FOUND)
     }
 
     private val Member.requiredUserId: Long

@@ -16,7 +16,6 @@ import com.back.devc.domain.interaction.report.repository.ReportGroupActionRepos
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler
-import com.back.devc.domain.interaction.report.util.getOrThrow
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.entity.Comment
@@ -32,6 +31,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -852,24 +852,24 @@ class AdminReportService(
         reportId: Long
     ): Report {
 
-        return reportRepository.findById(reportId)
-            .getOrThrow(ReportErrorCode.REPORT_404_REPORT)
+        return reportRepository.findByIdOrNull(reportId)
+            ?: throw ApiException(ReportErrorCode.REPORT_404_REPORT)
     }
 
     private fun findReportGroupOrThrow(
         reportGroupId: Long
     ): ReportGroup {
 
-        return reportGroupRepository.findById(reportGroupId)
-            .getOrThrow(ReportErrorCode.REPORT_404_REPORT_GROUP)
+        return reportGroupRepository.findByIdOrNull(reportGroupId)
+            ?: throw ApiException(ReportErrorCode.REPORT_404_REPORT_GROUP)
     }
 
     private fun findMemberOrThrow(
         userId: Long
     ): Member {
 
-        return memberRepository.findById(userId)
-            .getOrThrow(MemberErrorCode.MEMBER_NOT_FOUND)
+        return memberRepository.findByIdOrNull(userId)
+            ?: throw ApiException(MemberErrorCode.MEMBER_NOT_FOUND)
     }
 
     private fun Array<out Any?>.toGroupRow(): GroupRow {
