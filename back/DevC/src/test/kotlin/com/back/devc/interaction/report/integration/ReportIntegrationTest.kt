@@ -84,7 +84,7 @@ internal class ReportIntegrationTest @Autowired constructor(
     fun reportPost_persistsReport() {
         setAuthentication(reporter, "ROLE_USER")
         val post = createPost(author, "reported post", "reported post content")
-        val postId = requireNotNull(post.postId)
+        val postId = post.postId.orThrow()
 
         mvc.perform(
             post("/api/report/post")
@@ -109,7 +109,7 @@ internal class ReportIntegrationTest @Autowired constructor(
     fun reportPost_rejectsDuplicateReport() {
         setAuthentication(reporter, "ROLE_USER")
         val post = createPost(author, "duplicate target", "content")
-        val postId = requireNotNull(post.postId)
+        val postId = post.postId.orThrow()
 
         mvc.perform(
             post("/api/report/post")
@@ -136,13 +136,13 @@ internal class ReportIntegrationTest @Autowired constructor(
         val post = createPost(author, "own comment post", "content")
         val comment = commentRepository.save(
             Comment.create(
-                postId = requireNotNull(post.postId),
-                userId = requireNotNull(author.userId),
+                postId = post.postId.orThrow(),
+                userId = author.userId.orThrow(),
                 parentCommentId = null,
                 content = "own comment"
             )
         )
-        val commentId = requireNotNull(comment.id)
+        val commentId = comment.id.orThrow()
 
         mvc.perform(
             post("/api/report/comment")
@@ -160,7 +160,7 @@ internal class ReportIntegrationTest @Autowired constructor(
     @DisplayName("admin can view grouped reports and approve a group with target deletion, notification, and sanction")
     fun adminApproveReportGroup_resolvesReportsAndHandlesTarget() {
         val post = createPost(author, "group target", "group target content")
-        val postId = requireNotNull(post.postId)
+        val postId = post.postId.orThrow()
 
         reportRepository.save(report(reporter, TargetType.POST, postId, "SPAM", "spam"))
         reportRepository.save(report(secondReporter, TargetType.POST, postId, "ABUSE", "abuse"))
@@ -207,10 +207,11 @@ internal class ReportIntegrationTest @Autowired constructor(
         val deletedPost = postRepository.findById(postId).orThrow()
         assertThat(deletedPost.isDeleted).isTrue()
 
-        val sanctionedAuthor = memberRepository.findById(requireNotNull(author.userId)).orThrow()
+        val authorId = author.userId.orThrow()
+        val sanctionedAuthor = memberRepository.findById(authorId).orThrow()
         assertThat(sanctionedAuthor.status).isEqualTo(MemberStatus.WARNED)
 
-        assertThat(notificationRepository.findByUserIdOrderByCreatedAtDesc(requireNotNull(author.userId)))
+        assertThat(notificationRepository.findByUserIdOrderByCreatedAtDesc(authorId))
             .anySatisfy { notification ->
                 assertThat(notification.type).isEqualTo("REPORT")
                 assertThat(notification.actorUserId).isEqualTo(admin.userId)
@@ -229,7 +230,7 @@ internal class ReportIntegrationTest @Autowired constructor(
 
     private fun setAuthentication(member: Member, role: String) {
         val principal = JwtPrincipal(
-            userId = requireNotNull(member.userId),
+            userId = member.userId.orThrow(),
             email = member.email,
             role = role.removePrefix("ROLE_")
         )

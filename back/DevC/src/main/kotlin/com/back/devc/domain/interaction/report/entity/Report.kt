@@ -108,7 +108,6 @@ class Report(
     }
 
     companion object {
-        @JvmStatic
         fun create(
             reporter: Member,
             targetType: TargetType,

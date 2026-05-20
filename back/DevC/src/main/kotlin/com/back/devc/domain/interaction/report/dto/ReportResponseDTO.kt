@@ -6,47 +6,33 @@ import com.back.devc.domain.interaction.report.entity.TargetType
 import java.time.LocalDateTime
 
 data class ReportResponseDTO(
-    @JvmField
     val reportId: Long,
 
-    @JvmField
     val reporterEmail: String,
 
-    @JvmField
     val reporterNickname: String,
 
-    @JvmField
     val targetType: TargetType,
 
-    @JvmField
     val targetId: Long,
 
-    @JvmField
     val targetNickname: String?,
 
-    @JvmField
     val targetTitle: String?,
 
-    @JvmField
     val targetContent: String?,
 
-    @JvmField
     val reasonType: String,
 
-    @JvmField
     val reasonDetail: String?,
 
-    @JvmField
     val status: ReportStatus,
 
-    @JvmField
     val createdAt: LocalDateTime,
 
-    @JvmField
     val processedAt: LocalDateTime?
 ) {
     companion object {
-        @JvmStatic
         fun of(
             report: Report,
             targetNickname: String?,
@@ -56,7 +42,8 @@ data class ReportResponseDTO(
             val reporter = report.reporter
 
             return ReportResponseDTO(
-                reportId = requireNotNull(report.reportId),
+                reportId = report.reportId
+                    ?: throw IllegalStateException("Persisted report id is required for response mapping"),
                 reporterEmail = reporter.email,
                 reporterNickname = reporter.nickname,
                 targetType = report.targetType,
@@ -67,12 +54,10 @@ data class ReportResponseDTO(
                 reasonType = report.reasonType,
                 reasonDetail = report.reasonDetail,
                 status = report.status,
-                createdAt = requireNotNull(report.createdAt),
+                createdAt = report.createdAt
+                    ?: throw IllegalStateException("Report creation time is required for response mapping"),
                 processedAt = report.processedAt
             )
         }
-        @Suppress("UNCHECKED_CAST")
-        private fun <T> call(target: Any, methodName: String): T =
-            target.javaClass.getMethod(methodName).invoke(target) as T
     }
 }
