@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import java.util.UUID
 import java.util.Date
 
 @SpringBootTest
@@ -63,9 +64,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("회원가입 후 로그인하고 내 정보를 조회한 뒤 로그아웃한다")
     fun signUpThenLoginThenGetMeThenLogout() {
-        val email = "auth-flow@test.com"
+        val unique = uniqueValue("auth-flow")
+        val email = "$unique@test.com"
         val password = "password123!"
-        val nickname = "authFlowUser"
+        val nickname = unique
 
         mvc.perform(
             post("/api/auth/signup")
@@ -168,9 +170,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("이미 가입된 이메일로 회원가입하면 실패한다")
     fun signUpFailWhenEmailAlreadyExists() {
-        val email = "duplicate-email@test.com"
+        val unique = uniqueValue("duplicate-email")
+        val email = "$unique@test.com"
         val password = "password123!"
-        val member = createTestMember(email, password, "duplicateEmailUser")
+        val member = createTestMember(email, password, unique)
 
         memberRepository.saveAndFlush(member)
 
@@ -202,9 +205,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("이미 가입된 닉네임으로 회원가입하면 실패한다")
     fun signUpFailWhenNicknameAlreadyExists() {
-        val nickname = "duplicateNicknameUser"
+        val unique = uniqueValue("duplicate-nickname")
+        val nickname = unique
         val password = "password123!"
-        val member = createTestMember("duplicate-nickname@test.com", password, nickname)
+        val member = createTestMember("$unique@test.com", password, nickname)
 
         memberRepository.saveAndFlush(member)
 
@@ -214,7 +218,7 @@ internal class AuthIntegrationTest {
                 .content(
                     """
                     {
-                      "email": "new-email-for-nickname@test.com",
+                      "email": "new-$unique@test.com",
                       "password": "$password",
                       "nickname": "$nickname"
                     }
@@ -282,9 +286,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("비밀번호가 일치하지 않으면 로그인에 실패한다")
     fun loginFailWhenPasswordMismatch() {
-        val email = "password-mismatch@test.com"
+        val unique = uniqueValue("password-mismatch")
+        val email = "$unique@test.com"
         val rawPassword = "password123!"
-        val member = createTestMember(email, rawPassword, "passwordMismatchUser")
+        val member = createTestMember(email, rawPassword, unique)
 
         memberRepository.saveAndFlush(member)
 
@@ -310,9 +315,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("블랙리스트 회원은 로그인할 수 없다")
     fun loginFailWhenMemberBlacklisted() {
-        val email = "blacklisted-auth@test.com"
+        val unique = uniqueValue("blacklisted-auth")
+        val email = "$unique@test.com"
         val rawPassword = "password123!"
-        val member = createTestMember(email, rawPassword, "blacklistedAuthUser")
+        val member = createTestMember(email, rawPassword, unique)
 
         member.updateStatus(MemberStatus.BLACKLISTED)
         memberRepository.saveAndFlush(member)
@@ -339,9 +345,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("삭제된 회원은 기존 accessToken으로 내 정보를 조회할 수 없다")
     fun meFailWhenMemberDeletedAfterLogin() {
-        val email = "deleted-after-login@test.com"
+        val unique = uniqueValue("deleted-after-login")
+        val email = "$unique@test.com"
         val rawPassword = "password123!"
-        val nickname = "deletedAfterLoginUser"
+        val nickname = unique
         val member = createTestMember(email, rawPassword, nickname)
         val savedMember = memberRepository.saveAndFlush(member)
         val accessToken = loginAndGetAccessToken(email, rawPassword)
@@ -362,9 +369,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("블랙리스트 처리된 회원은 기존 accessToken으로 내 정보를 조회할 수 없다")
     fun meFailWhenMemberBlacklistedAfterLogin() {
-        val email = "blacklisted-after-login@test.com"
+        val unique = uniqueValue("blacklisted-after-login")
+        val email = "$unique@test.com"
         val rawPassword = "password123!"
-        val nickname = "blacklistedAfterLoginUser"
+        val nickname = unique
         val member = createTestMember(email, rawPassword, nickname)
         val savedMember = memberRepository.saveAndFlush(member)
         val accessToken = loginAndGetAccessToken(email, rawPassword)
@@ -397,9 +405,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("회원 탈퇴 후 기존 accessToken으로 내 정보를 조회할 수 없다")
     fun withdrawThenMeFailsWithExistingAccessToken() {
-        val email = "withdraw-auth@test.com"
+        val unique = uniqueValue("withdraw-auth")
+        val email = "$unique@test.com"
         val rawPassword = "password123!"
-        val nickname = "withdrawAuthUser"
+        val nickname = unique
         val member = createTestMember(email, rawPassword, nickname)
         val savedMember = memberRepository.saveAndFlush(member)
         val accessToken = loginAndGetAccessToken(email, rawPassword)
@@ -426,10 +435,11 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("만료된 JWT로 내 정보를 조회할 수 없다")
     fun meFailWhenAccessTokenExpired() {
+        val unique = uniqueValue("expired-token")
         val member = createTestMember(
-            email = "expired-token@test.com",
+            email = "$unique@test.com",
             rawPassword = "password123!",
-            nickname = "expiredTokenUser",
+            nickname = unique,
         )
         val savedMember = memberRepository.saveAndFlush(member)
         val expiredToken = createExpiredAccessToken(savedMember)
@@ -446,10 +456,11 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("변조된 JWT로 내 정보를 조회할 수 없다")
     fun meFailWhenAccessTokenTampered() {
+        val unique = uniqueValue("tampered-token")
         val member = createTestMember(
-            email = "tampered-token@test.com",
+            email = "$unique@test.com",
             rawPassword = "password123!",
-            nickname = "tamperedTokenUser",
+            nickname = unique,
         )
         val savedMember = memberRepository.saveAndFlush(member)
         val validToken = jwtProvider.createAccessToken(savedMember)
@@ -519,9 +530,10 @@ internal class AuthIntegrationTest {
     @Test
     @DisplayName("회원 탈퇴 후 기존 이메일과 닉네임으로 다시 가입할 수 있다")
     fun signUpSuccessAfterWithdrawWithSameEmailAndNickname() {
-        val email = "resignup-after-withdraw@test.com"
+        val unique = uniqueValue("resignup-after-withdraw")
+        val email = "$unique@test.com"
         val password = "password123!"
-        val nickname = "resignupAfterWithdrawUser"
+        val nickname = unique
         val member = createTestMember(email, password, nickname)
         val savedMember = memberRepository.saveAndFlush(member)
         val accessToken = jwtProvider.createAccessToken(savedMember)
@@ -623,5 +635,8 @@ internal class AuthIntegrationTest {
             .expiration(Date.from(expiredAt))
             .signWith(secretKey)
             .compact()
+    }
+    private fun uniqueValue(prefix: String): String {
+        return "$prefix-${UUID.randomUUID().toString().take(8)}"
     }
 }
