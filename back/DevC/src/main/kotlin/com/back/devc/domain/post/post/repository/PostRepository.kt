@@ -46,6 +46,7 @@ interface PostRepository : JpaRepository<Post, Long> {
         pageable: Pageable
     ): Page<Post>
 
+    @EntityGraph(attributePaths = ["member", "category"])
     @Query(
         """
         SELECT p FROM Post p
