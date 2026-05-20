@@ -3,7 +3,7 @@ package com.back.devc.domain.member.member.unit
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.entity.MemberStatus
 import com.back.devc.domain.member.member.service.MemberSanctionService
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.test.util.ReflectionTestUtils
@@ -21,7 +21,7 @@ class MemberSanctionServiceTest {
 
         service.warn(member)
 
-        assertThat(member.status).isEqualTo(MemberStatus.WARNED)
+        Assertions.assertThat(member.status).isEqualTo(MemberStatus.WARNED)
     }
 
     @Test
@@ -31,7 +31,7 @@ class MemberSanctionServiceTest {
 
         service.warn(member)
 
-        assertThat(member.status).isEqualTo(MemberStatus.SUSPENDED)
+        Assertions.assertThat(member.status).isEqualTo(MemberStatus.SUSPENDED)
     }
 
     @Test
@@ -42,9 +42,9 @@ class MemberSanctionServiceTest {
 
         service.suspend(member, 0)
 
-        assertThat(member.status).isEqualTo(MemberStatus.SUSPENDED)
-        assertThat(member.suspendedUntil).isAfter(before)
-        assertThat(member.suspendedUntil).isBefore(LocalDateTime.now().plusDays(2))
+        Assertions.assertThat(member.status).isEqualTo(MemberStatus.SUSPENDED)
+        Assertions.assertThat(member.suspendedUntil).isAfter(before)
+        Assertions.assertThat(member.suspendedUntil).isBefore(LocalDateTime.now().plusDays(2))
     }
 
     @Test
@@ -55,7 +55,7 @@ class MemberSanctionServiceTest {
 
         service.suspend(member, 2)
 
-        assertThat(member.suspendedUntil).isEqualTo(currentUntil.plusDays(2))
+        Assertions.assertThat(member.suspendedUntil).isEqualTo(currentUntil.plusDays(2))
     }
 
     @Test
@@ -65,8 +65,8 @@ class MemberSanctionServiceTest {
 
         service.blacklist(member)
 
-        assertThat(member.status).isEqualTo(MemberStatus.BLACKLISTED)
-        assertThat(member.suspendedUntil).isNull()
+        Assertions.assertThat(member.status).isEqualTo(MemberStatus.BLACKLISTED)
+        Assertions.assertThat(member.suspendedUntil).isNull()
     }
 
     @Test
@@ -76,8 +76,8 @@ class MemberSanctionServiceTest {
 
         service.activate(member)
 
-        assertThat(member.status).isEqualTo(MemberStatus.ACTIVE)
-        assertThat(member.suspendedUntil).isNull()
+        Assertions.assertThat(member.status).isEqualTo(MemberStatus.ACTIVE)
+        Assertions.assertThat(member.suspendedUntil).isNull()
     }
 
     @Test
@@ -87,7 +87,7 @@ class MemberSanctionServiceTest {
 
         service.apply(member, MemberStatus.WITHDRAWN, null)
 
-        assertThat(member.status).isEqualTo(MemberStatus.WITHDRAWN)
+        Assertions.assertThat(member.status).isEqualTo(MemberStatus.WITHDRAWN)
     }
 
     private fun member(
@@ -101,4 +101,3 @@ class MemberSanctionServiceTest {
         }
     }
 }
-

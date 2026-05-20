@@ -1,4 +1,4 @@
-package com.back.devc.domain.admin.dashboard.unit
+package com.back.devc.domain.admin.unit
 
 import com.back.devc.domain.admin.dashboard.dto.DashboardResponseDto
 import com.back.devc.domain.admin.dashboard.repository.AdminDashboardRepository
