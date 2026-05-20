@@ -2,8 +2,10 @@ package com.back.devc.domain.interaction.report.integration;
 
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository;
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportGroup;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.entity.MemberStatus;
@@ -66,6 +68,9 @@ class ReportIntegrationTest {
 
     @Autowired
     private ReportRepository reportRepository;
+
+    @Autowired
+    private ReportGroupRepository reportGroupRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -257,13 +262,29 @@ class ReportIntegrationTest {
     }
 
     private Report report(Member reporter, TargetType targetType, Long targetId, String reasonType, String reasonDetail) {
-        return Report.create(
+        Report report = Report.create(
                 reporter,
                 targetType,
                 targetId,
                 reasonType,
                 reasonDetail
         );
+        report.assignReportGroup(reportGroup(targetType, targetId));
+        return report;
+    }
+
+    private ReportGroup reportGroup(TargetType targetType, Long targetId) {
+        LocalDateTime reportedAt = LocalDateTime.now();
+
+        ReportGroup reportGroup = reportGroupRepository
+                .findByTargetTypeAndTargetId(targetType, targetId);
+
+        if (reportGroup == null) {
+            reportGroup = new ReportGroup(targetType, targetId, reportedAt);
+        }
+
+        reportGroup.registerReport(reportedAt);
+        return reportGroupRepository.saveAndFlush(reportGroup);
     }
 
     private String reportRequest(Long targetId, String reasonType) {

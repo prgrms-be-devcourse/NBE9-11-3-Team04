@@ -1,8 +1,10 @@
 package com.back.devc.domain.interaction.report.unit;
 
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportGroup;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
@@ -23,6 +25,9 @@ class ReportRepositoryTest {
 
     @Autowired
     private ReportRepository reportRepository;
+
+    @Autowired
+    private ReportGroupRepository reportGroupRepository;
 
     @Autowired
     private MemberRepository memberRepository;
@@ -79,12 +84,28 @@ class ReportRepositoryTest {
     }
 
     private Report report(Member reporter, TargetType targetType, Long targetId) {
-        return Report.create(
+        Report report = Report.create(
                 reporter,
                 targetType,
                 targetId,
                 "SPAM",
                 "Repeated promotion"
         );
+        report.assignReportGroup(reportGroup(targetType, targetId));
+        return report;
+    }
+
+    private ReportGroup reportGroup(TargetType targetType, Long targetId) {
+        LocalDateTime reportedAt = LocalDateTime.now();
+
+        ReportGroup reportGroup = reportGroupRepository
+                .findByTargetTypeAndTargetId(targetType, targetId);
+
+        if (reportGroup == null) {
+            reportGroup = new ReportGroup(targetType, targetId, reportedAt);
+        }
+
+        reportGroup.registerReport(reportedAt);
+        return reportGroupRepository.saveAndFlush(reportGroup);
     }
 }
