@@ -1,5 +1,3 @@
-
-
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
@@ -40,14 +38,15 @@ const statusLabels: Record<AiDiscussionStatus, string> = {
   REJECTED: "거절",
 }
 
-
 const statusStyles: Record<AiDiscussionStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
   APPROVED: "bg-green-100 text-green-800 hover:bg-green-100",
   REJECTED: "bg-red-100 text-red-800 hover:bg-red-100",
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "")
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://43.200.4.180.nip.io:8080"
+).replace(/\/$/, "")
 
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
@@ -94,12 +93,6 @@ export default function AiDiscussionAdminPage() {
     setIsLoading(true)
     setErrorMessage("")
 
-    if (!API_BASE) {
-      setIsLoading(false)
-      setErrorMessage("API 서버 주소가 설정되지 않았습니다.")
-      return
-    }
-
     try {
       const response = await fetch(
         `${API_BASE}/api/admin/ai-discussions?status=${nextStatus}&page=0&size=20`,
@@ -140,12 +133,6 @@ export default function AiDiscussionAdminPage() {
     setErrorMessage("")
     setSuccessMessage("")
 
-    if (!API_BASE) {
-      setIsSubmitting(false)
-      setErrorMessage("API 서버 주소가 설정되지 않았습니다.")
-      return
-    }
-
     try {
       const response = await fetch(`${API_BASE}/api/admin/ai-discussions/${post.id}/approve`, {
         method: "PATCH",
@@ -176,12 +163,6 @@ export default function AiDiscussionAdminPage() {
     setIsSubmitting(true)
     setErrorMessage("")
     setSuccessMessage("")
-
-    if (!API_BASE) {
-      setIsSubmitting(false)
-      setErrorMessage("API 서버 주소가 설정되지 않았습니다.")
-      return
-    }
 
     try {
       const params = new URLSearchParams()
@@ -233,7 +214,12 @@ export default function AiDiscussionAdminPage() {
           </p>
         </div>
 
-        <Button variant="outline" className="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => void fetchDiscussions(status)} disabled={isLoading}>
+        <Button
+          variant="outline"
+          className="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+          onClick={() => void fetchDiscussions(status)}
+          disabled={isLoading}
+        >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           새로고침
         </Button>
@@ -362,7 +348,7 @@ export default function AiDiscussionAdminPage() {
 
               <div className="space-y-2">
                 <Label>본문</Label>
-                <div className="max-h-[320px] whitespace-pre-wrap rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm leading-6 overflow-y-auto">
+                <div className="max-h-[320px] overflow-y-auto whitespace-pre-wrap rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm leading-6">
                   {selectedPost.content}
                 </div>
               </div>
@@ -379,7 +365,11 @@ export default function AiDiscussionAdminPage() {
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" className="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => setIsDetailOpen(false)}>
+            <Button
+              variant="outline"
+              className="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={() => setIsDetailOpen(false)}
+            >
               닫기
             </Button>
             {selectedPost?.status === "PENDING" && (
@@ -418,7 +408,12 @@ export default function AiDiscussionAdminPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" className="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => setIsRejectOpen(false)} disabled={isSubmitting}>
+            <Button
+              variant="outline"
+              className="border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={() => setIsRejectOpen(false)}
+              disabled={isSubmitting}
+            >
               취소
             </Button>
             <Button variant="destructive" onClick={rejectDiscussion} disabled={isSubmitting}>
