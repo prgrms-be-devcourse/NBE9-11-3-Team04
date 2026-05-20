@@ -460,17 +460,11 @@ function formatDateTime(value: string | null) {
     return "-"
   }
 
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
+  const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+  if (!matched) {
     return value
   }
 
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
+  const [, year, month, day, hour, minute] = matched
+  return `${year}. ${month}. ${day}. ${hour}:${minute}`
 }
