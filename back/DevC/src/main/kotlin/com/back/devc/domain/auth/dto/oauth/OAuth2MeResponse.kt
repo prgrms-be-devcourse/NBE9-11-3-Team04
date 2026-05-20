@@ -1,4 +1,4 @@
-package com.back.devc.domain.auth.dto
+package com.back.devc.domain.auth.dto.oauth
 
 data class OAuth2MeResponse(
     val authenticated: Boolean,
