@@ -18,7 +18,7 @@ class AiDiscussionPostScheduler(
     private val aiDiscussionPostService: AiDiscussionPostService,
 ) {
 
-    @Scheduled(cron = "*/30 * * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
     fun createDailyDiscussionPost() {
         runCatching {
             aiDiscussionPostService.createPendingDiscussion()
