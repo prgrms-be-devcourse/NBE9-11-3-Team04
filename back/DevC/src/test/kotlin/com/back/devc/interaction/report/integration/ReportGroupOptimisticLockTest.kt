@@ -31,7 +31,7 @@ internal class ReportGroupOptimisticLockTest @Autowired constructor(
     @DisplayName("same ReportGroup processed from two stale views allows only the first update")
     fun optimisticLock_whenSameReportGroupIsProcessedFromTwoStaleViews() {
         val admin = saveAdmin()
-        val reportGroupId = requireNotNull(saveReportGroup().reportGroupId)
+        val reportGroupId = saveReportGroup().reportGroupId.orThrow()
 
         entityManager.clear()
 

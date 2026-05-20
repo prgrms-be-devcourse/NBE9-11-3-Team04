@@ -16,6 +16,7 @@ import com.back.devc.domain.interaction.report.repository.ReportGroupActionRepos
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler
+import com.back.devc.domain.interaction.report.util.getOrThrow
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.entity.Comment
@@ -81,6 +82,7 @@ class AdminReportService(
     @Deprecated(
         message = "Use getGroupedReports(status, pageable) based on ReportGroup instead."
     )
+    // 기존 관리자 화면/성능 테스트 호환을 위해 유지한다. 신규 코드는 ReportGroup 기반 조회를 사용한다.
     fun getGroupedReportsNoBatch(
         status: ReportStatus?,
         pageable: Pageable
@@ -113,7 +115,7 @@ class AdminReportService(
 
         return result.map { row ->
 
-            val groupRow = requireNotNull(row).toGroupRow()
+            val groupRow = row.toGroupRow()
 
             val info = reportTargetHandler.getTargetInfo(
                 groupRow.targetType,
@@ -218,7 +220,7 @@ class AdminReportService(
                 emptyMap()
             } else {
                 postRepository.findAllByPostIdIn(postIds)
-                    .associateBy { requireNotNull(it.postId) }
+                    .associateBy { it.requiredPostId }
             }
 
         val commentMap: Map<Long, Comment> =
@@ -226,11 +228,11 @@ class AdminReportService(
                 emptyMap()
             } else {
                 commentRepository.findAllByIdIn(commentIds)
-                    .associateBy { requireNotNull(it.id) }
+                    .associateBy { it.requiredCommentId }
             }
 
         val commentWriterIds = commentMap.values
-            .map { requireNotNull(it.getUserId()) }
+            .map { it.writerId }
             .distinct()
 
         val memberMap: Map<Long, Member> =
@@ -238,7 +240,7 @@ class AdminReportService(
                 emptyMap()
             } else {
                 memberRepository.findAllById(commentWriterIds)
-                    .associateBy { requireNotNull(it.userId) }
+                    .associateBy { it.requiredUserId }
             }
 
         val reportGroupIds = reportGroups
@@ -255,7 +257,7 @@ class AdminReportService(
                 commentMap = commentMap,
                 memberMap = memberMap
             )
-            val reportGroupId = requireNotNull(reportGroup.reportGroupId)
+            val reportGroupId = reportGroup.requiredReportGroupId
             val reasonTypes = reasonTypeMap[reportGroupId].orEmpty()
 
             ReportGroupResponseDTO(
@@ -306,62 +308,6 @@ class AdminReportService(
         if (unsupportedSort) {
             throw ApiException(ErrorCode.BAD_REQUEST)
         }
-    }
-
-    private fun loadReasonTypesBatch(
-        postIds: List<Long>,
-        commentIds: List<Long>
-    ): Map<String, List<String?>> {
-
-        log.debug(
-            "신고 사유 타입 batch 조회 시작 - postCount={}, commentCount={}",
-            postIds.size,
-            commentIds.size
-        )
-
-        if (postIds.isEmpty() && commentIds.isEmpty()) {
-            log.debug("신고 사유 타입 batch 조회 생략 - 조회 대상 없음")
-            return emptyMap()
-        }
-
-        val reasonRows = reportRepository.findReasonTypesBatch(
-            TargetType.POST,
-            if (postIds.isEmpty()) listOf(-1L) else postIds,
-            TargetType.COMMENT,
-            if (commentIds.isEmpty()) listOf(-1L) else commentIds
-        )
-
-        val map = mutableMapOf<String, MutableList<String?>>()
-
-        reasonRows.forEach { row ->
-
-            val safeRow = requireNotNull(row)
-
-            val type = safeRow[0] as TargetType
-            val id = safeRow[1] as Long
-            val reasonType = safeRow[2] as String?
-
-            val key = buildKey(type, id)
-
-            map.computeIfAbsent(key) {
-                mutableListOf()
-            }.add(reasonType)
-        }
-
-        log.debug(
-            "신고 사유 타입 batch 조회 완료 - reasonRowCount={}, keyCount={}",
-            reasonRows.size,
-            map.size
-        )
-
-        return map
-    }
-
-    private fun buildKey(
-        type: TargetType,
-        id: Long
-    ): String {
-        return "${type.name}:$id"
     }
 
     private fun resolveTargetInfo(
@@ -417,7 +363,7 @@ class AdminReportService(
                     )
                 }
 
-                val member = memberMap[comment.getUserId()]
+                val member = memberMap[comment.writerId]
 
                 ReportTargetHandler.TargetInfo(
                     member?.nickname,
@@ -514,6 +460,7 @@ class AdminReportService(
         message = "Use approveReportGroupById(adminId, reportGroupId, request) instead."
     )
     @Transactional
+    // 구 API 호환을 위해 남겨둔다. 신규 승인 처리는 reportGroupId 기반 메서드로만 확장한다.
     fun approveReportGroup(
         adminId: Long,
         dto: AdminReportRequestDTO
@@ -591,6 +538,7 @@ class AdminReportService(
         message = "Use rejectReportGroupById(adminId, reportGroupId, request) instead."
     )
     @Transactional
+    // 구 API 호환을 위해 남겨둔다. 신규 반려 처리는 reportGroupId 기반 메서드로만 확장한다.
     fun rejectReportGroup(
         adminId: Long,
         dto: AdminReportRequestDTO
@@ -905,11 +853,7 @@ class AdminReportService(
     ): Report {
 
         return reportRepository.findById(reportId)
-            .orElseThrow {
-                ApiException(
-                    ReportErrorCode.REPORT_404_REPORT
-                )
-            }
+            .getOrThrow(ReportErrorCode.REPORT_404_REPORT)
     }
 
     private fun findReportGroupOrThrow(
@@ -917,11 +861,7 @@ class AdminReportService(
     ): ReportGroup {
 
         return reportGroupRepository.findById(reportGroupId)
-            .orElseThrow {
-                ApiException(
-                    ReportErrorCode.REPORT_404_REPORT_GROUP
-                )
-            }
+            .getOrThrow(ReportErrorCode.REPORT_404_REPORT_GROUP)
     }
 
     private fun findMemberOrThrow(
@@ -929,11 +869,7 @@ class AdminReportService(
     ): Member {
 
         return memberRepository.findById(userId)
-            .orElseThrow {
-                ApiException(
-                    MemberErrorCode.MEMBER_NOT_FOUND
-                )
-            }
+            .getOrThrow(MemberErrorCode.MEMBER_NOT_FOUND)
     }
 
     private fun Array<out Any?>.toGroupRow(): GroupRow {
@@ -954,7 +890,7 @@ class AdminReportService(
     )
 
     companion object {
-        private val log = LoggerFactory.getLogger( AdminReportService::class.java )
+        private val log = LoggerFactory.getLogger(AdminReportService::class.java)
 
         private const val MAX_GROUP_PAGE_SIZE = 100
         private const val DEFAULT_GROUP_LOOKBACK_DAYS = 30
@@ -1001,7 +937,25 @@ class AdminReportService(
                 stats.map { it.reasonType }
             }
     }
-}
 
+    private val Post.requiredPostId: Long
+        get() = postId
+            ?: throw IllegalStateException("Persisted post id is required for report group mapping")
+
+    private val Comment.requiredCommentId: Long
+        get() = id
+            ?: throw IllegalStateException("Persisted comment id is required for report group mapping")
+
+    private val Comment.writerId: Long
+        get() = getUserId()
+
+    private val Member.requiredUserId: Long
+        get() = userId
+            ?: throw IllegalStateException("Persisted member id is required for report group mapping")
+
+    private val ReportGroup.requiredReportGroupId: Long
+        get() = reportGroupId
+            ?: throw IllegalStateException("Persisted report group id is required for reason mapping")
+}
 
 

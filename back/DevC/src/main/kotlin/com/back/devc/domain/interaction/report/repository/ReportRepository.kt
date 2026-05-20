@@ -68,24 +68,6 @@ interface ReportRepository : JpaRepository<Report, Long> {
         targetId: Long,
     ): Boolean
 
-    @Deprecated(
-        message = "Use findReasonStatsByReportGroupIds instead."
-    )
-    @Query(
-        """
-        SELECT r.targetType, r.targetId, r.reasonType
-        FROM Report r
-        WHERE (r.targetType = :postType AND r.targetId IN :postIds)
-           OR (r.targetType = :commentType AND r.targetId IN :commentIds)
-        """
-    )
-    fun findReasonTypesBatch(
-        @Param("postType") postType: TargetType,
-        @Param("postIds") postIds: List<Long>,
-        @Param("commentType") commentType: TargetType,
-        @Param("commentIds") commentIds: List<Long>,
-    ): List<Array<Any>>
-
     // N+1 처리 전 사용한 조회 방법
     @Deprecated(
         message = "Use findReasonStatsByReportGroupIds instead."

@@ -15,6 +15,7 @@ import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.entity.Post
 import com.back.devc.domain.post.post.repository.PostRepository
+import com.back.devc.interaction.report.setPrivateField
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -145,7 +146,7 @@ internal class ReportPerformanceTest {
     private fun reportGroup(reportGroupId: Long, targetId: Long): ReportGroup {
         val reportGroup = ReportGroup(TargetType.POST, targetId, LocalDateTime.now())
         reportGroup.registerReport(LocalDateTime.now())
-        setField(reportGroup, "reportGroupId", reportGroupId)
+        reportGroup.setPrivateField("reportGroupId", reportGroupId)
         return reportGroup
     }
 
@@ -163,9 +164,4 @@ internal class ReportPerformanceTest {
     private fun ReportGroup.reportGroupIdRequired(): Long =
         reportGroupId ?: throw AssertionError("Expected reportGroupId")
 
-    private fun setField(target: Any, fieldName: String, value: Any?) {
-        val field = target.javaClass.getDeclaredField(fieldName)
-        field.isAccessible = true
-        field.set(target, value)
-    }
 }

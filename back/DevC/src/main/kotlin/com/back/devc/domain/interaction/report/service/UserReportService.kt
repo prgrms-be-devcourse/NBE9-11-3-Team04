@@ -7,8 +7,10 @@ import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.TargetType
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
+import com.back.devc.domain.interaction.report.util.getOrThrow
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
+import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.global.exception.ApiException
@@ -180,14 +182,10 @@ class UserReportService(
     ) {
 
         val post = postRepository.findById(targetId)
-            .orElseThrow {
-                ApiException(
-                    ReportErrorCode.REPORT_404_TARGET
-                )
-            }
+            .getOrThrow(ReportErrorCode.REPORT_404_TARGET)
 
         if (
-            requireNotNull(post.member.userId) == reporterId
+            post.member.requiredUserId == reporterId
         ) {
             throw ApiException(
                 ReportErrorCode.REPORT_400_REPORT_SELF
@@ -207,14 +205,10 @@ class UserReportService(
     ) {
 
         val comment = commentRepository.findById(targetId)
-            .orElseThrow {
-                ApiException(
-                    ReportErrorCode.REPORT_404_TARGET
-                )
-            }
+            .getOrThrow(ReportErrorCode.REPORT_404_TARGET)
 
         if (
-            requireNotNull(comment.getUserId()) == reporterId
+            comment.writerId == reporterId
         ) {
             throw ApiException(
                 ReportErrorCode.REPORT_400_REPORT_SELF
@@ -252,10 +246,13 @@ class UserReportService(
     ): Member {
 
         return memberRepository.findById(userId)
-            .orElseThrow {
-                ApiException(
-                    MemberErrorCode.MEMBER_NOT_FOUND
-                )
-            }
+            .getOrThrow(MemberErrorCode.MEMBER_NOT_FOUND)
     }
+
+    private val Member.requiredUserId: Long
+        get() = userId
+            ?: throw ApiException(MemberErrorCode.MEMBER_NOT_FOUND)
+
+    private val Comment.writerId: Long
+        get() = getUserId()
 }

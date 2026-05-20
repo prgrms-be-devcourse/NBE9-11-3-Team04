@@ -30,6 +30,7 @@ import com.back.devc.global.exception.ErrorCode
 import com.back.devc.global.exception.ErrorCodeSpec
 import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
+import com.back.devc.interaction.report.setPrivateField
 import com.back.devc.interaction.report.toOptional
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -624,7 +625,7 @@ internal class AdminReportServiceTest {
         repeat(reportCount) {
             reportGroup.registerReport(latestReportedAt)
         }
-        setField(reportGroup, "reportGroupId", reportGroupId)
+        reportGroup.setPrivateField("reportGroupId", reportGroupId)
         return reportGroup
     }
 
@@ -638,12 +639,6 @@ internal class AdminReportServiceTest {
             override val reasonType = reasonType
             override val reasonCount = reasonCount
         }
-
-    private fun setField(target: Any, fieldName: String, value: Any?) {
-        val field = target.javaClass.getDeclaredField(fieldName)
-        field.isAccessible = true
-        field.set(target, value)
-    }
 
     private fun report(status: ReportStatus): Report {
         val report = mock<Report>()
