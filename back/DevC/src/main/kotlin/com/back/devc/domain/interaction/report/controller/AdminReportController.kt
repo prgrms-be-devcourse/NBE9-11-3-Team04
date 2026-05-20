@@ -11,6 +11,7 @@ import com.back.devc.global.response.SuccessResponse
 import com.back.devc.global.response.successCode.ReportSuccessCode
 import com.back.devc.global.security.jwt.JwtPrincipal
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -28,6 +29,7 @@ import java.time.LocalDateTime
 class AdminReportController(
     private val adminReportService: AdminReportService
 ) {
+    private val log = LoggerFactory.getLogger(AdminReportController::class.java)
 
     @GetMapping("/raw")
     fun getReports(
@@ -115,6 +117,9 @@ class AdminReportController(
             )
     }
 
+    @Deprecated(
+        message = "Use POST /api/admin/report-groups/{reportGroupId}/approve instead."
+    )
     @PostMapping("/groups/approve")
     fun approveGroup(
         @RequestBody
@@ -125,8 +130,17 @@ class AdminReportController(
         principal: JwtPrincipal?
     ): ResponseEntity<SuccessResponse<Void>> {
 
+        val adminId = getAuthenticatedUserId(principal)
+
+        log.warn(
+            "Legacy report group approve API called - adminId={}, targetType={}, targetId={}",
+            adminId,
+            requestDto.targetType,
+            requestDto.reportId
+        )
+
         adminReportService.approveReportGroup(
-            getAuthenticatedUserId(principal),
+            adminId,
             requestDto
         )
 
@@ -140,6 +154,9 @@ class AdminReportController(
             )
     }
 
+    @Deprecated(
+        message = "Use POST /api/admin/report-groups/{reportGroupId}/reject instead."
+    )
     @PostMapping("/groups/reject")
     fun rejectGroup(
         @RequestBody
@@ -150,8 +167,17 @@ class AdminReportController(
         principal: JwtPrincipal?
     ): ResponseEntity<SuccessResponse<Void>> {
 
+        val adminId = getAuthenticatedUserId(principal)
+
+        log.warn(
+            "Legacy report group reject API called - adminId={}, targetType={}, targetId={}",
+            adminId,
+            requestDto.targetType,
+            requestDto.reportId
+        )
+
         adminReportService.rejectReportGroup(
-            getAuthenticatedUserId(principal),
+            adminId,
             requestDto
         )
 

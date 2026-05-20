@@ -68,7 +68,7 @@ class Report(
         protected set
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "report_group_id")
+    @JoinColumn(name = "report_group_id", nullable = false)
     var reportGroup: ReportGroup? = null
         protected set
 

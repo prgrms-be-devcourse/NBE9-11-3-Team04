@@ -1,8 +1,10 @@
 package com.back.devc.domain.interaction.report.integration;
 
 import com.back.devc.domain.interaction.report.entity.Report;
+import com.back.devc.domain.interaction.report.entity.ReportGroup;
 import com.back.devc.domain.interaction.report.entity.ReportStatus;
 import com.back.devc.domain.interaction.report.entity.TargetType;
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository;
 import com.back.devc.domain.interaction.report.repository.ReportRepository;
 import com.back.devc.domain.member.member.entity.Member;
 import com.back.devc.domain.member.member.repository.MemberRepository;
@@ -25,6 +27,9 @@ class ReportGroupPagingBenchmarkTest {
 
     @Autowired
     private ReportRepository reportRepository;
+
+    @Autowired
+    private ReportGroupRepository reportGroupRepository;
 
     @Autowired
     private MemberRepository memberRepository;
@@ -121,13 +126,29 @@ class ReportGroupPagingBenchmarkTest {
     }
 
     private Report report(Member reporter, Long targetId) {
-        return Report.create(
+        Report report = Report.create(
                 reporter,
                 TargetType.POST,
                 targetId,
                 "SPAM",
                 "benchmark"
         );
+        report.assignReportGroup(reportGroup(targetId));
+        return report;
+    }
+
+    private ReportGroup reportGroup(Long targetId) {
+        LocalDateTime reportedAt = LocalDateTime.now();
+
+        ReportGroup reportGroup = reportGroupRepository
+                .findByTargetTypeAndTargetId(TargetType.POST, targetId);
+
+        if (reportGroup == null) {
+            reportGroup = new ReportGroup(TargetType.POST, targetId, reportedAt);
+        }
+
+        reportGroup.registerReport(reportedAt);
+        return reportGroupRepository.saveAndFlush(reportGroup);
     }
 
     @Test

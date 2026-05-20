@@ -78,6 +78,9 @@ class AdminReportService(
     }
 
     @Transactional(readOnly = true)
+    @Deprecated(
+        message = "Use getGroupedReports(status, pageable) based on ReportGroup instead."
+    )
     fun getGroupedReportsNoBatch(
         status: ReportStatus?,
         pageable: Pageable
@@ -507,6 +510,9 @@ class AdminReportService(
         )
     }
 
+    @Deprecated(
+        message = "Use approveReportGroupById(adminId, reportGroupId, request) instead."
+    )
     @Transactional
     fun approveReportGroup(
         adminId: Long,
@@ -581,6 +587,9 @@ class AdminReportService(
         )
     }
 
+    @Deprecated(
+        message = "Use rejectReportGroupById(adminId, reportGroupId, request) instead."
+    )
     @Transactional
     fun rejectReportGroup(
         adminId: Long,
