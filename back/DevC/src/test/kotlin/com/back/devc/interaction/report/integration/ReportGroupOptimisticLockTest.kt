@@ -3,7 +3,6 @@ package com.back.devc.interaction.report.integration
 import com.back.devc.domain.interaction.report.entity.ReportGroup
 import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.TargetType
-import com.back.devc.interaction.report.orThrow
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
@@ -15,6 +14,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
@@ -31,14 +31,17 @@ internal class ReportGroupOptimisticLockTest @Autowired constructor(
     @DisplayName("same ReportGroup processed from two stale views allows only the first update")
     fun optimisticLock_whenSameReportGroupIsProcessedFromTwoStaleViews() {
         val admin = saveAdmin()
-        val reportGroupId = saveReportGroup().reportGroupId.orThrow()
+        val reportGroupId = saveReportGroup().reportGroupId
+            ?: throw AssertionError("Expected report group id")
 
         entityManager.clear()
 
-        val firstView = reportGroupRepository.findById(reportGroupId).orThrow()
+        val firstView = reportGroupRepository.findByIdOrNull(reportGroupId)
+            ?: throw AssertionError("Expected first report group view")
         entityManager.detach(firstView)
 
-        val secondView = reportGroupRepository.findById(reportGroupId).orThrow()
+        val secondView = reportGroupRepository.findByIdOrNull(reportGroupId)
+            ?: throw AssertionError("Expected second report group view")
         entityManager.detach(secondView)
 
         firstView.approve(
@@ -66,7 +69,8 @@ internal class ReportGroupOptimisticLockTest @Autowired constructor(
 
         entityManager.clear()
 
-        val result = reportGroupRepository.findById(reportGroupId).orThrow()
+        val result = reportGroupRepository.findByIdOrNull(reportGroupId)
+            ?: throw AssertionError("Expected approved report group")
 
         assertThat(result.status).isEqualTo(ReportGroupStatus.APPROVED)
         assertThat(result.version).isEqualTo(1L)

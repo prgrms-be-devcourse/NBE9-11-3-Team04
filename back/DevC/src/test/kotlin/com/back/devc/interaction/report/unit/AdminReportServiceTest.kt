@@ -31,7 +31,7 @@ import com.back.devc.global.exception.ErrorCodeSpec
 import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
 import com.back.devc.interaction.report.setPrivateField
-import com.back.devc.interaction.report.toOptional
+import com.back.devc.toRepositoryResult
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -265,7 +265,7 @@ internal class AdminReportServiceTest {
         fun approveReport_success() {
             val report = report(ReportStatus.PENDING)
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toRepositoryResult())
             whenever(reportTargetHandler.exists(TargetType.POST, POST_ID)).thenReturn(true)
 
             adminReportService.approveReport(ADMIN_ID, approveDto())
@@ -277,7 +277,7 @@ internal class AdminReportServiceTest {
         @Test
         @DisplayName("throws when admin member does not exist")
         fun approveReport_throwsWhenAdminMissing() {
-            whenever(memberRepository.findById(ADMIN_ID)).thenReturn(null.toOptional())
+            whenever(memberRepository.findById(ADMIN_ID)).thenReturn(null.toRepositoryResult())
 
             assertServiceError(
                 action = { adminReportService.approveReport(ADMIN_ID, approveDto()) },
@@ -289,7 +289,7 @@ internal class AdminReportServiceTest {
         @Test
         @DisplayName("throws when member is not an admin")
         fun approveReport_throwsWhenNotAdmin() {
-            whenever(memberRepository.findById(ADMIN_ID)).thenReturn(user.toOptional())
+            whenever(memberRepository.findById(ADMIN_ID)).thenReturn(user.toRepositoryResult())
 
             assertServiceError(
                 action = { adminReportService.approveReport(ADMIN_ID, approveDto()) },
@@ -302,7 +302,7 @@ internal class AdminReportServiceTest {
         @DisplayName("throws when report does not exist")
         fun approveReport_throwsWhenReportMissing() {
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(null.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(null.toRepositoryResult())
 
             assertServiceError(
                 action = { adminReportService.approveReport(ADMIN_ID, approveDto()) },
@@ -315,7 +315,7 @@ internal class AdminReportServiceTest {
         fun approveReport_throwsWhenAlreadyProcessed() {
             val report = report(ReportStatus.RESOLVED)
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toRepositoryResult())
 
             assertServiceError(
                 action = { adminReportService.approveReport(ADMIN_ID, approveDto()) },
@@ -330,7 +330,7 @@ internal class AdminReportServiceTest {
         fun approveReport_throwsWhenTargetMissing() {
             val report = report(ReportStatus.PENDING)
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toRepositoryResult())
             whenever(reportTargetHandler.exists(TargetType.POST, POST_ID)).thenReturn(false)
 
             assertServiceError(
@@ -345,7 +345,7 @@ internal class AdminReportServiceTest {
             val report = report(ReportStatus.PENDING)
             val dto = AdminReportRequestDTO(REPORT_ID, TargetType.POST, "note", SanctionType.SUSPENDED, 0)
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toRepositoryResult())
             whenever(reportTargetHandler.exists(TargetType.POST, POST_ID)).thenReturn(true)
 
             assertServiceError(
@@ -367,7 +367,7 @@ internal class AdminReportServiceTest {
         fun rejectReport_success() {
             val report = report(ReportStatus.PENDING)
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toRepositoryResult())
 
             adminReportService.rejectReport(ADMIN_ID, approveDto())
 
@@ -380,7 +380,7 @@ internal class AdminReportServiceTest {
         fun rejectReport_throwsWhenAlreadyProcessed() {
             val report = report(ReportStatus.REJECTED)
             givenAdmin()
-            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toOptional())
+            whenever(reportRepository.findById(REPORT_ID)).thenReturn(report.toRepositoryResult())
 
             assertServiceError(
                 action = { adminReportService.rejectReport(ADMIN_ID, approveDto()) },
@@ -501,7 +501,7 @@ internal class AdminReportServiceTest {
             val reportGroup = reportGroup()
             val request = ApproveReportGroupRequest("note", SanctionType.WARNED, null)
             givenAdmin()
-            whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(reportGroup.toOptional())
+            whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(reportGroup.toRepositoryResult())
             whenever(reportTargetHandler.exists(TargetType.POST, POST_ID)).thenReturn(true)
             whenever(
                 reportRepository.updateStatusByReportGroupId(
@@ -546,7 +546,7 @@ internal class AdminReportServiceTest {
         fun approveReportGroupById_throwsWhenGroupMissing() {
             val request = ApproveReportGroupRequest("note", SanctionType.WARNED, null)
             givenAdmin()
-            whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(null.toOptional())
+            whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(null.toRepositoryResult())
 
             assertServiceError(
                 action = { adminReportService.approveReportGroupById(ADMIN_ID, REPORT_GROUP_ID, request) },
@@ -567,7 +567,7 @@ internal class AdminReportServiceTest {
             val reportGroup = reportGroup()
             val request = RejectReportGroupRequest("not enough evidence")
             givenAdmin()
-            whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(reportGroup.toOptional())
+            whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(reportGroup.toRepositoryResult())
             whenever(
                 reportRepository.updateStatusByReportGroupId(
                     any(),
@@ -608,7 +608,7 @@ internal class AdminReportServiceTest {
     }
 
     private fun givenAdmin() {
-        whenever(memberRepository.findById(ADMIN_ID)).thenReturn(admin.toOptional())
+        whenever(memberRepository.findById(ADMIN_ID)).thenReturn(admin.toRepositoryResult())
     }
 
     private fun reportGroup(): ReportGroup =

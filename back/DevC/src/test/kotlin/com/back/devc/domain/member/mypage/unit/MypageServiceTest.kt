@@ -1,5 +1,7 @@
 package com.back.devc.domain.member.mypage.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository
 import com.back.devc.domain.interaction.bookmark.service.BookmarkService
@@ -72,7 +74,7 @@ class MypageServiceTest {
         val member = createMemberWithId(userId, "test@test.com", "기존닉네임")
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         // when
         val response = mypageService.getMyProfile(userId)
@@ -90,7 +92,7 @@ class MypageServiceTest {
     fun getMyProfileMemberNotFound() {
         // given
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.empty())
+            .thenReturn(null.toRepositoryResult())
 
         // when & then
         assertThatThrownBy {
@@ -120,7 +122,7 @@ class MypageServiceTest {
         val pageable = PageRequest.of(0, 10)
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(postRepository.findAllByMemberAndIsDeletedFalseOrderByCreatedAtDesc(member, pageable))
             .thenReturn(PageImpl(listOf(post), pageable, 1))
@@ -175,7 +177,7 @@ class MypageServiceTest {
         )
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(commentRepository.findMyComments(userId, pageable))
             .thenReturn(PageImpl(listOf(comment), pageable, 1))
@@ -221,7 +223,7 @@ class MypageServiceTest {
         )
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(postLikeService.getLikedPosts(userId, pageable))
             .thenReturn(pageResponse)
@@ -262,7 +264,7 @@ class MypageServiceTest {
         )
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(bookmarkService.getBookmarkedPosts(userId, pageable))
             .thenReturn(pageResponse)
@@ -286,7 +288,7 @@ class MypageServiceTest {
         val request = UpdateMyProfileRequest("변경닉네임")
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(memberRepository.existsByNickname("변경닉네임"))
             .thenReturn(false)
@@ -312,7 +314,7 @@ class MypageServiceTest {
         val request = UpdateMyProfileRequest("  변경닉네임  ")
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(memberRepository.existsByNickname("변경닉네임"))
             .thenReturn(false)
@@ -333,7 +335,7 @@ class MypageServiceTest {
         val request = UpdateMyProfileRequest("기존닉네임")
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         // when
         val response = mypageService.updateMyProfile(userId, request)
@@ -354,7 +356,7 @@ class MypageServiceTest {
         val request = UpdateMyProfileRequest("중복닉네임")
 
         whenever(memberRepository.findById(userId))
-            .thenReturn(Optional.of(member))
+            .thenReturn(member.toRepositoryResult())
 
         whenever(memberRepository.existsByNickname("중복닉네임"))
             .thenReturn(true)

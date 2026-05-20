@@ -17,7 +17,7 @@ import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.global.exception.ApiException
 import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
-import com.back.devc.interaction.report.toOptional
+import com.back.devc.toRepositoryResult
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -101,7 +101,7 @@ internal class UserReportServiceTest {
         @Test
         @DisplayName("throws when reporter does not exist")
         fun reportPost_throwsWhenReporterMissing() {
-            whenever(memberRepository.findById(REPORTER_ID)).thenReturn(null.toOptional())
+            whenever(memberRepository.findById(REPORTER_ID)).thenReturn(null.toRepositoryResult())
 
             assertReportError(
                 action = { userReportService.reportPost(REPORTER_ID, ReportRequestDTO(POST_ID, "SPAM", null)) },
@@ -114,7 +114,7 @@ internal class UserReportServiceTest {
         @DisplayName("throws when post does not exist")
         fun reportPost_throwsWhenPostMissing() {
             givenExistingReporter()
-            whenever(postRepository.findById(POST_ID)).thenReturn(null.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(null.toRepositoryResult())
 
             assertReportError(
                 action = { userReportService.reportPost(REPORTER_ID, ReportRequestDTO(POST_ID, "SPAM", null)) },
@@ -128,7 +128,7 @@ internal class UserReportServiceTest {
         fun reportPost_throwsWhenReportingOwnPost() {
             givenExistingReporter()
             whenever(post.member).thenReturn(reporter)
-            whenever(postRepository.findById(POST_ID)).thenReturn(post.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(post.toRepositoryResult())
 
             assertReportError(
                 action = { userReportService.reportPost(REPORTER_ID, ReportRequestDTO(POST_ID, "SPAM", null)) },
@@ -215,7 +215,7 @@ internal class UserReportServiceTest {
         @DisplayName("throws when comment does not exist")
         fun reportComment_throwsWhenCommentMissing() {
             givenExistingReporter()
-            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(null.toOptional())
+            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(null.toRepositoryResult())
 
             assertReportError(
                 action = { userReportService.reportComment(REPORTER_ID, ReportRequestDTO(COMMENT_ID, "ABUSE", null)) },
@@ -229,7 +229,7 @@ internal class UserReportServiceTest {
         fun reportComment_throwsWhenReportingOwnComment() {
             givenExistingReporter()
             whenever(comment.getUserId()).thenReturn(REPORTER_ID)
-            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toOptional())
+            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toRepositoryResult())
 
             assertReportError(
                 action = { userReportService.reportComment(REPORTER_ID, ReportRequestDTO(COMMENT_ID, "ABUSE", null)) },
@@ -267,19 +267,19 @@ internal class UserReportServiceTest {
     }
 
     private fun givenExistingReporter() {
-        whenever(memberRepository.findById(REPORTER_ID)).thenReturn(reporter.toOptional())
+        whenever(memberRepository.findById(REPORTER_ID)).thenReturn(reporter.toRepositoryResult())
     }
 
     private fun givenExistingPostByAnotherMember(deleted: Boolean) {
         whenever(post.member).thenReturn(author)
         whenever(post.isDeleted).thenReturn(deleted)
-        whenever(postRepository.findById(POST_ID)).thenReturn(post.toOptional())
+        whenever(postRepository.findById(POST_ID)).thenReturn(post.toRepositoryResult())
     }
 
     private fun givenExistingCommentByAnotherMember(deleted: Boolean) {
         whenever(comment.getUserId()).thenReturn(AUTHOR_ID)
         whenever(comment.isDeleted).thenReturn(deleted)
-        whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toOptional())
+        whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toRepositoryResult())
     }
 
     private fun givenDuplicateReportExists(

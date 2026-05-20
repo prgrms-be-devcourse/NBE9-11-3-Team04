@@ -1,5 +1,7 @@
 package com.back.devc.domain.interaction.notification.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.interaction.notification.entity.Notification
 import com.back.devc.domain.interaction.notification.repository.NotificationRepository
 import com.back.devc.domain.interaction.notification.service.NotificationService
@@ -24,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
-import java.util.Optional
 import java.util.concurrent.atomic.AtomicBoolean
 
 @ExtendWith(MockitoExtension::class)
@@ -116,12 +117,12 @@ internal class NotificationServiceTest {
         }.`when`(notification).markAsRead()
         Mockito.`when`(actor.nickname).thenReturn("작성자B")
         Mockito.`when`(notificationRepository.findById(notificationId))
-            .thenReturn(Optional.of(notification))
+            .thenReturn(notification.toRepositoryResult())
         Mockito.`when`(postRepository.findById(100L))
-            .thenReturn(Optional.of(post))
+            .thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.isDeleted).thenReturn(false)
         Mockito.`when`(memberRepository.findById(actorUserId))
-            .thenReturn(Optional.of(actor))
+            .thenReturn(actor.toRepositoryResult())
 
         val response = notificationService.readNotification(notificationId, loginUserId)
 
@@ -139,7 +140,7 @@ internal class NotificationServiceTest {
 
         Mockito.`when`(notification.userId).thenReturn(999L)
         Mockito.`when`(notificationRepository.findById(notificationId))
-            .thenReturn(Optional.of(notification))
+            .thenReturn(notification.toRepositoryResult())
 
         assertThrows<ApiException> {
             notificationService.readNotification(notificationId, loginUserId)
@@ -158,10 +159,10 @@ internal class NotificationServiceTest {
         val actor = Mockito.mock(Member::class.java)
         val captor = ArgumentCaptor.forClass(Notification::class.java)
 
-        Mockito.`when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        Mockito.`when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.member).thenReturn(owner)
         Mockito.`when`(owner.userId).thenReturn(postOwnerId)
-        Mockito.`when`(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor))
+        Mockito.`when`(memberRepository.findById(actorUserId)).thenReturn(actor.toRepositoryResult())
         Mockito.`when`(actor.nickname).thenReturn("작성자B")
 
         notificationService.createCommentNotification(postId, actorUserId, commentId)
@@ -186,7 +187,7 @@ internal class NotificationServiceTest {
         val post = Mockito.mock(Post::class.java)
         val owner = Mockito.mock(Member::class.java)
 
-        Mockito.`when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        Mockito.`when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.member).thenReturn(owner)
         Mockito.`when`(owner.userId).thenReturn(actorUserId)
 
@@ -207,11 +208,11 @@ internal class NotificationServiceTest {
         val captor = ArgumentCaptor.forClass(Notification::class.java)
 
         Mockito.`when`(commentRepository.findById(parentCommentId))
-            .thenReturn(Optional.of(parentComment))
+            .thenReturn(parentComment.toRepositoryResult())
         Mockito.`when`(parentComment.isDeleted).thenReturn(false)
         Mockito.`when`(parentComment.getUserId()).thenReturn(receiverUserId)
         Mockito.`when`(parentComment.postId).thenReturn(100L)
-        Mockito.`when`(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor))
+        Mockito.`when`(memberRepository.findById(actorUserId)).thenReturn(actor.toRepositoryResult())
         Mockito.`when`(actor.nickname).thenReturn("작성자B")
 
         notificationService.createReplyNotification(parentCommentId, actorUserId, replyCommentId)
@@ -236,7 +237,7 @@ internal class NotificationServiceTest {
         val parentComment = Mockito.mock(Comment::class.java)
 
         Mockito.`when`(commentRepository.findById(parentCommentId))
-            .thenReturn(Optional.of(parentComment))
+            .thenReturn(parentComment.toRepositoryResult())
         Mockito.`when`(parentComment.isDeleted).thenReturn(false)
         Mockito.`when`(parentComment.getUserId()).thenReturn(actorUserId)
 
@@ -253,7 +254,7 @@ internal class NotificationServiceTest {
         val parentComment = Mockito.mock(Comment::class.java)
 
         Mockito.`when`(commentRepository.findById(parentCommentId))
-            .thenReturn(Optional.of(parentComment))
+            .thenReturn(parentComment.toRepositoryResult())
         Mockito.`when`(parentComment.isDeleted).thenReturn(true)
 
         notificationService.createReplyNotification(parentCommentId, 2L, 20L)
@@ -272,7 +273,7 @@ internal class NotificationServiceTest {
         val actor = Mockito.mock(Member::class.java)
         val captor = ArgumentCaptor.forClass(Notification::class.java)
 
-        Mockito.`when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        Mockito.`when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.member).thenReturn(owner)
         Mockito.`when`(owner.userId).thenReturn(postOwnerId)
         Mockito.`when`(
@@ -283,7 +284,7 @@ internal class NotificationServiceTest {
                 "LIKE",
             ),
         ).thenReturn(false)
-        Mockito.`when`(memberRepository.findById(actorUserId)).thenReturn(Optional.of(actor))
+        Mockito.`when`(memberRepository.findById(actorUserId)).thenReturn(actor.toRepositoryResult())
         Mockito.`when`(actor.nickname).thenReturn("작성자B")
 
         notificationService.createPostLikeNotification(postId, actorUserId)
@@ -306,7 +307,7 @@ internal class NotificationServiceTest {
         val post = Mockito.mock(Post::class.java)
         val owner = Mockito.mock(Member::class.java)
 
-        Mockito.`when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        Mockito.`when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.member).thenReturn(owner)
         Mockito.`when`(owner.userId).thenReturn(actorUserId)
 
@@ -324,7 +325,7 @@ internal class NotificationServiceTest {
         val post = Mockito.mock(Post::class.java)
         val owner = Mockito.mock(Member::class.java)
 
-        Mockito.`when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        Mockito.`when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.member).thenReturn(owner)
         Mockito.`when`(owner.userId).thenReturn(postOwnerId)
         Mockito.`when`(
@@ -351,7 +352,7 @@ internal class NotificationServiceTest {
         val owner = Mockito.mock(Member::class.java)
         val captor = ArgumentCaptor.forClass(Notification::class.java)
 
-        Mockito.`when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        Mockito.`when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         Mockito.`when`(post.member).thenReturn(owner)
         Mockito.`when`(owner.userId).thenReturn(postOwnerId)
 
@@ -375,7 +376,7 @@ internal class NotificationServiceTest {
         val comment = Mockito.mock(Comment::class.java)
         val captor = ArgumentCaptor.forClass(Notification::class.java)
 
-        Mockito.`when`(commentRepository.findById(commentId)).thenReturn(Optional.of(comment))
+        Mockito.`when`(commentRepository.findById(commentId)).thenReturn(comment.toRepositoryResult())
         Mockito.`when`(comment.getUserId()).thenReturn(commentOwnerId)
 
         notificationService.createCommentReportNotification(commentId, adminUserId)

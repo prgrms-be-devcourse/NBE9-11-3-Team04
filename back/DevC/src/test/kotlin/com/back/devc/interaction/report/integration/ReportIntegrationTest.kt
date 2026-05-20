@@ -17,7 +17,6 @@ import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.entity.Post
 import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.global.security.jwt.JwtPrincipal
-import com.back.devc.interaction.report.orThrow
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.hasSize
 import org.junit.jupiter.api.BeforeEach
@@ -26,6 +25,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -84,7 +84,7 @@ internal class ReportIntegrationTest @Autowired constructor(
     fun reportPost_persistsReport() {
         setAuthentication(reporter, "ROLE_USER")
         val post = createPost(author, "reported post", "reported post content")
-        val postId = post.postId.orThrow()
+        val postId = post.postId ?: throw AssertionError("Expected post id")
 
         mvc.perform(
             post("/api/report/post")
@@ -109,7 +109,7 @@ internal class ReportIntegrationTest @Autowired constructor(
     fun reportPost_rejectsDuplicateReport() {
         setAuthentication(reporter, "ROLE_USER")
         val post = createPost(author, "duplicate target", "content")
-        val postId = post.postId.orThrow()
+        val postId = post.postId ?: throw AssertionError("Expected post id")
 
         mvc.perform(
             post("/api/report/post")
@@ -136,13 +136,13 @@ internal class ReportIntegrationTest @Autowired constructor(
         val post = createPost(author, "own comment post", "content")
         val comment = commentRepository.save(
             Comment.create(
-                postId = post.postId.orThrow(),
-                userId = author.userId.orThrow(),
+                postId = post.postId ?: throw AssertionError("Expected post id"),
+                userId = author.userId ?: throw AssertionError("Expected author id"),
                 parentCommentId = null,
                 content = "own comment"
             )
         )
-        val commentId = comment.id.orThrow()
+        val commentId = comment.id ?: throw AssertionError("Expected comment id")
 
         mvc.perform(
             post("/api/report/comment")
@@ -160,7 +160,7 @@ internal class ReportIntegrationTest @Autowired constructor(
     @DisplayName("admin can view grouped reports and approve a group with target deletion, notification, and sanction")
     fun adminApproveReportGroup_resolvesReportsAndHandlesTarget() {
         val post = createPost(author, "group target", "group target content")
-        val postId = post.postId.orThrow()
+        val postId = post.postId ?: throw AssertionError("Expected post id")
 
         reportRepository.save(report(reporter, TargetType.POST, postId, "SPAM", "spam"))
         reportRepository.save(report(secondReporter, TargetType.POST, postId, "ABUSE", "abuse"))
@@ -204,11 +204,13 @@ internal class ReportIntegrationTest @Autowired constructor(
                 assertThat(report.processedAt).isNotNull()
             }
 
-        val deletedPost = postRepository.findById(postId).orThrow()
+        val deletedPost = postRepository.findByIdOrNull(postId)
+            ?: throw AssertionError("Expected deleted post")
         assertThat(deletedPost.isDeleted).isTrue()
 
-        val authorId = author.userId.orThrow()
-        val sanctionedAuthor = memberRepository.findById(authorId).orThrow()
+        val authorId = author.userId ?: throw AssertionError("Expected author id")
+        val sanctionedAuthor = memberRepository.findByIdOrNull(authorId)
+            ?: throw AssertionError("Expected sanctioned author")
         assertThat(sanctionedAuthor.status).isEqualTo(MemberStatus.WARNED)
 
         assertThat(notificationRepository.findByUserIdOrderByCreatedAtDesc(authorId))
@@ -230,7 +232,7 @@ internal class ReportIntegrationTest @Autowired constructor(
 
     private fun setAuthentication(member: Member, role: String) {
         val principal = JwtPrincipal(
-            userId = member.userId.orThrow(),
+            userId = member.userId ?: throw AssertionError("Expected member id"),
             email = member.email,
             role = role.removePrefix("ROLE_")
         )

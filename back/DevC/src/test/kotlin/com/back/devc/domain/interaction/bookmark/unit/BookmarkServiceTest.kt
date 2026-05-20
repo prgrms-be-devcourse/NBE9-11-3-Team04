@@ -1,5 +1,7 @@
 package com.back.devc.domain.interaction.bookmark.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkCreateCommand
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkDeleteCommand
 import com.back.devc.domain.interaction.bookmark.dto.BookmarkedPostResponse
@@ -64,7 +66,7 @@ class BookmarkServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(bookmarkRepository.insertIgnore(userId, postId))
             .willReturn(1)
 
@@ -89,7 +91,7 @@ class BookmarkServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(bookmarkRepository.insertIgnore(userId, postId))
             .willReturn(0)
 
@@ -133,7 +135,7 @@ class BookmarkServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.empty())
+            .willReturn(null.toRepositoryResult())
 
         // when & then
         assertThatThrownBy {
@@ -156,7 +158,7 @@ class BookmarkServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(bookmarkRepository.deleteByUserIdAndPostId(userId, postId))
             .willReturn(1)
 
@@ -181,7 +183,7 @@ class BookmarkServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(bookmarkRepository.deleteByUserIdAndPostId(userId, postId))
             .willReturn(0)
 
@@ -225,7 +227,7 @@ class BookmarkServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.empty())
+            .willReturn(null.toRepositoryResult())
 
         // when & then
         assertThatThrownBy {

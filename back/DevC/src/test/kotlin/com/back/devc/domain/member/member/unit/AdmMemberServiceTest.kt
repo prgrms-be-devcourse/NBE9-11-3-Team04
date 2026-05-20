@@ -1,5 +1,7 @@
 package com.back.devc.domain.member.member.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.member.member.dto.AdmMemberListRequest
 import com.back.devc.domain.member.member.dto.AdmMemberStatusUpdateRequest
 import com.back.devc.domain.member.member.dto.CountResultDto
@@ -25,7 +27,6 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.test.util.ReflectionTestUtils
 import java.time.LocalDateTime
-import java.util.Optional
 
 @DisplayName("AdmMemberService")
 class AdmMemberServiceTest {
@@ -84,7 +85,7 @@ class AdmMemberServiceTest {
     @DisplayName("getMemberDetail rejects withdrawn members")
     fun getMemberDetailRejectsWithdrawnMember() {
         val member = member(1L, "withdrawn@test.com", "withdrawn", MemberStatus.WITHDRAWN)
-        `when`(memberRepository.findById(1L)).thenReturn(Optional.of(member))
+        `when`(memberRepository.findById(1L)).thenReturn(member.toRepositoryResult())
 
         assertThatThrownBy { service.getMemberDetail(1L) }
             .isInstanceOf(ApiException::class.java)
@@ -96,7 +97,7 @@ class AdmMemberServiceTest {
     @DisplayName("getMemberDetail rejects blacklisted members")
     fun getMemberDetailRejectsBlacklistedMember() {
         val member = member(1L, "black@test.com", "black", MemberStatus.BLACKLISTED)
-        `when`(memberRepository.findById(1L)).thenReturn(Optional.of(member))
+        `when`(memberRepository.findById(1L)).thenReturn(member.toRepositoryResult())
 
         assertThatThrownBy { service.getMemberDetail(1L) }
             .isInstanceOf(ApiException::class.java)
@@ -108,7 +109,7 @@ class AdmMemberServiceTest {
     @DisplayName("updateMemberStatus changes status and returns counts")
     fun updateMemberStatusChangesStatusAndReturnsCounts() {
         val member = member(1L, "active@test.com", "active", MemberStatus.ACTIVE)
-        `when`(memberRepository.findById(1L)).thenReturn(Optional.of(member))
+        `when`(memberRepository.findById(1L)).thenReturn(member.toRepositoryResult())
         `when`(postRepository.countPostsByUserIds(listOf(1L))).thenReturn(listOf(CountResultDto(1L, 2L)))
         `when`(commentRepository.countCommentsByUserIds(listOf(1L))).thenReturn(listOf(CountResultDto(1L, 4L)))
 
@@ -126,7 +127,7 @@ class AdmMemberServiceTest {
     @Test
     @DisplayName("missing member throws common member not found")
     fun missingMemberThrowsCommonNotFound() {
-        `when`(memberRepository.findById(404L)).thenReturn(Optional.empty())
+        `when`(memberRepository.findById(404L)).thenReturn(null.toRepositoryResult())
 
         assertThatThrownBy { service.getMemberDetail(404L) }
             .isInstanceOf(ApiException::class.java)

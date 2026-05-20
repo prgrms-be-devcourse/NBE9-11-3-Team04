@@ -1,5 +1,7 @@
 package com.back.devc.domain.post.comment.attachment.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.post.comment.attachment.entity.CommentAttachment
 import com.back.devc.domain.post.comment.attachment.entity.CommentAttachment.Companion.create
 import com.back.devc.domain.post.comment.attachment.repository.CommentAttachmentRepository
@@ -21,7 +23,6 @@ import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.test.util.ReflectionTestUtils
 import java.time.LocalDateTime
-import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 internal class CommentAttachmentServiceTest {
@@ -63,7 +64,7 @@ internal class CommentAttachmentServiceTest {
         )
 
         given(commentRepository.findById(1L))
-            .willReturn(Optional.of(comment))
+            .willReturn(comment.toRepositoryResult())
         given(commentAttachmentRepository.findByCommentIdOrderByFileOrderAscIdAsc(1L))
             .willReturn(listOf(attachment1, attachment2))
 
@@ -86,7 +87,7 @@ internal class CommentAttachmentServiceTest {
         val comment = mock(Comment::class.java)
 
         given(commentRepository.findById(commentId))
-            .willReturn(Optional.of(comment))
+            .willReturn(comment.toRepositoryResult())
         given(commentAttachmentRepository.findByCommentIdOrderByFileOrderAscIdAsc(commentId))
             .willReturn(emptyList())
 
@@ -103,7 +104,7 @@ internal class CommentAttachmentServiceTest {
     @DisplayName("존재하지 않는 댓글이면 첨부 목록 조회 시 예외 발생")
     fun getAttachmentsFailWhenCommentNotFound() {
         given(commentRepository.findById(999L))
-            .willReturn(Optional.empty())
+            .willReturn(null.toRepositoryResult())
 
         assertThatThrownBy { commentAttachmentService.getAttachments(999L) }
             .isInstanceOf(ApiException::class.java)

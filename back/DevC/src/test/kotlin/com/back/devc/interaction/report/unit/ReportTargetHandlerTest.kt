@@ -13,7 +13,7 @@ import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.entity.Post
 import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.global.exception.ApiException
-import com.back.devc.interaction.report.toOptional
+import com.back.devc.toRepositoryResult
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -63,7 +63,7 @@ internal class ReportTargetHandlerTest {
         fun handleApproved_post_noSanction() {
             val post = mock<Post>()
             whenever(post.isDeleted).thenReturn(false)
-            whenever(postRepository.findById(POST_ID)).thenReturn(post.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(post.toRepositoryResult())
 
             handler.handleApproved(TargetType.POST, POST_ID, admin, null, null)
 
@@ -80,8 +80,8 @@ internal class ReportTargetHandlerTest {
             val writer = mock<Member>()
             whenever(comment.isDeleted).thenReturn(false)
             whenever(comment.getUserId()).thenReturn(WRITER_ID)
-            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toOptional())
-            whenever(memberRepository.findById(WRITER_ID)).thenReturn(writer.toOptional())
+            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toRepositoryResult())
+            whenever(memberRepository.findById(WRITER_ID)).thenReturn(writer.toRepositoryResult())
 
             handler.handleApproved(TargetType.COMMENT, COMMENT_ID, admin, SanctionType.WARNED, 0)
 
@@ -95,7 +95,7 @@ internal class ReportTargetHandlerTest {
         fun deleteTarget_post_alreadyDeleted() {
             val post = mock<Post>()
             whenever(post.isDeleted).thenReturn(true)
-            whenever(postRepository.findById(POST_ID)).thenReturn(post.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(post.toRepositoryResult())
 
             handler.handleApproved(TargetType.POST, POST_ID, admin, null, null)
 
@@ -107,7 +107,7 @@ internal class ReportTargetHandlerTest {
         fun deleteTarget_comment_success() {
             val comment = mock<Comment>()
             whenever(comment.isDeleted).thenReturn(false)
-            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toOptional())
+            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toRepositoryResult())
 
             handler.handleApproved(TargetType.COMMENT, COMMENT_ID, admin, null, null)
 
@@ -120,7 +120,7 @@ internal class ReportTargetHandlerTest {
             val writer = mock<Member>()
             val post = mock<Post>()
             whenever(post.member).thenReturn(writer)
-            whenever(postRepository.findById(POST_ID)).thenReturn(post.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(post.toRepositoryResult())
 
             handler.handleApproved(TargetType.POST, POST_ID, admin, SanctionType.SUSPENDED, 7)
 
@@ -130,7 +130,7 @@ internal class ReportTargetHandlerTest {
         @Test
         @DisplayName("throws when post target member cannot be resolved")
         fun findTargetMember_post_notFound() {
-            whenever(postRepository.findById(POST_ID)).thenReturn(null.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(null.toRepositoryResult())
 
             assertThatThrownBy {
                 handler.handleApproved(TargetType.POST, POST_ID, admin, SanctionType.WARNED, null)
@@ -142,8 +142,8 @@ internal class ReportTargetHandlerTest {
         fun findTargetMember_comment_memberNotFound() {
             val comment = mock<Comment>()
             whenever(comment.getUserId()).thenReturn(WRITER_ID)
-            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toOptional())
-            whenever(memberRepository.findById(WRITER_ID)).thenReturn(null.toOptional())
+            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toRepositoryResult())
+            whenever(memberRepository.findById(WRITER_ID)).thenReturn(null.toRepositoryResult())
 
             assertThatThrownBy {
                 handler.handleApproved(TargetType.COMMENT, COMMENT_ID, admin, SanctionType.WARNED, null)
@@ -197,7 +197,7 @@ internal class ReportTargetHandlerTest {
             whenever(post.member).thenReturn(writer)
             whenever(post.title).thenReturn("post title")
             whenever(post.content).thenReturn("post content")
-            whenever(postRepository.findById(POST_ID)).thenReturn(post.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(post.toRepositoryResult())
 
             val result = handler.getTargetInfo(TargetType.POST, POST_ID)
 
@@ -213,9 +213,9 @@ internal class ReportTargetHandlerTest {
             val writer = mock<Member>()
             whenever(comment.getUserId()).thenReturn(WRITER_ID)
             whenever(comment.content).thenReturn("comment content")
-            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toOptional())
+            whenever(commentRepository.findById(COMMENT_ID)).thenReturn(comment.toRepositoryResult())
             whenever(writer.nickname).thenReturn("comment-writer")
-            whenever(memberRepository.findById(WRITER_ID)).thenReturn(writer.toOptional())
+            whenever(memberRepository.findById(WRITER_ID)).thenReturn(writer.toRepositoryResult())
 
             val result = handler.getTargetInfo(TargetType.COMMENT, COMMENT_ID)
 
@@ -227,7 +227,7 @@ internal class ReportTargetHandlerTest {
         @Test
         @DisplayName("returns null fields when target is missing")
         fun getTargetInfo_missingTarget_returnsNullFields() {
-            whenever(postRepository.findById(POST_ID)).thenReturn(null.toOptional())
+            whenever(postRepository.findById(POST_ID)).thenReturn(null.toRepositoryResult())
 
             val result = handler.getTargetInfo(TargetType.POST, POST_ID)
 

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
@@ -92,7 +93,8 @@ class AdmMemberIntegrationTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$.data.userId").value(userId))
             .andExpect(MockMvcResultMatchers.jsonPath("$.data.status").value("WARNED"))
 
-        val updated = memberRepository.findById(userId).orElseThrow()
+        val updated = memberRepository.findByIdOrNull(userId)
+            ?: throw AssertionError("Expected updated member")
         assert(updated.status == MemberStatus.WARNED)
     }
 

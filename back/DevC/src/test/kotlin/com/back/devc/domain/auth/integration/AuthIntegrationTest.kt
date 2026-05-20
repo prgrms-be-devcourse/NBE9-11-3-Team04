@@ -1,5 +1,6 @@
 package com.back.devc.domain.auth.integration
 
+import com.back.devc.toNullable
 import com.back.devc.domain.auth.controller.AuthController
 import com.back.devc.domain.member.member.controller.MemberController
 import com.back.devc.domain.member.member.entity.Member
@@ -93,7 +94,8 @@ internal class AuthIntegrationTest {
             .andExpect(jsonPath("$.data.role").value("USER"))
             .andExpect(jsonPath("$.data.status").value("ACTIVE"))
 
-        val savedMember = memberRepository.findByEmail(email).orElseThrow()
+        val savedMember = memberRepository.findByEmail(email).toNullable()
+            ?: throw AssertionError("Expected saved member")
 
         assertThat(savedMember.nickname).isEqualTo(nickname)
         assertThat(savedMember.passwordHash).isNotEqualTo(password)

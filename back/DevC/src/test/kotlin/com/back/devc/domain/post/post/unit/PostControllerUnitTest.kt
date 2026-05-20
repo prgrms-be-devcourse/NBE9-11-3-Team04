@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -131,7 +132,8 @@ internal class PostControllerUnitTest {
             .andExpect(MockMvcResultMatchers.status().isOk)
             .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("게시글 삭제 성공"))
 
-        val deleted = postRepository.findById(requireNotNull(post.postId)).orElseThrow()
+        val deleted = postRepository.findByIdOrNull(requireNotNull(post.postId))
+            ?: throw AssertionError("Expected deleted post")
 
         Assertions.assertThat(deleted.isDeleted).isTrue()
     }

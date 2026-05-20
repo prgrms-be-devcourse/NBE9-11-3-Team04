@@ -1,5 +1,6 @@
 package com.back.devc.domain.auth.e2e
 
+import com.back.devc.toNullable
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.entity.MemberStatus
 import com.back.devc.domain.member.member.repository.MemberRepository
@@ -88,7 +89,8 @@ internal class AuthE2ETest {
 
         val userId = extractLong(signupResult, "userId")
 
-        val savedMember = memberRepository.findByEmail(email).orElseThrow()
+        val savedMember = memberRepository.findByEmail(email).toNullable()
+            ?: throw AssertionError("Expected saved member")
 
         Assertions.assertThat(savedMember.userId).isEqualTo(userId)
         Assertions.assertThat(savedMember.passwordHash).isNotEqualTo(password)

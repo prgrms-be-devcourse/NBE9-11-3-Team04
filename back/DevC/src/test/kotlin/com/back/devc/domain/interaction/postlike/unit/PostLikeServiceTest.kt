@@ -1,5 +1,7 @@
 package com.back.devc.domain.interaction.postlike.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.interaction.bookmark.repository.BookmarkRepository
 import com.back.devc.domain.interaction.notification.service.NotificationService
 import com.back.devc.domain.interaction.postLike.dto.LikedPostResponse
@@ -68,7 +70,7 @@ class PostLikeServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(postLikeRepository.insertIgnore(userId, postId))
             .willReturn(1)
         given(postRepository.findLikeCountByPostId(postId))
@@ -101,7 +103,7 @@ class PostLikeServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(postLikeRepository.insertIgnore(userId, postId))
             .willReturn(0)
         given(postRepository.findLikeCountByPostId(postId))
@@ -156,7 +158,7 @@ class PostLikeServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.empty())
+            .willReturn(null.toRepositoryResult())
 
         // when & then
         assertThatThrownBy {
@@ -182,7 +184,7 @@ class PostLikeServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(postLikeRepository.deleteByUserIdAndPostId(userId, postId))
             .willReturn(1)
         given(postRepository.findLikeCountByPostId(postId))
@@ -213,7 +215,7 @@ class PostLikeServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.of(post))
+            .willReturn(post.toRepositoryResult())
         given(postLikeRepository.deleteByUserIdAndPostId(userId, postId))
             .willReturn(0)
         given(postRepository.findLikeCountByPostId(postId))
@@ -264,7 +266,7 @@ class PostLikeServiceTest {
 
         given(memberRepository.existsById(userId)).willReturn(true)
         given(postRepository.findByPostIdAndIsDeletedFalse(postId))
-            .willReturn(Optional.empty())
+            .willReturn(null.toRepositoryResult())
 
         // when & then
         assertThatThrownBy {

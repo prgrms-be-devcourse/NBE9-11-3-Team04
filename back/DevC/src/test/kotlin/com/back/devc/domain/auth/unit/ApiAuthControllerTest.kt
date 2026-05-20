@@ -1,5 +1,6 @@
 package com.back.devc.domain.auth.unit
 
+import com.back.devc.toNullable
 import com.back.devc.domain.auth.controller.AuthController
 import com.back.devc.domain.member.member.controller.MemberController
 import com.back.devc.domain.member.member.entity.Member
@@ -70,7 +71,8 @@ internal class ApiAuthControllerTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$.data.role").value("USER"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.data.status").value("ACTIVE"))
 
-        val savedMember = memberRepository.findByEmail(email).orElseThrow()
+        val savedMember = memberRepository.findByEmail(email).toNullable()
+            ?: throw AssertionError("Expected saved member")
 
         Assertions.assertThat(savedMember.nickname).isEqualTo(nickname)
         Assertions.assertThat(savedMember.passwordHash).isNotEqualTo(password)
