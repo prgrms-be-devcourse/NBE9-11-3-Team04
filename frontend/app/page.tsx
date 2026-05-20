@@ -47,6 +47,8 @@ type PostPageResponse = {
     liked?: boolean
     bookmarked?: boolean
   }[]
+  totalPages: number
+  number: number
 }
 
 type BookmarkedPostResponse = {
@@ -140,6 +142,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true)
@@ -149,9 +154,9 @@ export default function HomePage() {
         let url = `${API_BASE_URL}/api/posts`
 
         if (activeTab === "popular") {
-          url = `${API_BASE_URL}/api/posts?sort=LIKES`
+          url = `${API_BASE_URL}/api/posts?sort=LIKES&page=${currentPage}&size=${PAGE_SIZE}`
         } else if (activeTab === "latest") {
-          url = `${API_BASE_URL}/api/posts?sort=LATEST`
+          url = `${API_BASE_URL}/api/posts?sort=LATEST&page=${currentPage}&size=${PAGE_SIZE}`
         }
 
         const response = await fetch(url, {
@@ -188,6 +193,9 @@ export default function HomePage() {
         }))
 
         setPosts(mapped)
+        setCurrentPage(data.number)
+        setTotalPages(data.totalPages)
+
         return
       }
 
@@ -227,7 +235,7 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }, [activeTab])
+  }, [activeTab, currentPage])
 
   useEffect(() => {
     void loadPosts()
@@ -323,19 +331,34 @@ export default function HomePage() {
         </p>
       </section>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value)
+          setCurrentPage(0)
+        }}
+      >
         <TabsList className="mx-auto mb-8 grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="popular">
+        <TabsTrigger
+          value="popular"
+          className="gap-1 data-[state=active]:bg-[#38B8A0] data-[state=active]:text-black"
+        >
             <TrendingUp className="h-4 w-4" />
             인기글
           </TabsTrigger>
 
-          <TabsTrigger value="latest">
+          <TabsTrigger
+            value="latest"
+            className="gap-1 data-[state=active]:bg-[#38B8A0] data-[state=active]:text-black"
+          >
             <Clock className="h-4 w-4" />
             최신글
           </TabsTrigger>
 
-          <TabsTrigger value="feed">
+          <TabsTrigger
+            value="feed"
+            className="gap-1 data-[state=active]:bg-[#38B8A0] data-[state=active]:text-black"
+          >
             <Users className="h-4 w-4" />
             북마크
           </TabsTrigger>
@@ -345,6 +368,24 @@ export default function HomePage() {
         <TabsContent value="latest">{renderPostList()}</TabsContent>
         <TabsContent value="feed">{renderPostList()}</TabsContent>
       </Tabs>
+
+      {activeTab !== "feed" && totalPages > 1 && (
+        <div className="mt-8 flex justify-center gap-2">
+          {[...Array(totalPages)].map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentPage(index)}
+              className={`rounded border px-4 py-2 ${
+                currentPage === index
+                  ? "bg-[#38B8A0] font-bold text-black"
+                  : "bg-black text-white"
+              }`}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

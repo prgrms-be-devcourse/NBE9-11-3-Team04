@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import java.util.*
 
 interface PostLikeRepository : JpaRepository<PostLike, Long> {
 
@@ -27,7 +26,7 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
     fun findByMemberAndPost(
         member: Member,
         post: Post,
-    ): Optional<PostLike>
+    ): PostLike?
 
     /**
      * 특정 회원이 좋아요한 게시글 목록 조회
@@ -52,6 +51,55 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
     ): Page<PostLike>
 
     /**
+     * 좋아요한 게시글 목록 조회 - List
+     *
+     * PostLike -> Post -> Member 를 fetch join 해서
+     * 목록 DTO 매핑 시 N+1 방지
+     */
+    @Query(
+        """
+            select pl
+            from PostLike pl
+            join fetch pl.post p
+            join fetch p.member m
+            where pl.member.userId = :userId
+            and p.isDeleted = false
+            order by pl.createdAt desc
+        """
+    )
+    fun findAllWithPostMemberByUserId(
+        @Param("userId") userId: Long,
+    ): List<PostLike>
+
+    /**
+     * 좋아요한 게시글 목록 조회 - Paging
+     *
+     * PostLike -> Post -> Member 를 fetch join 해서
+     * 목록 DTO 매핑 시 N+1 방지
+     */
+    @Query(
+        value = """
+            select pl
+            from PostLike pl
+            join fetch pl.post p
+            join fetch p.member m
+            where pl.member.userId = :userId
+            and p.isDeleted = false
+        """,
+        countQuery = """
+            select count(pl)
+            from PostLike pl
+            join pl.post p
+            where pl.member.userId = :userId
+            and p.isDeleted = false
+        """,
+    )
+    fun findPageWithPostMemberByUserId(
+        @Param("userId") userId: Long,
+        pageable: Pageable,
+    ): Page<PostLike>
+
+    /**
      * 특정 게시글에 연결된 좋아요 전체 삭제
      */
     fun deleteByPost_PostId(
@@ -65,6 +113,33 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
         userId: Long,
         postId: Long,
     ): Boolean
+
+    /**
+     * 삭제되지 않은 게시글에 대해서만 좋아요 여부 확인
+     */
+    fun existsByMember_UserIdAndPost_PostIdAndPost_IsDeletedFalse(
+        userId: Long,
+        postId: Long,
+    ): Boolean
+
+    /**
+     * 북마크/좋아요 목록 조회 최적화용
+     *
+     * 특정 사용자가 좋아요한 게시글 ID만 한 번에 조회한다.
+     * 목록 DTO 매핑 시 exists 쿼리가 N번 나가는 문제를 방지한다.
+     */
+    @Query(
+        """
+            select pl.post.postId
+            from PostLike pl
+            where pl.member.userId = :userId
+            and pl.post.postId in :postIds
+        """
+    )
+    fun findLikedPostIdsByUserIdAndPostIds(
+        @Param("userId") userId: Long,
+        @Param("postIds") postIds: Collection<Long>,
+    ): List<Long>
 
     /**
      * 좋아요 생성
