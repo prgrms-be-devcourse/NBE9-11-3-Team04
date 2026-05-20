@@ -67,6 +67,11 @@ class Report(
     var reportId: Long? = null
         protected set
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "report_group_id", nullable = false)
+    var reportGroup: ReportGroup? = null
+        protected set
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     var status: ReportStatus = ReportStatus.PENDING
@@ -86,6 +91,10 @@ class Report(
     var createdAt: LocalDateTime? = null
         protected set
 
+    fun assignReportGroup(reportGroup: ReportGroup) {
+        this.reportGroup = reportGroup
+    }
+
     fun processReport(admin: Member) {
         processedByAdmin = admin
         status = ReportStatus.RESOLVED
@@ -99,7 +108,6 @@ class Report(
     }
 
     companion object {
-        @JvmStatic
         fun create(
             reporter: Member,
             targetType: TargetType,

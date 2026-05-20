@@ -409,8 +409,18 @@ export default function PostDetailPage() {
                 </div>
               </div>
             )}
-            <div>
-            <h1 className="text-2xl font-bold break-words text-foreground">{post?.title}</h1>
+            <div className="relative">
+              <div className="absolute right-0 top-0">
+                <InteractionButtons
+                  postId={postId}
+                  initialLiked={Boolean(post?.liked ?? false)}
+                  initialBookmarked={Boolean(post?.bookmarked ?? false)}
+                  initialLikeCount={post?.likeCount ?? 0}
+                />
+              </div>
+
+              <div className="pr-32">
+                <h1 className="text-2xl font-bold break-words text-foreground">{post?.title}</h1>
             {post?.userId ? (
               <div className="mt-2 text-sm text-muted-foreground">
                 작성자:{" "}
@@ -429,41 +439,38 @@ export default function PostDetailPage() {
               dangerouslySetInnerHTML={{ __html: renderedContent }}
             />
 
-            <div className="mt-6">
-              <InteractionButtons
-                postId={postId}
-                initialLiked={Boolean(post?.liked ?? false)}
-                initialBookmarked={Boolean(post?.bookmarked ?? false)}
-                initialLikeCount={post?.likeCount ?? 0}
-              />
-            </div>
-
-            {isAuthor && (
-              <div className="mt-4 flex items-center gap-2">
-                <Link
-                  href={`/write?postId=${postId}`}
-                  className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
-                >
-                  수정
-                </Link>
-
-                <button
-                  onClick={handleDeletePost}
-                  className="rounded-md border border-destructive/40 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
-                >
-                  삭제
-                </button>
               </div>
-            )}
 
-            <button
-              type="button"
-              onClick={handleReportPost}
-              disabled={reportLoading}
-              className="mt-4 rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {reportLoading ? "신고 중..." : "신고"}
-            </button>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {isAuthor && (
+                  <>
+                    <Link
+                      href={`/write?postId=${postId}`}
+                      className="cursor-default rounded-md border px-4 py-2 text-sm hover:bg-muted"
+                    >
+                      수정
+                    </Link>
+
+                    <button
+                      onClick={handleDeletePost}
+                      className="cursor-default rounded-md border border-destructive/40 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+                    >
+                      삭제
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleReportPost}
+                disabled={reportLoading}
+                className="cursor-default rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {reportLoading ? "신고 중..." : "신고"}
+              </button>
+            </div>
             </div>
           </>
         )}

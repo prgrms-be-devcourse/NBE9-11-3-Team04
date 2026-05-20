@@ -1,5 +1,7 @@
 package com.back.devc.domain.post.aidiscussion.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.post.aidiscussion.dto.AiDiscussionGenerateResponse
 import com.back.devc.domain.post.aidiscussion.entity.AiDiscussionPost
 import com.back.devc.domain.post.aidiscussion.repository.AiDiscussionPostRepository
@@ -20,7 +22,6 @@ import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
-import java.util.Optional
 
 class AiDiscussionPostServiceTest {
 
@@ -117,7 +118,7 @@ class AiDiscussionPostServiceTest {
     fun getDiscussion_success() {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.of(aiDiscussionPost))
+            .thenReturn(aiDiscussionPost.toRepositoryResult())
 
         val response = aiDiscussionPostService.getDiscussion(1L)
 
@@ -129,7 +130,7 @@ class AiDiscussionPostServiceTest {
     @Test
     fun getDiscussion_fail_whenNotFound() {
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.empty())
+            .thenReturn(null.toRepositoryResult())
 
         val exception = assertThrows<ResponseStatusException> {
             aiDiscussionPostService.getDiscussion(1L)
@@ -143,7 +144,7 @@ class AiDiscussionPostServiceTest {
     fun approveDiscussion_success() {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.of(aiDiscussionPost))
+            .thenReturn(aiDiscussionPost.toRepositoryResult())
         val discussionCategory = Category("discussion")
         setCategoryId(discussionCategory, 3L)
         Mockito.`when`(categoryRepository.findByName("discussion"))
@@ -175,7 +176,7 @@ class AiDiscussionPostServiceTest {
     fun approveDiscussion_fail_whenDiscussionCategoryNotFound() {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.of(aiDiscussionPost))
+            .thenReturn(aiDiscussionPost.toRepositoryResult())
         Mockito.`when`(categoryRepository.findByName("discussion"))
             .thenReturn(null)
 
@@ -196,7 +197,7 @@ class AiDiscussionPostServiceTest {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         aiDiscussionPost.reject("테스트 거절")
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.of(aiDiscussionPost))
+            .thenReturn(aiDiscussionPost.toRepositoryResult())
 
         val exception = assertThrows<ResponseStatusException> {
             aiDiscussionPostService.approveDiscussion(
@@ -213,7 +214,7 @@ class AiDiscussionPostServiceTest {
     fun rejectDiscussion_success() {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.of(aiDiscussionPost))
+            .thenReturn(aiDiscussionPost.toRepositoryResult())
 
         val response = aiDiscussionPostService.rejectDiscussion(
             aiDiscussionPostId = 1L,
@@ -232,7 +233,7 @@ class AiDiscussionPostServiceTest {
         val aiDiscussionPost = createAiDiscussionPost(id = 1L)
         aiDiscussionPost.approve(10L)
         Mockito.`when`(aiDiscussionPostRepository.findById(1L))
-            .thenReturn(Optional.of(aiDiscussionPost))
+            .thenReturn(aiDiscussionPost.toRepositoryResult())
 
         val exception = assertThrows<ResponseStatusException> {
             aiDiscussionPostService.rejectDiscussion(

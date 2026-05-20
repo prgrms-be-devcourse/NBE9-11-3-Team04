@@ -1,6 +1,6 @@
 package com.back.devc.domain.auth.controller
 
-import com.back.devc.domain.auth.dto.OAuth2MeResponse
+import com.back.devc.domain.auth.dto.oauth.OAuth2MeResponse
 import com.back.devc.domain.auth.dto.login.LoginResponse
 import com.back.devc.domain.auth.dto.oauth.OAuthExchangeRequest
 import com.back.devc.domain.auth.dto.oauth.OAuthPendingSignup

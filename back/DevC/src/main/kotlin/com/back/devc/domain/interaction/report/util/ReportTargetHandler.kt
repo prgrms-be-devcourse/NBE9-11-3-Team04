@@ -9,11 +9,14 @@ import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.entity.MemberStatus
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.member.member.service.MemberSanctionService
+import com.back.devc.domain.post.comment.entity.Comment
 import com.back.devc.domain.post.comment.repository.CommentRepository
 import com.back.devc.domain.post.post.repository.PostRepository
 import com.back.devc.global.exception.ApiException
+import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -124,7 +127,7 @@ class ReportTargetHandler(
 
                 notificationService.createPostReportNotification(
                     targetId,
-                    requireNotNull(admin.userId)
+                    admin.requiredUserId
                 )
 
                 log.info(
@@ -138,7 +141,7 @@ class ReportTargetHandler(
 
                 notificationService.createCommentReportNotification(
                     targetId,
-                    requireNotNull(admin.userId)
+                    admin.requiredUserId
                 )
 
                 log.info(
@@ -169,8 +172,7 @@ class ReportTargetHandler(
 
             TargetType.POST -> {
 
-                val post = postRepository.findById(targetId)
-                    .orElse(null)
+                val post = postRepository.findByIdOrNull(targetId)
 
                 if (post == null) {
 
@@ -201,8 +203,7 @@ class ReportTargetHandler(
 
             TargetType.COMMENT -> {
 
-                val comment = commentRepository.findById(targetId)
-                    .orElse(null)
+                val comment = commentRepository.findByIdOrNull(targetId)
 
                 if (comment == null) {
 
@@ -304,32 +305,20 @@ class ReportTargetHandler(
 
             TargetType.POST -> {
 
-                val post = postRepository.findById(targetId)
-                    .orElseThrow {
-                        ApiException(
-                            ReportErrorCode.REPORT_404_TARGET_USER
-                        )
-                    }
+                val post = postRepository.findByIdOrNull(targetId)
+                    ?: throw ApiException(ReportErrorCode.REPORT_404_TARGET_USER)
 
                 post.member
             }
 
             TargetType.COMMENT -> {
 
-                val comment = commentRepository.findById(targetId)
-                    .orElseThrow {
-                        ApiException(
-                            ReportErrorCode.REPORT_404_TARGET_USER
-                        )
-                    }
+                val comment = commentRepository.findByIdOrNull(targetId)
+                    ?: throw ApiException(ReportErrorCode.REPORT_404_TARGET_USER)
 
-                memberRepository.findById(
-                    requireNotNull(comment.getUserId())
-                ).orElseThrow {
-                    ApiException(
-                        ReportErrorCode.REPORT_404_TARGET_USER
-                    )
-                }
+                memberRepository.findByIdOrNull(
+                    comment.writerId
+                ) ?: throw ApiException(ReportErrorCode.REPORT_404_TARGET_USER)
             }
         }
     }
@@ -344,7 +333,7 @@ class ReportTargetHandler(
             report.targetId
         )
 
-        return ReportResponseDTO.Companion.of(
+        return ReportResponseDTO.of(
             report,
             info.nickname,
             info.title,
@@ -367,8 +356,7 @@ class ReportTargetHandler(
 
             TargetType.POST -> {
 
-                val post = postRepository.findById(targetId)
-                    .orElse(null)
+                val post = postRepository.findByIdOrNull(targetId)
 
                 if (post == null) {
 
@@ -393,8 +381,7 @@ class ReportTargetHandler(
 
             TargetType.COMMENT -> {
 
-                val comment = commentRepository.findById(targetId)
-                    .orElse(null)
+                val comment = commentRepository.findByIdOrNull(targetId)
 
                 if (comment == null) {
 
@@ -410,11 +397,10 @@ class ReportTargetHandler(
                     )
                 }
 
-                val nickname = memberRepository.findById(
-                    requireNotNull(comment.getUserId())
+                val nickname = memberRepository.findByIdOrNull(
+                    comment.writerId
                 )
-                    .map(Member::nickname)
-                    .orElse(null)
+                    ?.nickname
 
                 TargetInfo(
                     nickname = nickname,
@@ -493,4 +479,11 @@ class ReportTargetHandler(
         val title: String?,
         val content: String?
     )
+
+    private val Member.requiredUserId: Long
+        get() = userId
+            ?: throw ApiException(MemberErrorCode.MEMBER_NOT_FOUND)
+
+    private val Comment.writerId: Long
+        get() = getUserId()
 }

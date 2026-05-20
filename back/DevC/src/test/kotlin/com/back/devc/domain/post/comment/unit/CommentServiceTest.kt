@@ -1,5 +1,7 @@
 package com.back.devc.domain.post.comment.unit
 
+import com.back.devc.toRepositoryResult
+
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
 import com.back.devc.domain.post.comment.attachment.dto.CommentAttachmentListResponse
@@ -35,7 +37,6 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.test.util.ReflectionTestUtils
 import java.time.LocalDateTime
-import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 internal class CommentServiceTest {
@@ -70,9 +71,9 @@ internal class CommentServiceTest {
         val post = mock(Post::class.java)
         val member = mock(Member::class.java)
 
-        `when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        `when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         `when`(post.title).thenReturn("테스트 게시글")
-        `when`(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member))
+        `when`(memberRepository.findById(loginUserId)).thenReturn(member.toRepositoryResult())
         `when`(member.userId).thenReturn(loginUserId)
         `when`(member.nickname).thenReturn("작성자B")
         `when`(commentAttachmentService.getAttachments(1L))
@@ -107,7 +108,7 @@ internal class CommentServiceTest {
         val postId = 999L
         val requestDto = CommentCreateRequest("존재하지 않는 게시글 댓글")
 
-        `when`(postRepository.findById(postId)).thenReturn(Optional.empty())
+        `when`(postRepository.findById(postId)).thenReturn(null.toRepositoryResult())
 
         assertThrows<ApiException> {
             commentService.createComment(postId, loginUserId, requestDto)
@@ -134,10 +135,10 @@ internal class CommentServiceTest {
         val post = mock(Post::class.java)
         val member = mock(Member::class.java)
 
-        `when`(commentRepository.findById(parentCommentId)).thenReturn(Optional.of(parentComment))
-        `when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        `when`(commentRepository.findById(parentCommentId)).thenReturn(parentComment.toRepositoryResult())
+        `when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         `when`(post.title).thenReturn("테스트 게시글")
-        `when`(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member))
+        `when`(memberRepository.findById(loginUserId)).thenReturn(member.toRepositoryResult())
         `when`(member.userId).thenReturn(loginUserId)
         `when`(member.nickname).thenReturn("작성자B")
         `when`(commentAttachmentService.getAttachments(200L))
@@ -176,7 +177,7 @@ internal class CommentServiceTest {
         )
         deletedParentComment.softDelete()
 
-        `when`(commentRepository.findById(parentCommentId)).thenReturn(Optional.of(deletedParentComment))
+        `when`(commentRepository.findById(parentCommentId)).thenReturn(deletedParentComment.toRepositoryResult())
 
         assertThrows<ApiException> {
             commentService.createReply(parentCommentId, 2L, CommentCreateRequest("대댓글"))
@@ -203,10 +204,10 @@ internal class CommentServiceTest {
         val post = mock(Post::class.java)
         val member = mock(Member::class.java)
 
-        `when`(commentRepository.findById(commentId)).thenReturn(Optional.of(comment))
-        `when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        `when`(commentRepository.findById(commentId)).thenReturn(comment.toRepositoryResult())
+        `when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         `when`(post.title).thenReturn("테스트 게시글")
-        `when`(memberRepository.findById(loginUserId)).thenReturn(Optional.of(member))
+        `when`(memberRepository.findById(loginUserId)).thenReturn(member.toRepositoryResult())
         `when`(member.nickname).thenReturn("작성자B")
         `when`(commentAttachmentService.getAttachments(commentId))
             .thenReturn(emptyAttachmentListResponse())
@@ -231,7 +232,7 @@ internal class CommentServiceTest {
             content = "삭제할 댓글",
         )
 
-        `when`(commentRepository.findById(commentId)).thenReturn(Optional.of(comment))
+        `when`(commentRepository.findById(commentId)).thenReturn(comment.toRepositoryResult())
 
         val response = commentService.deleteComment(commentId, loginUserId)
 
@@ -256,9 +257,9 @@ internal class CommentServiceTest {
         )
         val parentWriter = mock(Member::class.java)
 
-        `when`(postRepository.findById(postId)).thenReturn(Optional.of(post))
+        `when`(postRepository.findById(postId)).thenReturn(post.toRepositoryResult())
         `when`(post.title).thenReturn("테스트 게시글")
-        `when`(memberRepository.findById(1L)).thenReturn(Optional.of(parentWriter))
+        `when`(memberRepository.findById(1L)).thenReturn(parentWriter.toRepositoryResult())
         `when`(parentWriter.nickname).thenReturn("작성자A")
         `when`(
             commentRepository.findByPostIdAndParentCommentIdIsNullAndIsDeletedFalseOrderByCreatedAtAsc(
