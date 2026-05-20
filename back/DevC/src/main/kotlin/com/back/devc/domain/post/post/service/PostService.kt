@@ -126,7 +126,6 @@ class PostService(
         )
 
         return posts.map { post ->
-            syncCommentCount(post)
 
             val postId = requireNotNull(post.postId)
 
@@ -321,7 +320,5 @@ class PostService(
         val actualCommentCount = commentRepository
             .countByPostIdAndIsDeletedFalse(postId)
             .toInt()
-
-        post.syncCommentCount(actualCommentCount)
     }
 }
