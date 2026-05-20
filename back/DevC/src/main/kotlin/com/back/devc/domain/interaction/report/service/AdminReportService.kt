@@ -1,12 +1,19 @@
 package com.back.devc.domain.interaction.report.service
 
 import com.back.devc.domain.interaction.report.dto.AdminReportRequestDTO
+import com.back.devc.domain.interaction.report.dto.ApproveReportGroupRequest
 import com.back.devc.domain.interaction.report.dto.ReportGroupResponseDTO
 import com.back.devc.domain.interaction.report.dto.ReportResponseDTO
+import com.back.devc.domain.interaction.report.dto.RejectReportGroupRequest
 import com.back.devc.domain.interaction.report.entity.Report
+import com.back.devc.domain.interaction.report.entity.ReportGroup
+import com.back.devc.domain.interaction.report.entity.ReportGroupAction
+import com.back.devc.domain.interaction.report.entity.ReportGroupStatus
 import com.back.devc.domain.interaction.report.entity.ReportStatus
 import com.back.devc.domain.interaction.report.entity.SanctionType
 import com.back.devc.domain.interaction.report.entity.TargetType
+import com.back.devc.domain.interaction.report.repository.ReportGroupActionRepository
+import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
 import com.back.devc.domain.interaction.report.util.ReportTargetHandler
 import com.back.devc.domain.member.member.entity.Member
@@ -21,6 +28,7 @@ import com.back.devc.global.exception.errorCode.MemberErrorCode
 import com.back.devc.global.exception.errorCode.ReportErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -33,6 +41,8 @@ import java.time.LocalDateTime
 @Transactional
 class AdminReportService(
     private val reportRepository: ReportRepository,
+    private val reportGroupRepository: ReportGroupRepository,
+    private val reportGroupActionRepository: ReportGroupActionRepository,
     private val memberRepository: MemberRepository,
     private val postRepository: PostRepository,
     private val commentRepository: CommentRepository,
@@ -68,6 +78,9 @@ class AdminReportService(
     }
 
     @Transactional(readOnly = true)
+    @Deprecated(
+        message = "Use getGroupedReports(status, pageable) based on ReportGroup instead."
+    )
     fun getGroupedReportsNoBatch(
         status: ReportStatus?,
         pageable: Pageable
@@ -126,6 +139,7 @@ class AdminReportService(
         }
     }
 
+    // 전체 조회
     @Transactional(readOnly = true)
     fun getGroupedReports(
         status: ReportStatus?,
@@ -143,6 +157,7 @@ class AdminReportService(
         )
     }
 
+    // 기간 검색 조회
     @Transactional(readOnly = true)
     fun getGroupedReports(
         status: ReportStatus?,
@@ -157,6 +172,9 @@ class AdminReportService(
             pageable
         )
 
+        val reportGroupStatus = status.toReportGroupStatus()
+        val reportGroupPageable = toReportGroupPageable(pageable)
+
         log.info(
             "관리자 신고 그룹 목록 조회 시작 - status={}, page={}, size={}",
             status,
@@ -164,30 +182,27 @@ class AdminReportService(
             pageable.pageSize
         )
 
-        val result = reportRepository.findGroupedReports(
-            status,
+        val result = reportGroupRepository.findReportGroups(
+            reportGroupStatus,
             from,
             to,
-            pageable
+            reportGroupPageable
         )
 
-        val rows = result.content
+        val reportGroups = result.content
 
         log.debug(
             "관리자 신고 그룹 조회 row 수 - status={}, rowCount={}",
             status,
-            rows.size
+            reportGroups.size
         )
 
-        val groupRows = rows.map { row ->
-            requireNotNull(row).toGroupRow()
-        }
 
-        val postIds = groupRows
+        val postIds = reportGroups
             .filter { it.targetType == TargetType.POST }
             .map { it.targetId }
 
-        val commentIds = groupRows
+        val commentIds = reportGroups
             .filter { it.targetType == TargetType.COMMENT }
             .map { it.targetId }
 
@@ -226,43 +241,35 @@ class AdminReportService(
                     .associateBy { requireNotNull(it.userId) }
             }
 
-        val reasonTypeMap = loadReasonTypesBatch(
-            postIds,
-            commentIds
-        )
+        val reportGroupIds = reportGroups
+            .mapNotNull { it.reportGroupId }
 
-        val dtoPage = result.map { row ->
+        val reasonTypeMap = loadReasonTypesByReportGroupIds(reportGroupIds)
 
-            val groupRow = requireNotNull(row).toGroupRow()
+        val dtoPage = result.map { reportGroup ->
 
             val info = resolveTargetInfo(
-                targetType = groupRow.targetType,
-                targetId = groupRow.targetId,
+                targetType = reportGroup.targetType,
+                targetId = reportGroup.targetId,
                 postMap = postMap,
                 commentMap = commentMap,
                 memberMap = memberMap
             )
-
-            val key = buildKey(
-                groupRow.targetType,
-                groupRow.targetId
-            )
-
-            val reasonTypes = reasonTypeMap[key] ?.filterNotNull() ?: emptyList()
+            val reportGroupId = requireNotNull(reportGroup.reportGroupId)
+            val reasonTypes = reasonTypeMap[reportGroupId].orEmpty()
 
             ReportGroupResponseDTO(
-                groupRow.targetType,
-                groupRow.targetId,
+                reportGroup.targetType,
+                reportGroup.targetId,
                 info.nickname,
                 info.title,
                 info.content,
-                groupRow.reportCount,
+                reportGroup.reportCount,
                 reasonTypes,
-                status,
-                groupRow.latestCreatedAt
+                reportGroup.status.toReportStatus(),
+                reportGroup.latestReportedAt
             )
         }
-
         log.info(
             "관리자 신고 그룹 목록 조회 완료 - status={}, totalElements={}, totalPages={}, count={}",
             status,
@@ -270,7 +277,6 @@ class AdminReportService(
             dtoPage.totalPages,
             dtoPage.numberOfElements
         )
-
         return dtoPage
     }
 
@@ -504,6 +510,9 @@ class AdminReportService(
         )
     }
 
+    @Deprecated(
+        message = "Use approveReportGroupById(adminId, reportGroupId, request) instead."
+    )
     @Transactional
     fun approveReportGroup(
         adminId: Long,
@@ -578,6 +587,9 @@ class AdminReportService(
         )
     }
 
+    @Deprecated(
+        message = "Use rejectReportGroupById(adminId, reportGroupId, request) instead."
+    )
     @Transactional
     fun rejectReportGroup(
         adminId: Long,
@@ -643,6 +655,169 @@ class AdminReportService(
         )
     }
 
+    @Transactional
+    fun approveReportGroupById(
+        adminId: Long,
+        reportGroupId: Long,
+        request: ApproveReportGroupRequest
+    ) {
+
+        log.info(
+            "관리자 신고 그룹 승인 시작 - adminId={}, reportGroupId={}, sanctionType={}, suspensionDays={}",
+            adminId,
+            reportGroupId,
+            request.sanctionType,
+            request.suspensionDays
+        )
+
+        val admin = findMemberOrThrow(adminId)
+
+        validateAdminRole(admin)
+        validateSanctionDetails(
+            request.sanctionType,
+            request.suspensionDays
+        )
+
+        val reportGroup = findReportGroupOrThrow(reportGroupId)
+        val beforeStatus = reportGroup.status
+        val now = LocalDateTime.now()
+
+        validateTargetExists(
+            reportGroup.targetType,
+            reportGroup.targetId
+        )
+
+        reportGroup.approve(
+            admin = admin,
+            note = request.adminNote,
+            sanctionType = request.sanctionType,
+            suspensionDays = request.suspensionDays,
+            now = now
+        )
+        reportGroupRepository.saveAndFlush(reportGroup)
+        reportGroupActionRepository.save(
+            ReportGroupAction.approve(
+                reportGroup = reportGroup,
+                admin = admin,
+                beforeStatus = beforeStatus,
+                note = request.adminNote,
+                sanctionType = request.sanctionType,
+                suspensionDays = request.suspensionDays,
+                now = now
+            )
+        )
+
+        val updatedCount = reportRepository.updateStatusByReportGroupId(
+            reportGroupId,
+            admin,
+            ReportStatus.RESOLVED,
+            ReportStatus.PENDING,
+            now
+        )
+
+        if (updatedCount == 0) {
+            log.warn(
+                "관리자 신고 그룹 승인 실패 - 처리 가능한 PENDING 신고 없음, adminId={}, reportGroupId={}",
+                adminId,
+                reportGroupId
+            )
+
+            throw ApiException(
+                ReportErrorCode.REPORT_404_PENDING_LIST
+            )
+        }
+
+        reportTargetHandler.handleApproved(
+            reportGroup.targetType,
+            reportGroup.targetId,
+            admin,
+            request.sanctionType,
+            request.suspensionDays
+        )
+
+        log.info(
+            "관리자 신고 그룹 승인 완료 - adminId={}, reportGroupId={}, targetType={}, targetId={}, updatedCount={}",
+            adminId,
+            reportGroupId,
+            reportGroup.targetType,
+            reportGroup.targetId,
+            updatedCount
+        )
+    }
+
+    @Transactional
+    fun rejectReportGroupById(
+        adminId: Long,
+        reportGroupId: Long,
+        request: RejectReportGroupRequest
+    ) {
+
+        log.info(
+            "관리자 신고 그룹 반려 시작 - adminId={}, reportGroupId={}",
+            adminId,
+            reportGroupId
+        )
+
+        val admin = findMemberOrThrow(adminId)
+
+        validateAdminRole(admin)
+
+        val reportGroup = findReportGroupOrThrow(reportGroupId)
+        val beforeStatus = reportGroup.status
+        val now = LocalDateTime.now()
+
+        reportGroup.reject(
+            admin = admin,
+            note = request.adminNote,
+            now = now
+        )
+        reportGroupRepository.saveAndFlush(reportGroup)
+        reportGroupActionRepository.save(
+            ReportGroupAction.reject(
+                reportGroup = reportGroup,
+                admin = admin,
+                beforeStatus = beforeStatus,
+                note = request.adminNote,
+                now = now
+            )
+        )
+
+        val updatedCount = reportRepository.updateStatusByReportGroupId(
+            reportGroupId,
+            admin,
+            ReportStatus.REJECTED,
+            ReportStatus.PENDING,
+            now
+        )
+
+        if (updatedCount == 0) {
+            log.warn(
+                "관리자 신고 그룹 반려 실패 - 처리 가능한 PENDING 신고 없음, adminId={}, reportGroupId={}",
+                adminId,
+                reportGroupId
+            )
+
+            throw ApiException(
+                ReportErrorCode.REPORT_404_PENDING_LIST
+            )
+        }
+
+        reportTargetHandler.handleRejected(
+            reportGroup.targetType,
+            reportGroup.targetId,
+            admin
+        )
+
+        log.info(
+            "관리자 신고 그룹 반려 완료 - adminId={}, reportGroupId={}, targetType={}, targetId={}, updatedCount={}",
+            adminId,
+            reportGroupId,
+            reportGroup.targetType,
+            reportGroup.targetId,
+            updatedCount
+        )
+    }
+
     private fun validateAdminRole(member: Member) {
 
         if (!member.isAdmin()) {
@@ -681,15 +856,26 @@ class AdminReportService(
         dto: AdminReportRequestDTO
     ) {
 
+        validateSanctionDetails(
+            dto.sanctionType,
+            dto.suspensionDays
+        )
+    }
+
+    private fun validateSanctionDetails(
+        sanctionType: SanctionType?,
+        suspensionDays: Int?
+    ) {
+
         if (
-            dto.sanctionType == SanctionType.SUSPENDED &&
-            (dto.suspensionDays == null || dto.suspensionDays <= 0)
+            sanctionType == SanctionType.SUSPENDED &&
+            (suspensionDays == null || suspensionDays <= 0)
         ) {
 
             log.warn(
                 "신고 제재 파라미터 검증 실패 - sanctionType={}, suspensionDays={}",
-                dto.sanctionType,
-                dto.suspensionDays
+                sanctionType,
+                suspensionDays
             )
 
             throw ApiException(
@@ -722,6 +908,18 @@ class AdminReportService(
             .orElseThrow {
                 ApiException(
                     ReportErrorCode.REPORT_404_REPORT
+                )
+            }
+    }
+
+    private fun findReportGroupOrThrow(
+        reportGroupId: Long
+    ): ReportGroup {
+
+        return reportGroupRepository.findById(reportGroupId)
+            .orElseThrow {
+                ApiException(
+                    ReportErrorCode.REPORT_404_REPORT_GROUP
                 )
             }
     }
@@ -762,6 +960,46 @@ class AdminReportService(
         private const val DEFAULT_GROUP_LOOKBACK_DAYS = 30
         private const val MAX_GROUP_RANGE_DAYS = 90
         private const val GROUP_SORT_PROPERTY = "latestCreatedAt"
+    }
+
+    private fun ReportStatus?.toReportGroupStatus(): ReportGroupStatus? {
+        return when (this) {
+            null -> null
+            ReportStatus.PENDING -> ReportGroupStatus.OPEN
+            ReportStatus.RESOLVED -> ReportGroupStatus.APPROVED
+            ReportStatus.REJECTED -> ReportGroupStatus.REJECTED
+        }
+    }
+
+    private fun ReportGroupStatus.toReportStatus(): ReportStatus {
+        return when (this) {
+            ReportGroupStatus.OPEN -> ReportStatus.PENDING
+            ReportGroupStatus.APPROVED -> ReportStatus.RESOLVED
+            ReportGroupStatus.REJECTED -> ReportStatus.REJECTED
+        }
+    }
+
+    private fun toReportGroupPageable(pageable: Pageable): Pageable {
+        return PageRequest.of(
+            pageable.pageNumber,
+            pageable.pageSize,
+            Sort.by(Sort.Direction.DESC, "latestReportedAt")
+        )
+    }
+
+    private fun loadReasonTypesByReportGroupIds(
+        reportGroupIds: List<Long>
+    ): Map<Long, List<String>> {
+
+        if (reportGroupIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return reportRepository.findReasonStatsByReportGroupIds(reportGroupIds)
+            .groupBy { it.reportGroupId }
+            .mapValues { (_, stats) ->
+                stats.map { it.reasonType }
+            }
     }
 }
 
