@@ -25,6 +25,7 @@ import java.time.LocalDateTime
 class UserReportService(
     private val reportRepository: ReportRepository,
     private val reportGroupRepository: ReportGroupRepository,
+    private val reportGroupCreationService: ReportGroupCreationService,
     private val memberRepository: MemberRepository,
     private val postRepository: PostRepository,
     private val commentRepository: CommentRepository
@@ -117,13 +118,15 @@ class UserReportService(
         }
 
         val created = try {
-            reportGroupRepository.saveAndFlush(
-                ReportGroup(
-                    targetType = targetType,
-                    targetId = targetId,
-                    firstReportedAt = now
-                )
+            reportGroupCreationService.createOpenReportGroup(
+                targetType = targetType,
+                targetId = targetId,
+                firstReportedAt = now
             )
+            reportGroupRepository.findByTargetTypeAndTargetId(
+                targetType,
+                targetId
+            ) ?: throw IllegalStateException("Created report group was not found")
         } catch (e: DataIntegrityViolationException) {
             reportGroupRepository.findByTargetTypeAndTargetId(
                 targetType,

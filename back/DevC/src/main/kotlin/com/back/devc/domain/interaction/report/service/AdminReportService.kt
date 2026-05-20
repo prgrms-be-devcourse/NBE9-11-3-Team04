@@ -711,7 +711,8 @@ class AdminReportService(
             reportGroupId,
             admin,
             ReportStatus.RESOLVED,
-            ReportStatus.PENDING
+            ReportStatus.PENDING,
+            now
         )
 
         if (updatedCount == 0) {
@@ -785,7 +786,8 @@ class AdminReportService(
             reportGroupId,
             admin,
             ReportStatus.REJECTED,
-            ReportStatus.PENDING
+            ReportStatus.PENDING,
+            now
         )
 
         if (updatedCount == 0) {

@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -503,10 +504,11 @@ internal class AdminReportServiceTest {
             whenever(reportTargetHandler.exists(TargetType.POST, POST_ID)).thenReturn(true)
             whenever(
                 reportRepository.updateStatusByReportGroupId(
-                    REPORT_GROUP_ID,
-                    admin,
-                    ReportStatus.RESOLVED,
-                    ReportStatus.PENDING
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any()
                 )
             ).thenReturn(2)
 
@@ -524,8 +526,17 @@ internal class AdminReportServiceTest {
             assertThat(actionCaptor.firstValue.sanctionType).isEqualTo(SanctionType.WARNED)
             assertThat(actionCaptor.firstValue.suspensionDays).isNull()
 
+            val processedAtCaptor = argumentCaptor<LocalDateTime>()
             verify(reportRepository)
-                .updateStatusByReportGroupId(REPORT_GROUP_ID, admin, ReportStatus.RESOLVED, ReportStatus.PENDING)
+                .updateStatusByReportGroupId(
+                    eq(REPORT_GROUP_ID),
+                    eq(admin),
+                    eq(ReportStatus.RESOLVED),
+                    eq(ReportStatus.PENDING),
+                    processedAtCaptor.capture()
+                )
+            assertThat(processedAtCaptor.firstValue).isEqualTo(reportGroup.processedAt)
+            assertThat(processedAtCaptor.firstValue).isEqualTo(actionCaptor.firstValue.createdAt)
             verify(reportTargetHandler).handleApproved(TargetType.POST, POST_ID, admin, SanctionType.WARNED, null)
         }
 
@@ -540,7 +551,7 @@ internal class AdminReportServiceTest {
                 action = { adminReportService.approveReportGroupById(ADMIN_ID, REPORT_GROUP_ID, request) },
                 expectedErrorCode = ReportErrorCode.REPORT_404_REPORT_GROUP
             )
-            verify(reportRepository, never()).updateStatusByReportGroupId(any(), any(), any(), any())
+            verify(reportRepository, never()).updateStatusByReportGroupId(any(), any(), any(), any(), any())
             verifyNoInteractions(reportTargetHandler)
         }
     }
@@ -558,10 +569,11 @@ internal class AdminReportServiceTest {
             whenever(reportGroupRepository.findById(REPORT_GROUP_ID)).thenReturn(reportGroup.toOptional())
             whenever(
                 reportRepository.updateStatusByReportGroupId(
-                    REPORT_GROUP_ID,
-                    admin,
-                    ReportStatus.REJECTED,
-                    ReportStatus.PENDING
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any()
                 )
             ).thenReturn(2)
 
@@ -579,8 +591,17 @@ internal class AdminReportServiceTest {
             assertThat(actionCaptor.firstValue.sanctionType).isNull()
             assertThat(actionCaptor.firstValue.suspensionDays).isNull()
 
+            val processedAtCaptor = argumentCaptor<LocalDateTime>()
             verify(reportRepository)
-                .updateStatusByReportGroupId(REPORT_GROUP_ID, admin, ReportStatus.REJECTED, ReportStatus.PENDING)
+                .updateStatusByReportGroupId(
+                    eq(REPORT_GROUP_ID),
+                    eq(admin),
+                    eq(ReportStatus.REJECTED),
+                    eq(ReportStatus.PENDING),
+                    processedAtCaptor.capture()
+                )
+            assertThat(processedAtCaptor.firstValue).isEqualTo(reportGroup.processedAt)
+            assertThat(processedAtCaptor.firstValue).isEqualTo(actionCaptor.firstValue.createdAt)
             verify(reportTargetHandler).handleRejected(TargetType.POST, POST_ID, admin)
         }
     }

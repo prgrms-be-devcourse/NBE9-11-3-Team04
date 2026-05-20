@@ -6,6 +6,7 @@ import com.back.devc.domain.interaction.report.entity.ReportGroup
 import com.back.devc.domain.interaction.report.entity.TargetType
 import com.back.devc.domain.interaction.report.repository.ReportGroupRepository
 import com.back.devc.domain.interaction.report.repository.ReportRepository
+import com.back.devc.domain.interaction.report.service.ReportGroupCreationService
 import com.back.devc.domain.interaction.report.service.UserReportService
 import com.back.devc.domain.member.member.entity.Member
 import com.back.devc.domain.member.member.repository.MemberRepository
@@ -30,6 +31,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
@@ -41,6 +43,7 @@ import java.time.LocalDateTime
 internal class UserReportServiceTest {
     private val reportRepository = mock<ReportRepository>()
     private val reportGroupRepository = mock<ReportGroupRepository>()
+    private val reportGroupCreationService = mock<ReportGroupCreationService>()
     private val memberRepository = mock<MemberRepository>()
     private val postRepository = mock<PostRepository>()
     private val commentRepository = mock<CommentRepository>()
@@ -48,6 +51,7 @@ internal class UserReportServiceTest {
     private val userReportService = UserReportService(
         reportRepository = reportRepository,
         reportGroupRepository = reportGroupRepository,
+        reportGroupCreationService = reportGroupCreationService,
         memberRepository = memberRepository,
         postRepository = postRepository,
         commentRepository = commentRepository
@@ -158,6 +162,27 @@ internal class UserReportServiceTest {
                 expectedErrorCode = ReportErrorCode.REPORT_409_ALREADY_REPORT_USER
             )
             verify(reportRepository, never()).save(any())
+        }
+
+        @Test
+        @DisplayName("recovers with existing report group when concurrent creation loses unique race")
+        fun reportPost_usesExistingGroupAfterConcurrentCreateConflict() {
+            val request = ReportRequestDTO(POST_ID, "SPAM", "Repeated promotion")
+            givenExistingReporter()
+            givenExistingPostByAnotherMember(deleted = false)
+            givenDuplicateReportExists(TargetType.POST, POST_ID, exists = false)
+
+            val existingReportGroup = ReportGroup(TargetType.POST, POST_ID, LocalDateTime.now())
+            whenever(reportGroupRepository.findByTargetTypeAndTargetId(TargetType.POST, POST_ID))
+                .thenReturn(null, existingReportGroup)
+            whenever(reportGroupCreationService.createOpenReportGroup(any(), any(), any()))
+                .thenThrow(DataIntegrityViolationException("duplicate report group"))
+
+            userReportService.reportPost(REPORTER_ID, request)
+
+            val savedReport = captureSavedReport()
+            assertThat(savedReport.reportGroup).isSameAs(existingReportGroup)
+            assertThat(existingReportGroup.reportCount).isEqualTo(1L)
         }
     }
 
@@ -275,8 +300,8 @@ internal class UserReportServiceTest {
         val reportGroup = ReportGroup(targetType, targetId, LocalDateTime.now())
 
         whenever(reportGroupRepository.findByTargetTypeAndTargetId(targetType, targetId))
-            .thenReturn(null)
-        whenever(reportGroupRepository.saveAndFlush(any()))
+            .thenReturn(null, reportGroup)
+        whenever(reportGroupCreationService.createOpenReportGroup(any(), any(), any()))
             .thenReturn(reportGroup)
 
         return reportGroup

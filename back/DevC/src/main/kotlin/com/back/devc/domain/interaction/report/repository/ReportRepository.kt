@@ -124,7 +124,7 @@ interface ReportRepository : JpaRepository<Report, Long> {
         UPDATE Report r
         SET r.status = :newStatus,
             r.processedByAdmin = :admin,
-            r.processedAt = CURRENT_TIMESTAMP
+            r.processedAt = :processedAt
         WHERE r.reportGroup.reportGroupId = :reportGroupId
           AND r.status = :oldStatus
         """
@@ -133,7 +133,8 @@ interface ReportRepository : JpaRepository<Report, Long> {
         @Param("reportGroupId") reportGroupId: Long,
         @Param("admin") admin: Member,
         @Param("newStatus") newStatus: ReportStatus,
-        @Param("oldStatus") oldStatus: ReportStatus
+        @Param("oldStatus") oldStatus: ReportStatus,
+        @Param("processedAt") processedAt: LocalDateTime
     ): Int
 
     fun existsByReporterAndReportGroup(
