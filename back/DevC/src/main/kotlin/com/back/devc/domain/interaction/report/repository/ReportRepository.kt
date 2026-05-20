@@ -20,6 +20,9 @@ interface ReportRepository : JpaRepository<Report, Long> {
         pageable: Pageable,
     ): Page<Report>
 
+    @Deprecated(
+        message = "Use ReportGroupRepository.findReportGroups instead."
+    )
     @Query(
         value = """
         SELECT r.targetType as targetType,
@@ -65,6 +68,9 @@ interface ReportRepository : JpaRepository<Report, Long> {
         targetId: Long,
     ): Boolean
 
+    @Deprecated(
+        message = "Use findReasonStatsByReportGroupIds instead."
+    )
     @Query(
         """
         SELECT r.targetType, r.targetId, r.reasonType
@@ -81,11 +87,17 @@ interface ReportRepository : JpaRepository<Report, Long> {
     ): List<Array<Any>>
 
     // N+1 처리 전 사용한 조회 방법
+    @Deprecated(
+        message = "Use findReasonStatsByReportGroupIds instead."
+    )
     fun findReasonTypesByTargetId(
         targetType: TargetType,
         targetId: Long,
     ): List<String>
 
+    @Deprecated(
+        message = "Use updateStatusByReportGroupId instead."
+    )
     @Modifying(clearAutomatically = true)
     @Query(
         """
