@@ -1,5 +1,5 @@
 
-## 📌 DevC (Dev Community) [http://43.200.4.180.nip.io/]
+## 📌 DevC (Dev Community) 
 
 개발자를 위한 정보 공유 및 커뮤니티 플랫폼입니다.
 
